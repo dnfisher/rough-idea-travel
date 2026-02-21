@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
 import { ExplorationResultSchema } from "@/lib/ai/schemas";
 import type { TripInput } from "@/lib/ai/schemas";
@@ -13,7 +14,14 @@ export default function ExplorePage() {
     schema: ExplorationResultSchema,
   });
 
+  useEffect(() => {
+    if (error) {
+      console.error("[Rough Idea] API error:", error);
+    }
+  }, [error]);
+
   function handleSubmit(input: TripInput) {
+    console.log("[Rough Idea] Submitting:", input);
     submit(input);
   }
 

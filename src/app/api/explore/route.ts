@@ -14,15 +14,32 @@ const anthropic = createAnthropic({
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const input = TripInputSchema.parse(body);
+  try {
+    if (!process.env.ROUGH_IDEA_ANTHROPIC_API_KEY) {
+      console.error("[explore] ROUGH_IDEA_ANTHROPIC_API_KEY is not set");
+      return new Response(
+        JSON.stringify({ error: "Anthropic API key not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
-  const result = streamText({
-    model: anthropic("claude-sonnet-4-5-20250929"),
-    system: EXPLORATION_SYSTEM_PROMPT,
-    prompt: buildExplorationPrompt(input),
-    output: Output.object({ schema: ExplorationResultSchema }),
-  });
+    const body = await req.json();
+    const input = TripInputSchema.parse(body);
 
-  return result.toTextStreamResponse();
+    const result = streamText({
+      model: anthropic("claude-sonnet-4-5-20250929"),
+      system: EXPLORATION_SYSTEM_PROMPT,
+      prompt: buildExplorationPrompt(input),
+      output: Output.object({ schema: ExplorationResultSchema }),
+    });
+
+    return result.toTextStreamResponse();
+  } catch (error) {
+    console.error("[explore] Error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 }
