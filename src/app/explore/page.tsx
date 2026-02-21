@@ -7,6 +7,7 @@ import type { TripInput } from "@/lib/ai/schemas";
 import { TripInputForm } from "@/components/explore/TripInputForm";
 import { ResultsPanel } from "@/components/results/ResultsPanel";
 import { BackgroundMap } from "@/components/explore/BackgroundMap";
+import { UserButton } from "@/components/auth/UserButton";
 
 export default function ExplorePage() {
   const { object, submit, isLoading, error } = useObject({
@@ -34,6 +35,7 @@ export default function ExplorePage() {
           <a href="/" className="font-logo text-3xl uppercase tracking-[-0.02em]">
             ROUGH IDEA<span className="text-highlight">.</span>
           </a>
+          <UserButton />
         </div>
       </header>
 
@@ -56,7 +58,7 @@ export default function ExplorePage() {
               <p className="text-sm text-muted-foreground mb-6">
                 Tell us roughly what you&apos;re after and we&apos;ll find your perfect trip.
               </p>
-              <TripInputForm onSubmit={handleSubmit} isLoading={isLoading} />
+              <TripInputForm onSubmit={handleSubmit} isLoading={isLoading} hasResults={hasResults} />
             </div>
           </aside>
 

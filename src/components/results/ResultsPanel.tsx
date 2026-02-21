@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { MapPin, Thermometer, X } from "lucide-react";
+import { MapPin, Thermometer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DeepPartial } from "ai";
 import type { ExplorationResult } from "@/lib/ai/schemas";
@@ -10,6 +10,9 @@ import { WeatherComparison } from "./WeatherComparison";
 import { ExploreLoadingState } from "./ExploreLoadingState";
 import { DestinationSortBar, type SortOption } from "./DestinationSortBar";
 import { ExploreMap } from "./ExploreMap";
+import { DestinationDetailSheet } from "./DestinationDetailSheet";
+import { FavoriteButton } from "@/components/favorites/FavoriteButton";
+import { ShareButton } from "@/components/share/ShareButton";
 import type { MapMarker } from "./ExploreMapInner";
 
 type Tab = "destinations" | "weather";
@@ -24,6 +27,10 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("destinations");
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("match");
+  // Detail sheet state
+  const [detailDestination, setDetailDestination] = useState<string | null>(null);
+  // Track favorites: map of destination name -> favorite ID
+  const [favoritesMap, setFavoritesMap] = useState<Record<string, string>>({});
 
   // Sort destinations (only when not streaming)
   const sortedDestinations = useMemo(() => {
@@ -54,15 +61,25 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
     });
   }, [result?.destinations, sortBy, isLoading]);
 
-  // Find the selected destination object
+  // Find the selected destination for the map
   const selectedDest = useMemo(() => {
     if (!selectedDestination) return null;
     return sortedDestinations.find((d) => d?.name === selectedDestination) ?? null;
   }, [selectedDestination, sortedDestinations]);
 
+  // Find the destination for the detail sheet
+  const detailDest = useMemo(() => {
+    if (!detailDestination) return null;
+    return sortedDestinations.find((d) => d?.name === detailDestination) ?? null;
+  }, [detailDestination, sortedDestinations]);
+
+  const detailDestRank = useMemo(() => {
+    if (!detailDest) return undefined;
+    return sortedDestinations.indexOf(detailDest) + 1;
+  }, [detailDest, sortedDestinations]);
+
   // Compute map markers — show itinerary route when a destination with itinerary is selected
   const mapMarkers = useMemo((): MapMarker[] => {
-    // If a destination is selected and has itinerary days, show those as route markers
     if (selectedDest?.itinerary?.days?.length) {
       const days = selectedDest.itinerary.days;
       return days
@@ -78,7 +95,6 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
         }));
     }
 
-    // Otherwise show destination markers
     return sortedDestinations
       .filter((d) => d?.coordinates?.lat != null && d?.coordinates?.lng != null)
       .map((d, i) => ({
@@ -97,6 +113,17 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
     if (id.startsWith("day-")) return;
     setSelectedDestination((prev) => (prev === id ? null : id));
     setActiveTab("destinations");
+  }, []);
+
+  // Clicking a card: highlight on map + open detail sheet
+  const handleCardClick = useCallback((name: string | undefined) => {
+    if (!name) return;
+    setSelectedDestination(name);
+    setDetailDestination(name);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setDetailDestination(null);
   }, []);
 
   // Show loading animation until at least 3 destinations have streamed in
@@ -135,7 +162,7 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
         </div>
       )}
 
-      {/* Hero Map — always visible when we have markers */}
+      {/* Hero Map */}
       {result && mapMarkers.length > 0 && (
         <ExploreMap
           markers={mapMarkers}
@@ -144,25 +171,6 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
           onMarkerClick={handleMarkerClick}
           height={500}
         />
-      )}
-
-      {/* Selected destination detail — appears when a marker is clicked */}
-      {selectedDest && (
-        <div className="relative">
-          <button
-            onClick={() => setSelectedDestination(null)}
-            className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-card border border-border shadow-sm hover:bg-muted transition-colors"
-          >
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <DestinationCard
-            destination={selectedDest}
-            rank={sortedDestinations.indexOf(selectedDest) + 1}
-            isRecommended={selectedDest.name === result?.recommendedDestination}
-            isSelected={true}
-            onClick={() => setSelectedDestination(null)}
-          />
-        </div>
       )}
 
       {/* Tabs */}
@@ -199,7 +207,7 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
                   <DestinationSortBar value={sortBy} onChange={setSortBy} />
                 )}
 
-                {/* Destination cards — click any to select on map */}
+                {/* Destination cards */}
                 <div className="grid grid-cols-1 gap-3">
                   {sortedDestinations.map((dest, i) => {
                     if (!dest) return null;
@@ -210,11 +218,7 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
                           rank={i + 1}
                           isRecommended={dest.name === result.recommendedDestination}
                           isSelected={selectedDestination === dest.name}
-                          onClick={() =>
-                            setSelectedDestination(
-                              selectedDestination === dest.name ? null : dest.name ?? null
-                            )
-                          }
+                          onClick={() => handleCardClick(dest.name)}
                         />
                       </div>
                     );
@@ -264,6 +268,38 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
           )}
         </>
       )}
+
+      {/* Detail sheet — slide-in panel */}
+      <DestinationDetailSheet
+        destination={detailDest}
+        rank={detailDestRank}
+        isRecommended={detailDest?.name === result?.recommendedDestination}
+        onClose={handleCloseDetail}
+        actions={
+          detailDest ? (
+            <>
+              <FavoriteButton
+                destination={detailDest}
+                isFavorited={!!(detailDest.name && favoritesMap[detailDest.name])}
+                favoriteId={detailDest.name ? favoritesMap[detailDest.name] ?? null : null}
+                onToggle={(newId) => {
+                  if (!detailDest.name) return;
+                  setFavoritesMap((prev) => {
+                    const next = { ...prev };
+                    if (newId) {
+                      next[detailDest.name!] = newId;
+                    } else {
+                      delete next[detailDest.name!];
+                    }
+                    return next;
+                  });
+                }}
+              />
+              <ShareButton destination={detailDest} />
+            </>
+          ) : undefined
+        }
+      />
     </div>
   );
 }
