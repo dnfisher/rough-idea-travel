@@ -99,6 +99,11 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
     setActiveTab("destinations");
   }, []);
 
+  // Show loading animation until at least 3 destinations have streamed in
+  const destinationCount = result?.destinations?.filter(Boolean)?.length ?? 0;
+  const showLoading = isLoading && destinationCount < 3;
+  const showSkipToEnd = isLoading && destinationCount >= 1 && destinationCount < 3;
+
   if (error) {
     return (
       <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center">
@@ -108,8 +113,8 @@ export function ResultsPanel({ result, isLoading, error }: ResultsPanelProps) {
     );
   }
 
-  if (isLoading && !result?.summary) {
-    return <ExploreLoadingState />;
+  if (showLoading) {
+    return <ExploreLoadingState skipToEnd={showSkipToEnd} />;
   }
 
   if (!result && !isLoading) {
