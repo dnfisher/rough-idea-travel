@@ -6,22 +6,29 @@ import {
   buildExplorationPrompt,
 } from "@/lib/ai/prompts";
 
-const anthropic = createAnthropic({
-  baseURL: "https://api.anthropic.com/v1",
-  apiKey: process.env.ROUGH_IDEA_ANTHROPIC_API_KEY,
-});
-
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    if (!process.env.ROUGH_IDEA_ANTHROPIC_API_KEY) {
-      console.error("[explore] ROUGH_IDEA_ANTHROPIC_API_KEY is not set");
+    const apiKey = process.env.ROUGH_IDEA_ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      const relevantKeys = Object.keys(process.env)
+        .filter((k) => k.includes("ANTHROPIC") || k.includes("ROUGH"))
+        .join(", ");
+      console.error(
+        "[explore] ROUGH_IDEA_ANTHROPIC_API_KEY is not set. Related env vars:",
+        relevantKeys || "none found"
+      );
       return new Response(
         JSON.stringify({ error: "Anthropic API key not configured" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    const anthropic = createAnthropic({
+      baseURL: "https://api.anthropic.com/v1",
+      apiKey,
+    });
 
     const body = await req.json();
     const input = TripInputSchema.parse(body);
