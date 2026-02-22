@@ -5,6 +5,6 @@ export default defineConfig({
   out: "./src/lib/db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.POSTGRES_URL!,
+    url: process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL!,
   },
 });
