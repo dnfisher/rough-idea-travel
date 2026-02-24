@@ -4,7 +4,6 @@ import {
   ThumbsUp,
   ThumbsDown,
   Clock,
-  DollarSign,
   Star,
   Sun,
   CloudRain,
@@ -18,6 +17,8 @@ import { ItineraryTimeline } from "./ItineraryTimeline";
 import { ExploreMap } from "./ExploreMap";
 import { BookingLinks } from "./BookingLinks";
 import type { MapMarker } from "./ExploreMapInner";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPrice } from "@/lib/currency";
 
 interface DestinationDetailContentProps {
   destination: DeepPartial<DestinationSuggestion>;
@@ -36,6 +37,8 @@ export function DestinationDetailContent({
   actions,
   sharedDate,
 }: DestinationDetailContentProps) {
+  const { currency } = useCurrency();
+
   // Build map markers from itinerary days
   const mapMarkers: MapMarker[] = (destination.itinerary?.days ?? [])
     .filter((d) => d?.coordinates?.lat != null && d?.coordinates?.lng != null)
@@ -107,8 +110,7 @@ export function DestinationDetailContent({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {destination.estimatedDailyCostEur != null && (
           <div className="rounded-xl border border-border p-3 text-center">
-            <DollarSign className="h-4 w-4 mx-auto mb-1 text-primary" />
-            <p className="text-sm font-medium">~€{destination.estimatedDailyCostEur}/day</p>
+            <p className="text-sm font-medium">~{formatPrice(destination.estimatedDailyCostEur, currency)}/day</p>
             <p className="text-xs text-muted-foreground">Estimated cost</p>
           </div>
         )}

@@ -147,8 +147,10 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     if (!detailDestination) return null;
     if (detailCache[detailDestination]) return detailCache[detailDestination];
     if (streamingDetailName === detailDestination && detailObject) return detailObject;
-    return null;
-  }, [detailDestination, detailCache, streamingDetailName, detailObject]);
+    // Fallback: use summary data so there's never a null gap while detail streams in
+    const summary = sortedDestinations.find((d) => d?.name === detailDestination);
+    return summary ?? null;
+  }, [detailDestination, detailCache, streamingDetailName, detailObject, sortedDestinations]);
 
   const detailDestRank = useMemo(() => {
     if (!detailDestination) return undefined;

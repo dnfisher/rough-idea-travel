@@ -4,6 +4,24 @@ const CACHE = new Map<string, { url: string | null; ts: number }>();
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 const UA = "RoughIdeaTravel/1.0 (travel planning tool)";
 
+// URL patterns that indicate non-photo content (maps, charts, logos, etc.)
+const NON_PHOTO_PATTERNS = [
+  "Map_of_", "map_of_", "_map.", "_Map.", "locator_map", "location_map",
+  "_in_Europe", "_in_Asia", "_in_Africa", "_in_North_America", "_in_South_America",
+  "_in_Oceania", "_in_the_", "_on_the_globe",
+  "coat_of_arms", "Coat_of_arms", "Coat_of_Arms",
+  "Logo_", "logo_", "_logo.", "_Logo.",
+  "Symbol_", "symbol_", "Diagram", "diagram", "Chart_", "chart_",
+  "Seal_of_", "seal_of_", "Emblem_of_", "emblem_of_",
+  "Blason_", "Wappen_", "Escudo_de_",
+  "_orthographic", "_globe", "topographic_map", "relief_map", "political_map",
+  "Administrative_", "administrative_", "Location_dot_",
+];
+
+function isLikelyPhoto(url: string): boolean {
+  return !NON_PHOTO_PATTERNS.some((p) => url.includes(p));
+}
+
 async function fetchWikipediaImage(title: string): Promise<string | null> {
   const url = new URL("https://en.wikipedia.org/w/api.php");
   url.searchParams.set("action", "query");
@@ -21,7 +39,7 @@ async function fetchWikipediaImage(title: string): Promise<string | null> {
 
   for (const page of Object.values(pages) as any[]) {
     const thumb = page?.thumbnail?.source;
-    if (thumb && !thumb.includes(".svg") && !thumb.includes("/Flag_of_")) {
+    if (thumb && !thumb.includes(".svg") && !thumb.includes("/Flag_of_") && isLikelyPhoto(thumb)) {
       return thumb;
     }
   }
@@ -53,7 +71,7 @@ async function fetchWikipediaSearchImage(query: string): Promise<string | null> 
 
   for (const page of sorted) {
     const thumb = page?.thumbnail?.source;
-    if (thumb && !thumb.includes(".svg") && !thumb.includes("/Flag_of_")) {
+    if (thumb && !thumb.includes(".svg") && !thumb.includes("/Flag_of_") && isLikelyPhoto(thumb)) {
       return thumb;
     }
   }
@@ -87,7 +105,7 @@ async function fetchCommonsImage(query: string): Promise<string | null> {
     const info = page?.imageinfo?.[0];
     const thumbUrl = info?.thumburl;
     const mime = info?.mime ?? "";
-    if (thumbUrl && mime.startsWith("image/jpeg")) {
+    if (thumbUrl && mime.startsWith("image/jpeg") && isLikelyPhoto(thumbUrl)) {
       return thumbUrl;
     }
   }
@@ -124,7 +142,7 @@ export async function GET(req: NextRequest) {
 
   // 2. Try Wikipedia search — finds related articles with images
   if (!imageUrl) {
-    const searchTerms = country ? `${name} ${country} city` : `${name} city`;
+    const searchTerms = country ? `${name} ${country} city skyline` : `${name} city skyline`;
     imageUrl = await fetchWikipediaSearchImage(searchTerms);
   }
 

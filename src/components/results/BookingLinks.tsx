@@ -3,12 +3,15 @@
 import { Plane, Hotel, Calculator, ExternalLink } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPrice } from "@/lib/currency";
 
 interface BookingLinksProps {
   destination: DeepPartial<DestinationSuggestion>;
 }
 
 export function BookingLinks({ destination }: BookingLinksProps) {
+  const { currency } = useCurrency();
   const accommodation = destination.accommodation;
   const flight = destination.flightEstimate;
   const totalCost = destination.estimatedTotalTripCostEur;
@@ -44,7 +47,7 @@ export function BookingLinks({ destination }: BookingLinksProps) {
         <div className="rounded-xl bg-accent/50 border border-border p-4 flex items-center gap-3">
           <Calculator className="h-5 w-5 text-primary flex-shrink-0" />
           <div>
-            <p className="font-medium text-sm">Estimated Total: ~&euro;{totalCost}</p>
+            <p className="font-medium text-sm">Estimated Total: ~{formatPrice(totalCost, currency)}</p>
             <p className="text-xs text-muted-foreground">
               Flights + accommodation + daily expenses
             </p>
@@ -60,7 +63,7 @@ export function BookingLinks({ destination }: BookingLinksProps) {
             <span className="font-medium">Accommodation</span>
             {accommodation.averageNightlyEur != null && (
               <span className="text-muted-foreground">
-                ~&euro;{accommodation.averageNightlyEur}/night
+                ~{formatPrice(accommodation.averageNightlyEur, currency)}/night
               </span>
             )}
           </div>
@@ -100,7 +103,7 @@ export function BookingLinks({ destination }: BookingLinksProps) {
             <span className="font-medium">Flights</span>
             {flight.roundTripEur != null && (
               <span className="text-muted-foreground">
-                ~&euro;{flight.roundTripEur} return
+                ~{formatPrice(flight.roundTripEur, currency)} return
               </span>
             )}
           </div>

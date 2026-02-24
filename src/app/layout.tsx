@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display, Space_Grotesk } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
+import { CurrencyProvider } from "@/components/CurrencyProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -58,7 +59,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${playfair.variable} ${spaceGrotesk.variable} ${geistMono.variable} antialiased font-sans`}
       >
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <CurrencyProvider>{children}</CurrencyProvider>
+        </SessionProvider>
       </body>
     </html>
   );

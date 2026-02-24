@@ -1,10 +1,12 @@
 "use client";
 
-import { Clock, DollarSign, Star, ChevronRight } from "lucide-react";
+import { Clock, Star, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DeepPartial } from "ai";
 import type { DestinationSummary, DestinationSuggestion } from "@/lib/ai/schemas";
 import { DestinationImage } from "./DestinationImage";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPrice } from "@/lib/currency";
 
 interface DestinationCardProps {
   destination: DeepPartial<DestinationSummary> | DeepPartial<DestinationSuggestion>;
@@ -21,6 +23,7 @@ export function DestinationCard({
   isSelected,
   onClick,
 }: DestinationCardProps) {
+  const { currency } = useCurrency();
   const activities = destination.topActivities ?? [];
   const displayActivities = activities.slice(0, 3);
   const moreCount = activities.length - 3;
@@ -85,8 +88,7 @@ export function DestinationCard({
         <div className="flex gap-4 text-sm">
           {destination.estimatedDailyCostEur != null && (
             <span className="flex items-center gap-1 text-muted-foreground">
-              <DollarSign className="h-3.5 w-3.5" />
-              ~&euro;{destination.estimatedDailyCostEur}/day
+              ~{formatPrice(destination.estimatedDailyCostEur, currency)}/day
             </span>
           )}
           {destination.suggestedDuration && (
