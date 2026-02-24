@@ -164,13 +164,13 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     if (currentStep !== 2) return;
 
     const datesFilled =
-      (dateType === "flexible" && dateDescription.trim().length >= 3) ||
+      (dateType === "flexible" && dateDescription.trim().length >= 8) ||
       (dateType === "specific" && startDate && endDate);
 
     if (datesFilled) {
       const timer = setTimeout(() => {
         setCurrentStep((prev) => Math.max(prev, 3));
-      }, 400);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [dateType, dateDescription, startDate, endDate, currentStep, isExpanded]);

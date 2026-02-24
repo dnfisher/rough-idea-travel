@@ -16,6 +16,7 @@ import type { DestinationSuggestion } from "@/lib/ai/schemas";
 import { DestinationImage } from "./DestinationImage";
 import { ItineraryTimeline } from "./ItineraryTimeline";
 import { ExploreMap } from "./ExploreMap";
+import { BookingLinks } from "./BookingLinks";
 import type { MapMarker } from "./ExploreMapInner";
 
 interface DestinationDetailContentProps {
@@ -259,6 +260,9 @@ export function DestinationDetailContent({
       {destination.itinerary?.days?.length ? (
         <ItineraryTimeline itinerary={destination.itinerary} />
       ) : null}
+
+      {/* Booking CTAs */}
+      <BookingLinks destination={destination} />
     </div>
   );
 }

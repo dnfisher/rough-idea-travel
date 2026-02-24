@@ -83,6 +83,50 @@ export const ItinerarySuggestionSchema = z.object({
 
 export type ItinerarySuggestion = z.infer<typeof ItinerarySuggestionSchema>;
 
+// --- Summary schemas (Phase 1: fast initial results) ---
+
+export const DestinationSummarySchema = z.object({
+  name: z.string(),
+  country: z.string(),
+  coordinates: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }),
+  reasoning: z.string(),
+  matchScore: z.number(),
+  estimatedDailyCostEur: z.number(),
+  bestTimeToVisit: z.string(),
+  topActivities: z.array(z.string()),
+  weather: WeatherDataSchema,
+  suggestedDuration: z.string(),
+});
+
+export type DestinationSummary = z.infer<typeof DestinationSummarySchema>;
+
+export const ExplorationSummaryResultSchema = z.object({
+  summary: z.string(),
+  destinations: z.array(DestinationSummarySchema),
+  weatherComparison: z.array(WeatherDataSchema),
+  recommendedDestination: z.string(),
+});
+
+export type ExplorationSummaryResult = z.infer<typeof ExplorationSummaryResultSchema>;
+
+// --- Full detail schemas (Phase 2: lazy-loaded per destination) ---
+
+export const AccommodationEstimateSchema = z.object({
+  averageNightlyEur: z.number(),
+  recommendedArea: z.string(),
+  nearestAirportCode: z.string(),
+  nearestAirportName: z.string(),
+});
+
+export const FlightEstimateSchema = z.object({
+  roundTripEur: z.number(),
+  fromAirportCode: z.string(),
+  toAirportCode: z.string(),
+});
+
 export const DestinationSuggestionSchema = z.object({
   name: z.string(),
   country: z.string(),
@@ -100,10 +144,14 @@ export const DestinationSuggestionSchema = z.object({
   weather: WeatherDataSchema,
   suggestedDuration: z.string(),
   itinerary: ItinerarySuggestionSchema,
+  accommodation: AccommodationEstimateSchema.optional(),
+  flightEstimate: FlightEstimateSchema.optional(),
+  estimatedTotalTripCostEur: z.number().optional(),
 });
 
 export type DestinationSuggestion = z.infer<typeof DestinationSuggestionSchema>;
 
+// Legacy full result schema (kept for shared trips compatibility)
 export const ExplorationResultSchema = z.object({
   summary: z.string(),
   destinations: z.array(DestinationSuggestionSchema),

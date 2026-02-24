@@ -1,19 +1,31 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
-import { ExplorationResultSchema } from "@/lib/ai/schemas";
+import { ExplorationSummaryResultSchema } from "@/lib/ai/schemas";
 import type { TripInput } from "@/lib/ai/schemas";
 import { TripInputForm } from "@/components/explore/TripInputForm";
 import { ResultsPanel } from "@/components/results/ResultsPanel";
 import { BackgroundMap } from "@/components/explore/BackgroundMap";
 import { UserButton } from "@/components/auth/UserButton";
+import { SignInModal } from "@/components/auth/SignInModal";
+import { useSearchGate } from "@/lib/hooks/useSearchGate";
 
 export default function ExplorePage() {
   const { object, submit, isLoading, error } = useObject({
     api: "/api/explore",
-    schema: ExplorationResultSchema,
+    schema: ExplorationSummaryResultSchema,
   });
+
+  const [currentTripInput, setCurrentTripInput] = useState<TripInput | null>(null);
+
+  const {
+    showSignInModal,
+    signInReason,
+    checkSearchAllowed,
+    checkFavoriteAllowed,
+    closeModal,
+  } = useSearchGate();
 
   useEffect(() => {
     if (error) {
@@ -22,7 +34,9 @@ export default function ExplorePage() {
   }, [error]);
 
   function handleSubmit(input: TripInput) {
+    if (!checkSearchAllowed()) return;
     console.log("[Rough Idea] Submitting:", input);
+    setCurrentTripInput(input);
     submit(input);
   }
 
@@ -68,10 +82,18 @@ export default function ExplorePage() {
               result={object ?? undefined}
               isLoading={isLoading}
               error={error ?? undefined}
+              tripInput={currentTripInput}
+              onAuthRequired={checkFavoriteAllowed}
             />
           </section>
         </div>
       </main>
+
+      <SignInModal
+        isOpen={showSignInModal}
+        onClose={closeModal}
+        reason={signInReason}
+      />
     </div>
   );
 }

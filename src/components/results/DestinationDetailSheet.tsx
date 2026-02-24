@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
@@ -12,8 +12,8 @@ interface DestinationDetailSheetProps {
   rank?: number;
   isRecommended?: boolean;
   onClose: () => void;
-  /** Action buttons rendered in the detail content header (favorite, share, etc.) */
   actions?: React.ReactNode;
+  isDetailLoading?: boolean;
 }
 
 export function DestinationDetailSheet({
@@ -22,10 +22,10 @@ export function DestinationDetailSheet({
   isRecommended,
   onClose,
   actions,
+  isDetailLoading,
 }: DestinationDetailSheetProps) {
   const isOpen = destination !== null;
 
-  // Escape key handler
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -81,12 +81,20 @@ export function DestinationDetailSheet({
         <div className="h-full overflow-y-auto overscroll-contain">
           <div className="p-6">
             {destination && (
-              <DestinationDetailContent
-                destination={destination}
-                rank={rank}
-                isRecommended={isRecommended}
-                actions={actions}
-              />
+              <>
+                <DestinationDetailContent
+                  destination={destination}
+                  rank={rank}
+                  isRecommended={isRecommended}
+                  actions={actions}
+                />
+                {isDetailLoading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading full trip details...
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

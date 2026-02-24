@@ -1,26 +1,41 @@
 import type { TripInput } from "./schemas";
 
-export const EXPLORATION_SYSTEM_PROMPT = `You are a travel planning expert helping users discover destinations based on loose preferences. You provide thoughtful, well-reasoned travel suggestions with accurate data.
+// Phase 1: Summary prompt — fast, 8-10 lightweight suggestions
+export const EXPLORATION_SUMMARY_SYSTEM_PROMPT = `You are a travel planning expert helping users discover destinations based on loose preferences. You provide thoughtful, well-reasoned travel suggestions with accurate data.
 
 Guidelines:
-- Suggest 3-4 destinations unless the user specifies places to compare
+- Suggest 8-10 destinations ranked by match score (descending)
 - Provide accurate GPS coordinates (latitude, longitude) for all locations
 - Weather data should be realistic averages for the specified travel dates
 - Cost estimates should be in EUR and reflect actual current prices
+- Include a mix of well-known and off-the-beaten-path suggestions
+- Match scores (0-100) should genuinely reflect how well each destination matches ALL stated preferences
+- Keep reasoning concise: 1-2 sentences explaining why this destination fits
+- Limit topActivities to the top 3-4 most relevant
+- Do NOT include itineraries, pros/cons, or detailed breakdowns — just summary data`;
+
+// Phase 2: Detail prompt — full itinerary + booking data for a single destination
+export const DESTINATION_DETAIL_SYSTEM_PROMPT = `You are a travel planning expert. Generate a comprehensive trip plan for a single destination.
+
+Guidelines:
+- Provide a full day-by-day itinerary with accurate GPS coordinates, meals, tips, overnight stays
+- Be specific with recommendations (neighborhood-level for restaurants/hotels)
+- Provide honest pros and cons — mention downsides like crowds, cost, logistics
 - Drive times should be realistic (account for mountain roads, border crossings, rest stops)
 - For road trips, plan reasonable daily driving (no more than 4-5 hours on the road)
-- Include a mix of well-known and off-the-beaten-path suggestions
-- Be specific with recommendations (neighborhood-level for restaurants/hotels)
-- Pros and cons should be honest — mention downsides like crowds, cost, logistics
-- Match scores (0-100) should genuinely reflect how well each destination matches ALL stated preferences
-- Each destination must include its own full itinerary with day-by-day plans
-- When suggesting itineraries, include rest days and allow for spontaneity
-- Itineraries should be tailored to that specific destination's strengths and the user's interests`;
+- Include rest days and allow for spontaneity
+- Include packing tips and practical tips
+- Provide accommodation estimates: average nightly rate in EUR for mid-range options in the recommended area/neighborhood
+- Include the nearest airport IATA code to the destination and the departure airport IATA code from the user's home city
+- Estimate round-trip flight cost in EUR from the user's home city
+- Calculate an estimated total trip cost: (nightly rate x number of nights) + flight cost + (daily expenses x days)`;
 
-export function buildExplorationPrompt(input: TripInput): string {
+// Legacy prompt (kept for reference)
+export const EXPLORATION_SYSTEM_PROMPT = EXPLORATION_SUMMARY_SYSTEM_PROMPT;
+
+function buildPreferenceParts(input: TripInput): string[] {
   const parts: string[] = [];
 
-  // Home city & travel range
   if (input.homeCity) {
     parts.push(`Home city: ${input.homeCity}`);
   }
@@ -33,7 +48,6 @@ export function buildExplorationPrompt(input: TripInput): string {
     parts.push(`Travel range: ${rangeLabels[input.travelRange]}`);
   }
 
-  // Dates
   if (input.dates.flexible && input.dates.description) {
     parts.push(`Travel timing: ${input.dates.description}`);
   } else if (input.dates.startDate && input.dates.endDate) {
@@ -45,28 +59,21 @@ export function buildExplorationPrompt(input: TripInput): string {
     );
   }
 
-  // Travelers
   if (input.travelers > 1) {
     parts.push(`Travelers: ${input.travelers}`);
   }
 
-  // Interests
   if (input.interests.length > 0) {
     parts.push(`Interests: ${input.interests.join(", ")}`);
   }
 
-  // Weather
   if (input.weatherPreference) {
     parts.push(`Weather preference: ${input.weatherPreference}`);
   }
 
-  // Budget
   parts.push(`Budget level: ${input.budgetLevel}`);
-
-  // Style
   parts.push(`Trip style: ${input.tripStyle.replace(/_/g, " ")}`);
 
-  // Location
   if (
     input.locationPreference.type === "region" &&
     input.locationPreference.value
@@ -83,17 +90,33 @@ export function buildExplorationPrompt(input: TripInput): string {
     parts.push("Open to anywhere in the world");
   }
 
-  // Starting point (explicit or fall back to home city)
   if (input.startingPoint) {
     parts.push(`Starting from: ${input.startingPoint}`);
   } else if (input.homeCity) {
     parts.push(`Starting from: ${input.homeCity}`);
   }
 
-  // Notes
   if (input.additionalNotes) {
     parts.push(`Additional context: ${input.additionalNotes}`);
   }
 
+  return parts;
+}
+
+export function buildExplorationPrompt(input: TripInput): string {
+  return buildPreferenceParts(input).join("\n");
+}
+
+export function buildDetailPrompt(
+  destinationName: string,
+  country: string,
+  input: TripInput
+): string {
+  const parts: string[] = [
+    `Generate a full detailed trip plan for: ${destinationName}, ${country}`,
+    "",
+    "User preferences:",
+    ...buildPreferenceParts(input),
+  ];
   return parts.join("\n");
 }
