@@ -1,9 +1,9 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { favorites } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { favorites, wishlists } from "@/lib/db/schema";
+import { eq, desc, and, isNull } from "drizzle-orm";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -13,10 +13,38 @@ export async function GET() {
       });
     }
 
+    const url = new URL(req.url);
+    const listId = url.searchParams.get("listId");
+
+    let conditions = eq(favorites.userId, session.user.id);
+
+    if (listId === "uncategorized") {
+      // Favorites not assigned to any list
+      const userFavorites = await db
+        .select()
+        .from(favorites)
+        .where(and(eq(favorites.userId, session.user.id), isNull(favorites.listId)))
+        .orderBy(desc(favorites.createdAt));
+      return new Response(JSON.stringify(userFavorites), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } else if (listId) {
+      // Favorites in a specific list
+      const userFavorites = await db
+        .select()
+        .from(favorites)
+        .where(and(eq(favorites.userId, session.user.id), eq(favorites.listId, listId)))
+        .orderBy(desc(favorites.createdAt));
+      return new Response(JSON.stringify(userFavorites), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // All favorites
     const userFavorites = await db
       .select()
       .from(favorites)
-      .where(eq(favorites.userId, session.user.id))
+      .where(conditions)
       .orderBy(desc(favorites.createdAt));
 
     return new Response(JSON.stringify(userFavorites), {
@@ -42,13 +70,29 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { destinationData, tripInputData } = body;
+    const { destinationData, tripInputData, listId } = body;
 
     if (!destinationData?.name || !destinationData?.country) {
       return new Response(JSON.stringify({ error: "Missing destination data" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
+    }
+
+    // Validate listId belongs to user if provided
+    if (listId) {
+      const list = await db
+        .select({ id: wishlists.id })
+        .from(wishlists)
+        .where(and(eq(wishlists.id, listId), eq(wishlists.userId, session.user.id)))
+        .limit(1);
+
+      if (list.length === 0) {
+        return new Response(JSON.stringify({ error: "Wishlist not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
     }
 
     const [inserted] = await db
@@ -59,6 +103,7 @@ export async function POST(req: Request) {
         country: destinationData.country,
         destinationData,
         tripInputData: tripInputData ?? null,
+        listId: listId ?? null,
       })
       .returning();
 

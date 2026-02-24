@@ -29,10 +29,12 @@ interface ResultsPanelProps {
   isLoading: boolean;
   error: Error | undefined;
   tripInput: TripInput | null;
-  onAuthRequired?: () => void;
+  onAuthRequired?: (destinationName?: string) => void;
+  pendingAutoFavorite?: string | null;
+  onAutoFavoriteComplete?: () => void;
 }
 
-export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired }: ResultsPanelProps) {
+export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired, pendingAutoFavorite, onAutoFavoriteComplete }: ResultsPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("destinations");
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("match");
@@ -66,6 +68,33 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       setStreamingDetailName(null);
     }
   }, [isDetailLoading, detailObject, streamingDetailName]);
+
+  // Auto-favorite a destination after auth flow returns
+  const autoFavoriteHandled = useRef(false);
+  useEffect(() => {
+    if (!pendingAutoFavorite || !result?.destinations || autoFavoriteHandled.current) return;
+    autoFavoriteHandled.current = true;
+
+    const dest = result.destinations.find((d) => d?.name === pendingAutoFavorite);
+    if (!dest?.name) {
+      onAutoFavoriteComplete?.();
+      return;
+    }
+
+    fetch("/api/favorites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ destinationData: dest }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.id && dest.name) {
+          setFavoritesMap((prev) => ({ ...prev, [dest.name!]: data.id }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => onAutoFavoriteComplete?.());
+  }, [pendingAutoFavorite, result?.destinations, onAutoFavoriteComplete]);
 
   // Clear caches when new search starts
   const prevIsLoading = useRef(isLoading);
@@ -343,7 +372,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
                 destination={detailData}
                 isFavorited={!!(detailData.name && favoritesMap[detailData.name])}
                 favoriteId={detailData.name ? favoritesMap[detailData.name] ?? null : null}
-                onAuthRequired={onAuthRequired}
+                onAuthRequired={() => onAuthRequired?.(detailData.name)}
                 onToggle={(newId) => {
                   if (!detailData.name) return;
                   setFavoritesMap((prev) => {

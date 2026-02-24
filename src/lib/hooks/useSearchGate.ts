@@ -24,6 +24,7 @@ export function useSearchGate() {
   const [signInReason, setSignInReason] = useState<"search_limit" | "favorite">(
     "search_limit"
   );
+  const [pendingFavoriteName, setPendingFavoriteName] = useState<string | null>(null);
 
   const checkSearchAllowed = useCallback((): boolean => {
     if (session?.user) return true;
@@ -37,8 +38,9 @@ export function useSearchGate() {
     return true;
   }, [session]);
 
-  const checkFavoriteAllowed = useCallback((): boolean => {
+  const checkFavoriteAllowed = useCallback((destinationName?: string): boolean => {
     if (session?.user) return true;
+    setPendingFavoriteName(destinationName ?? null);
     setSignInReason("favorite");
     setShowSignInModal(true);
     return false;
@@ -51,6 +53,7 @@ export function useSearchGate() {
   return {
     showSignInModal,
     signInReason,
+    pendingFavoriteName,
     checkSearchAllowed,
     checkFavoriteAllowed,
     closeModal,

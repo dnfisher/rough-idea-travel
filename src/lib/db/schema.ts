@@ -65,6 +65,23 @@ export const verificationTokens = pgTable(
 
 // ─── App tables ────────────────────────────────────────────────────────
 
+export const wishlists = pgTable("wishlists", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  shareId: text("share_id")
+    .notNull()
+    .unique()
+    .$defaultFn(() => nanoid(10)),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+  viewCount: integer("view_count").default(0).notNull(),
+});
+
 export const favorites = pgTable("favorites", {
   id: text("id")
     .primaryKey()
@@ -76,6 +93,7 @@ export const favorites = pgTable("favorites", {
   country: text("country").notNull(),
   destinationData: jsonb("destination_data").notNull(),
   tripInputData: jsonb("trip_input_data"),
+  listId: text("list_id").references(() => wishlists.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 

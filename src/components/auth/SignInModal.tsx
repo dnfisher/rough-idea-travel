@@ -8,9 +8,10 @@ interface SignInModalProps {
   isOpen: boolean;
   onClose: () => void;
   reason: "search_limit" | "favorite";
+  onBeforeSignIn?: () => void;
 }
 
-export function SignInModal({ isOpen, onClose, reason }: SignInModalProps) {
+export function SignInModal({ isOpen, onClose, reason, onBeforeSignIn }: SignInModalProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -65,7 +66,10 @@ export function SignInModal({ isOpen, onClose, reason }: SignInModalProps) {
 
           <div className="space-y-3">
             <button
-              onClick={() => signIn("google", { callbackUrl: "/explore" })}
+              onClick={() => {
+                onBeforeSignIn?.();
+                signIn("google", { callbackUrl: "/explore" });
+              }}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border bg-background text-sm font-medium hover:bg-muted transition-colors"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -89,7 +93,10 @@ export function SignInModal({ isOpen, onClose, reason }: SignInModalProps) {
               Continue with Google
             </button>
             <button
-              onClick={() => signIn("github", { callbackUrl: "/explore" })}
+              onClick={() => {
+                onBeforeSignIn?.();
+                signIn("github", { callbackUrl: "/explore" });
+              }}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border bg-background text-sm font-medium hover:bg-muted transition-colors"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">

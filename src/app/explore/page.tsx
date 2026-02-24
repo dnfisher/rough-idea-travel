@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
 import { ExplorationSummaryResultSchema } from "@/lib/ai/schemas";
-import type { TripInput } from "@/lib/ai/schemas";
+import type { TripInput, ExplorationSummaryResult } from "@/lib/ai/schemas";
+import type { DeepPartial } from "ai";
 import { TripInputForm } from "@/components/explore/TripInputForm";
 import { ResultsPanel } from "@/components/results/ResultsPanel";
 import { BackgroundMap } from "@/components/explore/BackgroundMap";
 import { UserButton } from "@/components/auth/UserButton";
 import { SignInModal } from "@/components/auth/SignInModal";
 import { useSearchGate } from "@/lib/hooks/useSearchGate";
+import {
+  savePendingAuthState,
+  loadPendingAuthState,
+  clearPendingAuthState,
+} from "@/lib/auth-persistence";
 
 export default function ExplorePage() {
   const { object, submit, isLoading, error } = useObject({
@@ -19,13 +25,35 @@ export default function ExplorePage() {
 
   const [currentTripInput, setCurrentTripInput] = useState<TripInput | null>(null);
 
+  // Restored state from sessionStorage (survives OAuth redirect)
+  const [restoredResult, setRestoredResult] = useState<DeepPartial<ExplorationSummaryResult> | null>(null);
+  const [pendingAutoFavorite, setPendingAutoFavorite] = useState<string | null>(null);
+
   const {
     showSignInModal,
     signInReason,
+    pendingFavoriteName,
     checkSearchAllowed,
     checkFavoriteAllowed,
     closeModal,
   } = useSearchGate();
+
+  // Restore state from sessionStorage on mount (after OAuth redirect)
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    const saved = loadPendingAuthState();
+    if (saved) {
+      setCurrentTripInput(saved.tripInput);
+      setRestoredResult(saved.results);
+      if (saved.pendingFavoriteDestination) {
+        setPendingAutoFavorite(saved.pendingFavoriteDestination);
+      }
+      clearPendingAuthState();
+    }
+  }, []);
 
   useEffect(() => {
     if (error) {
@@ -33,14 +61,34 @@ export default function ExplorePage() {
     }
   }, [error]);
 
+  // The effective result: live useObject data takes priority over restored data
+  const effectiveResult = object ?? restoredResult;
+
   function handleSubmit(input: TripInput) {
     if (!checkSearchAllowed()) return;
     console.log("[Rough Idea] Submitting:", input);
+    setRestoredResult(null); // clear restored state when new search starts
     setCurrentTripInput(input);
     submit(input);
   }
 
-  const hasResults = !!(object?.summary || object?.destinations?.length);
+  // Save state to sessionStorage before OAuth redirect
+  const handleBeforeSignIn = useCallback(() => {
+    const resultToSave = object ?? restoredResult;
+    if (currentTripInput && resultToSave) {
+      savePendingAuthState(
+        currentTripInput,
+        resultToSave,
+        pendingFavoriteName ?? null
+      );
+    }
+  }, [object, restoredResult, currentTripInput, pendingFavoriteName]);
+
+  const handleAutoFavoriteComplete = useCallback(() => {
+    setPendingAutoFavorite(null);
+  }, []);
+
+  const hasResults = !!(effectiveResult?.summary || effectiveResult?.destinations?.length);
 
   return (
     <div className="min-h-screen bg-surface relative">
@@ -79,11 +127,13 @@ export default function ExplorePage() {
           {/* Results */}
           <section className="min-w-0">
             <ResultsPanel
-              result={object ?? undefined}
+              result={effectiveResult ?? undefined}
               isLoading={isLoading}
               error={error ?? undefined}
               tripInput={currentTripInput}
               onAuthRequired={checkFavoriteAllowed}
+              pendingAutoFavorite={pendingAutoFavorite}
+              onAutoFavoriteComplete={handleAutoFavoriteComplete}
             />
           </section>
         </div>
@@ -93,6 +143,7 @@ export default function ExplorePage() {
         isOpen={showSignInModal}
         onClose={closeModal}
         reason={signInReason}
+        onBeforeSignIn={handleBeforeSignIn}
       />
     </div>
   );
