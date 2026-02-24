@@ -93,6 +93,23 @@ const pillClass = (active: boolean) =>
       : "border-border hover:border-primary/40 text-muted-foreground"
   );
 
+// Step section wrapper — defined outside TripInputForm so React sees a stable
+// component identity across renders (prevents input focus loss on re-render).
+function StepSection({ visible, children }: { visible: boolean; children: React.ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "transition-all duration-500 ease-out overflow-hidden",
+        visible
+          ? "max-h-[800px] opacity-100 translate-y-0"
+          : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputFormProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -266,23 +283,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     onSubmit(input);
   }
 
-  // Step section wrapper with animation
-  function StepSection({ step, children }: { step: number; children: React.ReactNode }) {
-    const visible = isStepVisible(step);
-    return (
-      <div
-        className={cn(
-          "transition-all duration-500 ease-out overflow-hidden",
-          visible
-            ? "max-h-[800px] opacity-100 translate-y-0"
-            : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
-        )}
-      >
-        {children}
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Progress indicator — hidden once expanded */}
@@ -317,7 +317,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       </fieldset>
 
       {/* Step 1: Travel Range */}
-      <StepSection step={1}>
+      <StepSection visible={isStepVisible(1)}>
         <fieldset>
           <legend className="flex items-center gap-2 text-sm font-medium mb-3">
             <Plane className="h-4 w-4 text-primary" />
@@ -343,7 +343,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       </StepSection>
 
       {/* Step 2: Dates */}
-      <StepSection step={2}>
+      <StepSection visible={isStepVisible(2)}>
         <fieldset>
           <legend className="flex items-center gap-2 text-sm font-medium mb-3">
             <Calendar className="h-4 w-4 text-primary" />
@@ -409,7 +409,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       </StepSection>
 
       {/* Step 3: Interests */}
-      <StepSection step={3}>
+      <StepSection visible={isStepVisible(3)}>
         <fieldset>
           <legend className="flex items-center gap-2 text-sm font-medium mb-3">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -426,7 +426,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       </StepSection>
 
       {/* Step 4: Weather + Trip Style + Budget */}
-      <StepSection step={4}>
+      <StepSection visible={isStepVisible(4)}>
         <div className="space-y-6">
           {/* Weather */}
           <fieldset>
@@ -501,7 +501,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       </StepSection>
 
       {/* Step 5: Location */}
-      <StepSection step={5}>
+      <StepSection visible={isStepVisible(5)}>
         <fieldset>
           <legend className="flex items-center gap-2 text-sm font-medium mb-3">
             <MapPin className="h-4 w-4 text-primary" />
@@ -594,7 +594,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       </StepSection>
 
       {/* Step 6: Advanced + Submit */}
-      <StepSection step={6}>
+      <StepSection visible={isStepVisible(6)}>
         <div className="space-y-6">
           {/* Advanced toggle */}
           <button
