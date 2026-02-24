@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  debug: true,
   adapter: DrizzleAdapter(db, {
     usersTable: schema.users,
     accountsTable: schema.accounts,
