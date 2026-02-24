@@ -11,6 +11,7 @@ import {
   Sparkles,
   Plus,
   X,
+  Check,
   ChevronDown,
   ChevronUp,
   Home,
@@ -114,6 +115,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [regionValue, setRegionValue] = useState("");
   const [comparePlaces, setComparePlaces] = useState<string[]>([]);
   const [newPlace, setNewPlace] = useState("");
+  const [flexibleDatesConfirmed, setFlexibleDatesConfirmed] = useState(false);
+  const [regionConfirmed, setRegionConfirmed] = useState(false);
 
   const [travelers, setTravelers] = useState(1);
   const [startingPoint, setStartingPoint] = useState("");
@@ -164,16 +167,16 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     if (currentStep !== 2) return;
 
     const datesFilled =
-      (dateType === "flexible" && dateDescription.trim().length >= 8) ||
+      (dateType === "flexible" && flexibleDatesConfirmed) ||
       (dateType === "specific" && startDate && endDate);
 
     if (datesFilled) {
       const timer = setTimeout(() => {
         setCurrentStep((prev) => Math.max(prev, 3));
-      }, 1500);
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [dateType, dateDescription, startDate, endDate, currentStep, isExpanded]);
+  }, [dateType, flexibleDatesConfirmed, startDate, endDate, currentStep, isExpanded]);
 
   // Auto-advance: at least 1 interest selected
   useEffect(() => {
@@ -199,17 +202,24 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     }
   }, [preferencesSectionTouched, currentStep, isExpanded]);
 
-  // Auto-advance: location preference touched
+  // Auto-advance: location preference — differentiated by type
   const [locationTouched, setLocationTouched] = useState(false);
   useEffect(() => {
     if (isExpanded) return;
-    if (locationTouched && currentStep === 5) {
+    if (currentStep !== 5) return;
+
+    const shouldAdvance =
+      (locationType === "open" && locationTouched) ||
+      (locationType === "region" && regionConfirmed) ||
+      (locationType === "specific" && comparePlaces.length >= 1);
+
+    if (shouldAdvance) {
       const timer = setTimeout(() => {
         setCurrentStep((prev) => Math.max(prev, 6));
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [locationTouched, currentStep, isExpanded]);
+  }, [locationType, locationTouched, regionConfirmed, comparePlaces.length, currentStep, isExpanded]);
 
   function toggleInterest(interest: string) {
     setInterests((prev) =>
@@ -348,13 +358,39 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             </button>
           </div>
           {dateType === "flexible" ? (
-            <input
-              type="text"
-              value={dateDescription}
-              onChange={(e) => setDateDescription(e.target.value)}
-              placeholder='e.g. "mid-April", "sometime in summer"'
-              className={inputClass}
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={dateDescription}
+                onChange={(e) => {
+                  setDateDescription(e.target.value);
+                  setFlexibleDatesConfirmed(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && dateDescription.trim().length > 0) {
+                    e.preventDefault();
+                    setFlexibleDatesConfirmed(true);
+                  }
+                }}
+                placeholder='e.g. "mid-April", "sometime in summer"'
+                className={cn(inputClass, "flex-1")}
+              />
+              {dateDescription.trim().length > 0 && !flexibleDatesConfirmed && (
+                <button
+                  type="button"
+                  onClick={() => setFlexibleDatesConfirmed(true)}
+                  className="px-3 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex-shrink-0"
+                  aria-label="Confirm dates"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+              )}
+              {flexibleDatesConfirmed && (
+                <span className="flex items-center px-3 text-primary">
+                  <Check className="h-4 w-4" />
+                </span>
+              )}
+            </div>
           ) : (
             <div className="flex gap-3">
               <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={cn(inputClass, "flex-1")} />
@@ -491,7 +527,39 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             ))}
           </div>
           {locationType === "region" && (
-            <input type="text" value={regionValue} onChange={(e) => setRegionValue(e.target.value)} placeholder='e.g. "Southern Europe", "Southeast Asia"' className={inputClass} />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={regionValue}
+                onChange={(e) => {
+                  setRegionValue(e.target.value);
+                  setRegionConfirmed(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && regionValue.trim().length > 0) {
+                    e.preventDefault();
+                    setRegionConfirmed(true);
+                  }
+                }}
+                placeholder='e.g. "Southern Europe", "Southeast Asia"'
+                className={cn(inputClass, "flex-1")}
+              />
+              {regionValue.trim().length > 0 && !regionConfirmed && (
+                <button
+                  type="button"
+                  onClick={() => setRegionConfirmed(true)}
+                  className="px-3 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex-shrink-0"
+                  aria-label="Confirm region"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+              )}
+              {regionConfirmed && (
+                <span className="flex items-center px-3 text-primary">
+                  <Check className="h-4 w-4" />
+                </span>
+              )}
+            </div>
           )}
           {locationType === "specific" && (
             <div className="space-y-2">

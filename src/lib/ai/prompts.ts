@@ -15,20 +15,23 @@ Guidelines:
 - Do NOT include itineraries, pros/cons, or detailed breakdowns — just summary data`;
 
 // Phase 2: Detail prompt — full itinerary + booking data for a single destination
-export const DESTINATION_DETAIL_SYSTEM_PROMPT = `You are a travel planning expert. Generate a comprehensive trip plan for a single destination.
+export const DESTINATION_DETAIL_SYSTEM_PROMPT = `You are a travel planning expert. Generate a trip plan for a single destination.
 
 Guidelines:
-- Provide a full day-by-day itinerary with accurate GPS coordinates, meals, tips, overnight stays
+- Provide a day-by-day itinerary with accurate GPS coordinates, highlights, and overnight stays
 - Be specific with recommendations (neighborhood-level for restaurants/hotels)
-- Provide honest pros and cons — mention downsides like crowds, cost, logistics
-- Drive times should be realistic (account for mountain roads, border crossings, rest stops)
+- Provide honest pros and cons (3-4 each) — mention downsides like crowds, cost, logistics
+- Drive times should be realistic
 - For road trips, plan reasonable daily driving (no more than 4-5 hours on the road)
-- Include rest days and allow for spontaneity
-- Include packing tips and practical tips
-- Provide accommodation estimates: average nightly rate in EUR for mid-range options in the recommended area/neighborhood
-- Include the nearest airport IATA code to the destination and the departure airport IATA code from the user's home city
+- Keep packing tips to 3-5 items maximum
+- Keep practical tips to 3-5 items maximum
+- For meals, suggest 1 specific restaurant or food type per meal (not multiple options)
+- Day tips should be 1 concise sentence each
+- Provide accommodation estimates: average nightly rate in EUR for mid-range options in the recommended area
+- Include the nearest airport IATA code and the departure airport IATA code from the user's home city
 - Estimate round-trip flight cost in EUR from the user's home city
-- Calculate an estimated total trip cost: (nightly rate x number of nights) + flight cost + (daily expenses x days)`;
+- Calculate estimated total trip cost: (nightly rate x nights) + flight cost + (daily expenses x days)
+- Focus on accuracy over exhaustiveness — be concise`;
 
 // Legacy prompt (kept for reference)
 export const EXPLORATION_SYSTEM_PROMPT = EXPLORATION_SUMMARY_SYSTEM_PROMPT;

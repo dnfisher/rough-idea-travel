@@ -269,6 +269,9 @@ body {
 .leaflet-container {
   font-family: inherit;
   border-radius: 0.75rem;
+  isolation: isolate;
+  position: relative;
+  z-index: 0;
 }
 
 .custom-marker {

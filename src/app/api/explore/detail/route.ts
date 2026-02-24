@@ -34,10 +34,11 @@ export async function POST(req: Request) {
     const { destinationName, country, tripInput } = DetailRequestSchema.parse(body);
 
     const result = streamText({
-      model: anthropic("claude-sonnet-4-5-20250929"),
+      model: anthropic("claude-3-5-haiku-20241022"),
       system: DESTINATION_DETAIL_SYSTEM_PROMPT,
       prompt: buildDetailPrompt(destinationName, country, tripInput),
       output: Output.object({ schema: DestinationSuggestionSchema }),
+      temperature: 0.7,
     });
 
     return result.toTextStreamResponse();

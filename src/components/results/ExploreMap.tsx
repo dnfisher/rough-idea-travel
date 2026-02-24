@@ -21,8 +21,8 @@ interface ExploreMapProps {
 export function ExploreMap({ markers, selectedId, showRoute, onMarkerClick, height = 350 }: ExploreMapProps) {
   return (
     <div
-      className="rounded-xl border border-border overflow-hidden"
-      style={{ height: `${height}px` }}
+      className="rounded-xl border border-border overflow-hidden isolate relative"
+      style={{ height: `${height}px`, zIndex: 0 }}
     >
       <ExploreMapInner
         markers={markers}

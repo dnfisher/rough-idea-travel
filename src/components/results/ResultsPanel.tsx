@@ -331,6 +331,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       {/* Detail sheet */}
       <DestinationDetailSheet
         destination={detailData}
+        isOpen={detailDestination !== null}
         rank={detailDestRank}
         isRecommended={detailData?.name === result?.recommendedDestination}
         onClose={handleCloseDetail}
