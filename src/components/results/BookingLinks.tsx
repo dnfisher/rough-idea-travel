@@ -1,6 +1,6 @@
 "use client";
 
-import { Plane, Hotel, Calculator, ExternalLink } from "lucide-react";
+import { Plane, Hotel, Calculator, ExternalLink, Car } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
 import { useCurrency } from "@/components/CurrencyProvider";
@@ -14,9 +14,10 @@ export function BookingLinks({ destination }: BookingLinksProps) {
   const { currency } = useCurrency();
   const accommodation = destination.accommodation;
   const flight = destination.flightEstimate;
+  const driving = destination.drivingEstimate;
   const totalCost = destination.estimatedTotalTripCostEur;
 
-  if (!accommodation && !flight && totalCost == null) return null;
+  if (!accommodation && !flight && !driving && totalCost == null) return null;
 
   const destName = destination.name ?? "";
   const country = destination.country ?? "";
@@ -35,8 +36,15 @@ export function BookingLinks({ destination }: BookingLinksProps) {
       ? `https://www.skyscanner.net/transport/flights/${flight.fromAirportCode.toLowerCase()}/${flight.toAirportCode.toLowerCase()}/`
       : null;
 
+  const googleMapsUrl =
+    driving?.startingPoint
+      ? `https://www.google.com/maps/dir/${encodeURIComponent(driving.startingPoint)}/${encodeURIComponent(`${destName}, ${country}`)}`
+      : `https://www.google.com/maps/dir//${encodeURIComponent(`${destName}, ${country}`)}`;
+
   const linkClass =
     "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors";
+
+  const isRoadTrip = !!driving;
 
   return (
     <div className="space-y-4 border-t border-border pt-6">
@@ -49,7 +57,9 @@ export function BookingLinks({ destination }: BookingLinksProps) {
           <div>
             <p className="font-medium text-sm">Estimated Total: ~{formatPrice(totalCost, currency)}</p>
             <p className="text-xs text-muted-foreground">
-              Flights + accommodation + daily expenses
+              {isRoadTrip
+                ? "Gas + accommodation + daily expenses"
+                : "Flights + accommodation + daily expenses"}
             </p>
           </div>
         </div>
@@ -95,8 +105,45 @@ export function BookingLinks({ destination }: BookingLinksProps) {
         </div>
       )}
 
-      {/* Flights */}
-      {flight && (
+      {/* Driving (road trip) */}
+      {driving && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <Car className="h-4 w-4 text-primary" />
+            <span className="font-medium">Driving</span>
+            {driving.estimatedGasCostEur != null && (
+              <span className="text-muted-foreground">
+                ~{formatPrice(driving.estimatedGasCostEur, currency)} gas
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground ml-6 space-y-0.5">
+            {driving.estimatedTotalDriveKm != null && (
+              <p>{Math.round(driving.estimatedTotalDriveKm)} km total distance</p>
+            )}
+            {driving.estimatedDriveHours != null && (
+              <p>~{driving.estimatedDriveHours}h drive time</p>
+            )}
+            {driving.startingPoint && (
+              <p>From {driving.startingPoint}</p>
+            )}
+          </div>
+          <div className="flex gap-2 ml-6">
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={linkClass}
+            >
+              Google Maps
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Flights (non-road-trip) */}
+      {!driving && flight && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">
             <Plane className="h-4 w-4 text-primary" />

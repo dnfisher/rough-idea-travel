@@ -28,9 +28,9 @@ Guidelines:
 - For meals, suggest 1 specific restaurant or food type per meal (not multiple options)
 - Day tips should be 1 concise sentence each
 - Provide accommodation estimates: average nightly rate in EUR for mid-range options in the recommended area
-- Include the nearest airport IATA code and the departure airport IATA code from the user's home city
-- Estimate round-trip flight cost in EUR from the user's home city
-- Calculate estimated total trip cost: (nightly rate x nights) + flight cost + (daily expenses x days)
+- For flying trips: Include the nearest airport IATA code and the departure airport IATA code from the user's home city. Estimate round-trip flight cost in EUR.
+- For road trips (tripStyle: "road_trip"): Do NOT include flightEstimate or airport codes. Instead, provide drivingEstimate with: estimatedGasCostEur (total fuel cost, assume ~7L/100km at ~1.70 EUR/L), estimatedTotalDriveKm (total driving distance), estimatedDriveHours (total driving time), and startingPoint.
+- Calculate estimated total trip cost: For flights: (nightly rate x nights) + flight cost + (daily expenses x days). For road trips: (nightly rate x nights) + gas cost + (daily expenses x days).
 - Focus on accuracy over exhaustiveness — be concise`;
 
 // Legacy prompt (kept for reference)
@@ -47,6 +47,7 @@ function buildPreferenceParts(input: TripInput): string[] {
       short_haul: "Short-haul (under 3 hours flight / nearby driving distance)",
       medium_haul: "Medium-haul (3-6 hours flight / neighboring countries)",
       long_haul: "Long-haul (6+ hours flight / different continent)",
+      driving_distance: "Driving distance only (road trip, no flights)",
     };
     parts.push(`Travel range: ${rangeLabels[input.travelRange]}`);
   }
@@ -76,6 +77,10 @@ function buildPreferenceParts(input: TripInput): string[] {
 
   parts.push(`Budget level: ${input.budgetLevel}`);
   parts.push(`Trip style: ${input.tripStyle.replace(/_/g, " ")}`);
+
+  if (input.tripStyle === "road_trip") {
+    parts.push("IMPORTANT: This is a road trip. Do NOT suggest flights. Focus on driving routes and provide gas/fuel cost estimates instead of flight costs.");
+  }
 
   if (
     input.locationPreference.type === "region" &&

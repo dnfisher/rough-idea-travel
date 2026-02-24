@@ -1,19 +1,15 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { MapPin, Thermometer } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
 import type { DeepPartial } from "ai";
 import type {
   ExplorationSummaryResult,
   DestinationSuggestion,
-  DestinationSummary,
   TripInput,
 } from "@/lib/ai/schemas";
 import { DestinationSuggestionSchema } from "@/lib/ai/schemas";
 import { DestinationCard } from "./DestinationCard";
-import { WeatherComparison } from "./WeatherComparison";
 import { ExploreLoadingState } from "./ExploreLoadingState";
 import { DestinationSortBar, type SortOption } from "./DestinationSortBar";
 import { ExploreMap } from "./ExploreMap";
@@ -21,8 +17,6 @@ import { DestinationDetailSheet } from "./DestinationDetailSheet";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { ShareButton } from "@/components/share/ShareButton";
 import type { MapMarker } from "./ExploreMapInner";
-
-type Tab = "destinations" | "weather";
 
 interface ResultsPanelProps {
   result: DeepPartial<ExplorationSummaryResult> | undefined;
@@ -35,7 +29,6 @@ interface ResultsPanelProps {
 }
 
 export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired, pendingAutoFavorite, onAutoFavoriteComplete }: ResultsPanelProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("destinations");
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("match");
   const [detailDestination, setDetailDestination] = useState<string | null>(null);
@@ -193,7 +186,6 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
   const handleMarkerClick = useCallback((id: string) => {
     if (id.startsWith("day-")) return;
     setSelectedDestination((prev) => (prev === id ? null : id));
-    setActiveTab("destinations");
   }, []);
 
   // Card click: highlight + open detail sheet + fetch detail if not cached
@@ -238,11 +230,6 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     return null;
   }
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "destinations", label: "Destinations", icon: <MapPin className="h-4 w-4" /> },
-    { id: "weather", label: "Weather", icon: <Thermometer className="h-4 w-4" /> },
-  ];
-
   return (
     <div className="space-y-4">
       {/* Summary */}
@@ -263,88 +250,44 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
         />
       )}
 
-      {/* Tabs */}
+      {/* Destinations */}
       {result && (
         <>
-          <div className="flex gap-1 border-b border-border">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
-                  activeTab === tab.id
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {tab.icon}
-                {tab.label}
-                {tab.id === "destinations" && result.destinations?.length != null && (
-                  <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">
-                    {result.destinations.length}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab content */}
-          <div className="min-h-[200px]">
-            {activeTab === "destinations" && (
-              <div className="space-y-3">
-                {!isLoading && sortedDestinations.length > 1 && (
-                  <DestinationSortBar value={sortBy} onChange={setSortBy} />
-                )}
-
-                {/* Destination cards — 2-column grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {sortedDestinations.map((dest, i) => {
-                    if (!dest) return null;
-                    return (
-                      <div key={dest.name || i} data-destination-id={dest.name}>
-                        <DestinationCard
-                          destination={dest}
-                          rank={i + 1}
-                          isRecommended={dest.name === result.recommendedDestination}
-                          isSelected={selectedDestination === dest.name}
-                          onClick={() => handleCardClick(dest.name)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {isLoading && (!result.destinations || result.destinations.length === 0) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-                        <div className="h-36 animate-shimmer" />
-                        <div className="p-4 space-y-3">
-                          <div className="h-5 w-48 animate-shimmer rounded-lg" />
-                          <div className="h-4 w-full animate-shimmer rounded-lg" />
-                          <div className="h-4 w-3/4 animate-shimmer rounded-lg" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+          <div className="space-y-3">
+            {!isLoading && sortedDestinations.length > 1 && (
+              <DestinationSortBar value={sortBy} onChange={setSortBy} />
             )}
 
-            {activeTab === "weather" && (
-              <div>
-                {result.weatherComparison && result.weatherComparison.length > 0 ? (
-                  <WeatherComparison data={result.weatherComparison} />
-                ) : isLoading ? (
-                  <div className="rounded-xl border border-border p-8 text-center">
-                    <p className="text-sm text-muted-foreground">Loading weather data...</p>
+            {/* Destination cards — 2-column grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {sortedDestinations.map((dest, i) => {
+                if (!dest) return null;
+                return (
+                  <div key={dest.name || i} data-destination-id={dest.name}>
+                    <DestinationCard
+                      destination={dest}
+                      rank={i + 1}
+                      isRecommended={dest.name === result.recommendedDestination}
+                      isSelected={selectedDestination === dest.name}
+                      onClick={() => handleCardClick(dest.name)}
+                    />
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No weather data available yet
-                  </p>
-                )}
+                );
+              })}
+            </div>
+
+            {isLoading && (!result.destinations || result.destinations.length === 0) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+                    <div className="h-36 animate-shimmer" />
+                    <div className="p-4 space-y-3">
+                      <div className="h-5 w-48 animate-shimmer rounded-lg" />
+                      <div className="h-4 w-full animate-shimmer rounded-lg" />
+                      <div className="h-4 w-3/4 animate-shimmer rounded-lg" />
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

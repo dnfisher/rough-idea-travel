@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export const TripInputSchema = z.object({
   homeCity: z.string().optional(),
-  travelRange: z.enum(["short_haul", "medium_haul", "long_haul", "any"]).optional(),
+  travelRange: z.enum(["short_haul", "medium_haul", "long_haul", "driving_distance", "any"]).optional(),
   dates: z.object({
     flexible: z.boolean(),
     description: z.string().optional(), // e.g. "mid-April"
@@ -127,6 +127,15 @@ export const FlightEstimateSchema = z.object({
   toAirportCode: z.string(),
 });
 
+export const DrivingEstimateSchema = z.object({
+  estimatedGasCostEur: z.number(),
+  estimatedTotalDriveKm: z.number(),
+  estimatedDriveHours: z.number(),
+  startingPoint: z.string().optional(),
+});
+
+export type DrivingEstimate = z.infer<typeof DrivingEstimateSchema>;
+
 export const DestinationSuggestionSchema = z.object({
   name: z.string(),
   country: z.string(),
@@ -146,6 +155,7 @@ export const DestinationSuggestionSchema = z.object({
   itinerary: ItinerarySuggestionSchema,
   accommodation: AccommodationEstimateSchema.optional(),
   flightEstimate: FlightEstimateSchema.optional(),
+  drivingEstimate: DrivingEstimateSchema.optional(),
   estimatedTotalTripCostEur: z.number().optional(),
 });
 

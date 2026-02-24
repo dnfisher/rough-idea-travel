@@ -53,9 +53,10 @@ const TRIP_STYLES = [
 ];
 
 const TRAVEL_RANGES = [
-  { value: "short_haul" as const, label: "Short Haul", desc: "Under 3hr flight" },
-  { value: "medium_haul" as const, label: "Medium Haul", desc: "3-6hr flight" },
-  { value: "long_haul" as const, label: "Long Haul", desc: "6hr+ flight" },
+  { value: "short_haul" as const, label: "Short Haul", desc: "Under 3hr flight / nearby" },
+  { value: "medium_haul" as const, label: "Medium Haul", desc: "3-6hr flight / neighbouring countries" },
+  { value: "long_haul" as const, label: "Long Haul", desc: "6hr+ flight / different continent" },
+  { value: "driving_distance" as const, label: "Driving Distance", desc: "Road trip — stay on the road" },
   { value: "any" as const, label: "Any Distance", desc: "No preference" },
 ];
 
@@ -64,6 +65,16 @@ const BUDGET_LEVELS = [
   { value: "moderate" as const, label: "Moderate", desc: "Mid-range hotels" },
   { value: "comfortable" as const, label: "Comfortable", desc: "Nice hotels, dining" },
   { value: "luxury" as const, label: "Luxury", desc: "Top-end everything" },
+];
+
+const COMMON_CITIES = [
+  "London", "Paris", "Berlin", "Amsterdam", "Dublin", "Madrid", "Barcelona",
+  "Rome", "Milan", "Lisbon", "Vienna", "Prague", "Copenhagen", "Stockholm",
+  "Oslo", "Helsinki", "Zurich", "Munich", "Frankfurt", "Brussels",
+  "New York", "Los Angeles", "San Francisco", "Chicago", "Boston", "Miami",
+  "Toronto", "Vancouver", "Montreal", "Sydney", "Melbourne", "Auckland",
+  "Singapore", "Tokyo", "Hong Kong", "Dubai", "Cape Town", "Sao Paulo",
+  "Mexico City", "Buenos Aires",
 ];
 
 const TOTAL_STEPS = 7;
@@ -124,6 +135,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [durationMax, setDurationMax] = useState(10);
 
   const [interests, setInterests] = useState<string[]>([]);
+  const [customInterest, setCustomInterest] = useState("");
   const [weatherPreference, setWeatherPreference] = useState("warm");
   const [budgetLevel, setBudgetLevel] = useState<TripInput["budgetLevel"]>("moderate");
   const [tripStyle, setTripStyle] = useState<TripInput["tripStyle"]>("mixed");
@@ -244,6 +256,16 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     );
   }
 
+  function addCustomInterest() {
+    const trimmed = customInterest.trim();
+    if (trimmed && !interests.includes(trimmed) && !INTEREST_OPTIONS.includes(trimmed)) {
+      setInterests((prev) => [...prev, trimmed]);
+      setCustomInterest("");
+    }
+  }
+
+  const customInterests = interests.filter((i) => !INTEREST_OPTIONS.includes(i));
+
   function addPlace() {
     const trimmed = newPlace.trim();
     if (trimmed && !comparePlaces.includes(trimmed)) {
@@ -313,7 +335,14 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           placeholder='e.g. "London", "Berlin", "New York"'
           className={inputClass}
           autoFocus={!isExpanded}
+          list="home-city-suggestions"
+          autoComplete="off"
         />
+        <datalist id="home-city-suggestions">
+          {COMMON_CITIES.map((city) => (
+            <option key={city} value={city} />
+          ))}
+        </datalist>
       </fieldset>
 
       {/* Step 1: Travel Range */}
@@ -331,6 +360,9 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
                 onClick={() => {
                   setTravelRange(range.value);
                   setTravelRangeTouched(true);
+                  if (range.value === "driving_distance") {
+                    setTripStyle("road_trip");
+                  }
                 }}
                 className={cn(chipClass(travelRange === range.value), "flex flex-col items-start text-left")}
               >
@@ -339,6 +371,22 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
               </button>
             ))}
           </div>
+          {travelRange === "driving_distance" && (
+            <div className="mt-3">
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Starting point for your road trip
+              </label>
+              <input
+                type="text"
+                value={startingPoint}
+                onChange={(e) => setStartingPoint(e.target.value)}
+                placeholder='e.g. "Frankfurt", "London"'
+                className={inputClass}
+                list="home-city-suggestions"
+                autoComplete="off"
+              />
+            </div>
+          )}
         </fieldset>
       </StepSection>
 
@@ -421,6 +469,47 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
                 {interest}
               </button>
             ))}
+          </div>
+          {customInterests.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {customInterests.map((interest) => (
+                <span
+                  key={interest}
+                  className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-sm bg-accent text-accent-foreground border border-primary/30 shadow-sm"
+                >
+                  {interest}
+                  <button
+                    type="button"
+                    onClick={() => toggleInterest(interest)}
+                    className="hover:text-destructive transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2 mt-2">
+            <input
+              type="text"
+              value={customInterest}
+              onChange={(e) => setCustomInterest(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustomInterest();
+                }
+              }}
+              placeholder="Add your own interest..."
+              className={cn(inputClass, "flex-1")}
+            />
+            <button
+              type="button"
+              onClick={addCustomInterest}
+              className="px-3.5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
           </div>
         </fieldset>
       </StepSection>
