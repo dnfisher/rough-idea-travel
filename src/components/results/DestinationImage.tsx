@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 
 interface DestinationImageProps {
   name?: string;
@@ -34,13 +34,24 @@ function getGradient(name: string): string {
 export function DestinationImage({ name, country, className = "", searchName, fallbackName }: DestinationImageProps) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
-  const imageUrl = useMemo(() => {
+  // Once an image has loaded, lock that URL to prevent flicker when props change during streaming.
+  // Reset only when the destination identity (name) changes.
+  const lockedUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    lockedUrlRef.current = null;
+    setStatus("loading");
+  }, [name]);
+
+  const desiredUrl = useMemo(() => {
     const queryName = searchName || name;
     if (!queryName) return null;
     const params = new URLSearchParams({ name: queryName });
     if (country) params.set("country", country);
     return `/api/destination-image?${params.toString()}`;
   }, [name, searchName, country]);
+
+  const imageUrl = lockedUrlRef.current ?? desiredUrl;
 
   if (!imageUrl) {
     return <Fallback name={fallbackName ?? name} country={country} className={className} />;
@@ -64,7 +75,10 @@ export function DestinationImage({ name, country, className = "", searchName, fa
           status === "loaded" ? "animate-fade-in" : "opacity-0"
         }`}
         loading="lazy"
-        onLoad={() => setStatus("loaded")}
+        onLoad={() => {
+          setStatus("loaded");
+          lockedUrlRef.current = imageUrl;
+        }}
         onError={() => setStatus("error")}
       />
     </div>

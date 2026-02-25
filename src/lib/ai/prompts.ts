@@ -51,7 +51,7 @@ Guidelines:
   • Off-the-beaten-path (lesser-known gems, local life)
   • Mix of above
 - Route naming: Use short evocative names like "Tuscan Food Trail", "Amalfi Coastal Explorer", "Bavarian Alpine Circuit". Do NOT include location arrows or stop lists in the name — the routeStops array handles that separately
-- Populate the routeStops array with the key stops in order (e.g. ["Florence", "Siena", "Montepulciano", "Rome"])
+- Populate the routeStops array with the DESTINATION stops in order — do NOT include the departure/home city. For example, for a road trip from New York through New England: routeStops: ["New Haven", "Providence", "Portland", "Bar Harbor"], NOT ["New York", "New Haven", ...]. The first entry should be the first interesting stop, not where the traveller starts from
 - Set drivingPace for each route:
   • "relaxed" = 1-3 hours driving per day
   • "moderate" = 3-4 hours driving per day
