@@ -51,6 +51,7 @@ export function DestinationCard({
         <DestinationImage
           name={destination.name}
           country={destination.country}
+          searchName={isRoute ? (routeStops[0] as string) : undefined}
           className="w-full h-full"
         />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />

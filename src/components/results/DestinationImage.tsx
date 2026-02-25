@@ -6,6 +6,8 @@ interface DestinationImageProps {
   name?: string;
   country?: string;
   className?: string;
+  /** Override the name used for the image API query (e.g. first route stop instead of full route title) */
+  searchName?: string;
 }
 
 // Deterministic gradient based on destination name
@@ -27,15 +29,16 @@ function getGradient(name: string): string {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
-export function DestinationImage({ name, country, className = "" }: DestinationImageProps) {
+export function DestinationImage({ name, country, className = "", searchName }: DestinationImageProps) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
   const imageUrl = useMemo(() => {
-    if (!name) return null;
-    const params = new URLSearchParams({ name });
+    const queryName = searchName || name;
+    if (!queryName) return null;
+    const params = new URLSearchParams({ name: queryName });
     if (country) params.set("country", country);
     return `/api/destination-image?${params.toString()}`;
-  }, [name, country]);
+  }, [name, searchName, country]);
 
   if (!imageUrl) {
     return <Fallback name={name} country={country} className={className} />;
