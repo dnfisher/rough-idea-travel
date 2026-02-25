@@ -2,147 +2,170 @@
 
 import { useEffect, useRef } from "react";
 
-// ── Constants ──────────────────────────────────────────────────
+// ── Palette — Teal suitcase ──────────────────────────────────────
 
-const NUM_POINTS = 12;
+const C = {
+  bodyFront: "#4A9E90",
+  bodyFrontHi: "#5BB8A6",
+  bodyFrontLo: "#3D8A7E",
+  bodySide: "#367A70",
+  bodyTop: "#5BB8A6",
+  bodyBack: "#2D635A",
+  outline: "#2A5E56",
+  outlineSoft: "rgba(42,94,86,0.5)",
+  eyeWhite: "#F0F3F5",
+  pupil: "#1E2D35",
+  shine: "rgba(255,255,255,0.85)",
+  brow: "#2A5E56",
+  mouthStroke: "#2A5E56",
+  sunglassFrame: "#1E2D35",
+  sunglassLens: "rgba(30,45,53,0.7)",
+  sunglassShine: "rgba(255,255,255,0.15)",
+  handle: "#8B9DA8",
+  handleDark: "#5A6B78",
+  wheelFill: "#2A3242",
+  wheelStroke: "#5A6B78",
+  wheelHub: "#8B9DA8",
+  inner: "#2A4A44",
+  innerBorder: "#2D5550",
+  flapLine: "rgba(42,94,86,0.3)",
+};
 
-const packingItems = [
-  { label: "Tiny bikini", color: "#E88B9C", reaction: "wink" },
-  { label: "Suspicious snacks", color: "#D4A853", reaction: "guilty" },
-  { label: "Too much sunscreen", color: "#F2D98B", reaction: "pleased" },
-  { label: "Emergency wine", color: "#B46B82", reaction: "excited" },
-  { label: "Lucky underwear", color: "#C8A2D4", reaction: "wink" },
-  { label: "Regrettable hat", color: "#A8C4A0", reaction: "nervous" },
-  { label: "Unread novel", color: "#7BA3C4", reaction: "thinking" },
-  { label: "Hangover kit", color: "#90B88C", reaction: "nervous" },
-  { label: "Questionable shorts", color: "#E8A870", reaction: "cheeky" },
-  { label: "Contraband cheese", color: "#DBC078", reaction: "guilty" },
-  { label: "Three outfits per day", color: "#D49080", reaction: "surprised" },
-  { label: "Main character energy", color: "#E8C46E", reaction: "smug" },
-  { label: "Tanlines pending", color: "#E8A870", reaction: "dreamy" },
-  { label: "Chaotic playlist", color: "#B894C8", reaction: "excited" },
-  { label: "Hotel slippers (stolen)", color: "#C4B8A4", reaction: "guilty" },
-  { label: "One sensible shoe", color: "#8B7D6B", reaction: "thinking" },
-  { label: "Spare charger (lost already)", color: "#7A8B7A", reaction: "nervous" },
-  { label: "Optimistic swimwear", color: "#6BBAD4", reaction: "wink" },
-  { label: "Midnight snack stash", color: "#D4A070", reaction: "cheeky" },
-  { label: "Slightly spicy novel", color: "#D47070", reaction: "wink" },
-  { label: "Dubious vibes", color: "#B8A0D4", reaction: "smug" },
-  { label: "Zero plans", color: "#A8C4B8", reaction: "pleased" },
-  { label: "Too many tote bags", color: "#C4A888", reaction: "surprised" },
-  { label: "Vacation brain", color: "#E8D094", reaction: "dreamy" },
-  { label: "Main squeeze", color: "#E88BA0", reaction: "wink" },
-  { label: "A flask, just in case", color: "#8BA4B8", reaction: "cheeky" },
-  { label: "Overconfident itinerary", color: "#B8C470", reaction: "smug" },
-  { label: "Nap schedule", color: "#C4B8D4", reaction: "dreamy" },
-  { label: "Flirty sundress", color: "#E8A0B8", reaction: "wink" },
-  { label: "Bad decisions budget", color: "#70C4A0", reaction: "nervous" },
-  { label: "Emotional support snack", color: "#D4B870", reaction: "pleased" },
-  { label: "Passport panic", color: "#E87070", reaction: "surprised" },
-  { label: "Impulse buys (pre-trip)", color: "#C49470", reaction: "guilty" },
-  { label: "Delusional packing list", color: "#94A8D4", reaction: "smug" },
+// ── Packing items with expression-matched reactions ──────────────
+
+const ITEMS = [
+  { l: "Tiny bikini", c: "#E88B9C", r: "wink" },
+  { l: "Lucky underwear", c: "#C8A2D4", r: "wink" },
+  { l: "Optimistic swimwear", c: "#6BBAD4", r: "wink" },
+  { l: "Slightly spicy novel", c: "#D47070", r: "wink" },
+  { l: "Main squeeze", c: "#E88BA0", r: "wink" },
+  { l: "Flirty sundress", c: "#E8A0B8", r: "wink" },
+  { l: "Main character energy", c: "#E8C46E", r: "sunglasses" },
+  { l: "Overconfident itinerary", c: "#B8C470", r: "sunglasses" },
+  { l: "Dubious vibes", c: "#B8A0D4", r: "sunglasses" },
+  { l: "Suspicious snacks", c: "#D4A853", r: "guilty" },
+  { l: "Contraband cheese", c: "#DBC078", r: "guilty" },
+  { l: "Hotel slippers (stolen)", c: "#C4B8A4", r: "guilty" },
+  { l: "Impulse buys (pre-trip)", c: "#C49470", r: "guilty" },
+  { l: "Emergency wine", c: "#B46B82", r: "excited" },
+  { l: "Chaotic playlist", c: "#B894C8", r: "excited" },
+  { l: "Regrettable hat", c: "#A8C4A0", r: "nervous" },
+  { l: "Hangover kit", c: "#90B88C", r: "nervous" },
+  { l: "Bad decisions budget", c: "#70C4A0", r: "nervous" },
+  { l: "Spare charger (lost already)", c: "#7A9B8A", r: "nervous" },
+  { l: "Three outfits per day", c: "#D49080", r: "surprised" },
+  { l: "Too many tote bags", c: "#C4A888", r: "surprised" },
+  { l: "Passport panic", c: "#E87070", r: "surprised" },
+  { l: "Questionable shorts", c: "#E8A870", r: "cheeky" },
+  { l: "Midnight snack stash", c: "#D4A070", r: "cheeky" },
+  { l: "A flask, just in case", c: "#8BA4B8", r: "cheeky" },
+  { l: "Tanlines pending", c: "#E8A870", r: "dreamy" },
+  { l: "Vacation brain", c: "#E8D094", r: "dreamy" },
+  { l: "Nap schedule", c: "#C4B8D4", r: "dreamy" },
+  { l: "Unread novel", c: "#7BA3C4", r: "thinking" },
+  { l: "One sensible shoe", c: "#8B9DA4", r: "thinking" },
+  { l: "Too much sunscreen", c: "#F2D98B", r: "pleased" },
+  { l: "Zero plans", c: "#A8C4B8", r: "pleased" },
+  { l: "Emotional support snack", c: "#D4B870", r: "pleased" },
+  { l: "Delusional packing list", c: "#94A8D4", r: "smug" },
 ];
 
-const phrases = [
-  "Wandering with intent", "Following a hunch", "Poking around the atlas",
-  "Rummaging through hidden gems", "Nosing about for something lovely",
-  "Chasing a daydream", "Having a little rummage", "Pulling at a loose thread",
-  "Tootling down a side street", "Pottering about with purpose",
-  "Going on a small adventure", "Shaking the idea tree",
-  "Turning over a few stones", "Letting curiosity drive",
-  "Sniffing out something splendid", "Putting our feelers out",
-  "Cooking something up", "Dusting off a corker",
-  "Thumbing through postcards", "Daydreaming out loud",
-  "Chasing golden hour", "Unfolding the map",
-  "Looking for a good wander", "Snooping in the best way",
-  "Spinning the globe", "Seeing what turns up",
-  "Going where the wind blows", "Picking up the scent",
-  "Peeking around corners", "Taking the scenic route",
-  "Moseying through possibilities", "Noodling on it", "Having a good think",
-];
+// ── Expression gaze map ──────────────────────────────────────────
 
-const almostDone = [
-  "Getting somewhere now", "Tidying up our findings",
-  "Polishing this up nicely", "Nearly there — bear with",
-  "Just dotting the i's", "Wrapping it up with a bow",
-  "Sitting on the suitcase to close it", "One more thing, maybe",
-];
+const GAZE_MAP: Record<string, { x: number; y: number }> = {
+  center: { x: 0, y: 0 }, up: { x: 0, y: -5 }, left: { x: -6, y: 0 },
+  right: { x: 5, y: 1 }, upRight: { x: 4, y: -3 }, down: { x: 0, y: 4 },
+};
 
-// ── Types ──────────────────────────────────────────────────────
+const EXPR_GAZE: Record<string, string> = {
+  curious: "right", excited: "upRight", thinking: "up", pleased: "center",
+  surprised: "center", cheeky: "left", wink: "center", nervous: "left",
+  smug: "right", dreamy: "up", guilty: "left", sunglasses: "center",
+};
 
-type Expression = "curious" | "excited" | "thinking" | "pleased" | "surprised" |
-  "cheeky" | "wink" | "nervous" | "smug" | "dreamy" | "guilty";
+function getGoofForExpression(expr: string) {
+  switch (expr) {
+    case "excited": return { l: { x: 0, y: -1, size: 2.5 }, r: { x: 0, y: -1, size: 2.5 } };
+    case "surprised": return { l: { x: 0, y: -2, size: 3.5 }, r: { x: 0, y: -2, size: 3.5 } };
+    case "thinking": return { l: { x: -3, y: -2, size: 0 }, r: { x: 4, y: 2, size: -1 } };
+    case "nervous": return { l: { x: 3, y: 0, size: -1 }, r: { x: -3, y: 0, size: -1 } };
+    case "cheeky": return { l: { x: -2, y: -1, size: 2 }, r: { x: 2, y: 2, size: -2 } };
+    case "smug": return { l: { x: 0, y: 0, size: -1.5 }, r: { x: 3, y: 0, size: 0 } };
+    case "dreamy": return { l: { x: -1, y: -2, size: 1 }, r: { x: 1, y: -2, size: 1 } };
+    case "guilty": return { l: { x: -4, y: 1, size: 0 }, r: { x: -2, y: -1, size: 0 } };
+    case "sunglasses": return { l: { x: 0, y: 0, size: 0 }, r: { x: 0, y: 0, size: 0 } };
+    default: return { l: { x: 0, y: 0, size: 0 }, r: { x: 0, y: 0, size: 0 } };
+  }
+}
+
+// ── Geometry constants ───────────────────────────────────────────
+
+const W = 680, H = 520;
+const CX = W / 2, CY = H / 2 - 5;
+const BW = 155, BH = 195;
+const DX = 26, DY = -14;
+const CORNER_R = 22;
+
+// ── Types ────────────────────────────────────────────────────────
 
 interface AnimState {
   t: number;
   blinkTimer: number;
   isBlinking: boolean;
-  currentExpression: Expression;
+  currentExpr: string;
   isWinking: boolean;
   gazeX: number;
   gazeY: number;
-  currentIndex: number;
-  usedPhrases: number[];
-  isAlmostDone: boolean;
-  itemPool: typeof packingItems;
+  flapAngle: number;
+  flapTarget: number;
+  hasSunglasses: boolean;
+  sunglassAlpha: number;
+  leftEyeExtra: { x: number; y: number; size: number };
+  rightEyeExtra: { x: number; y: number; size: number };
   rafId: number;
-  phraseIntervalId: ReturnType<typeof setInterval> | null;
   itemIntervalId: ReturnType<typeof setInterval> | null;
   pendingTimeouts: Set<ReturnType<typeof setTimeout>>;
-  baseShape: number[];
-  pointSeeds: Array<{
-    phase1: number; phase2: number; phase3: number;
-    speed1: number; speed2: number; speed3: number;
-    amp1: number; amp2: number; amp3: number;
-  }>;
-  showPhrase: (() => void) | null;
+  itemPool: typeof ITEMS;
+  currentIndex: number;
+  isAlmostDone: boolean;
 }
 
-// ── Component ──────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────────────
 
 interface Props {
   skipToEnd?: boolean;
 }
 
 export function ExploreLoadingState({ skipToEnd }: Props) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
-  const blobFillRef = useRef<SVGPathElement>(null);
-  const blobOutlineRef = useRef<SVGPathElement>(null);
-  const faceRef = useRef<HTMLDivElement>(null);
-  const pupilLRef = useRef<SVGCircleElement>(null);
-  const pupilRRef = useRef<SVGCircleElement>(null);
-  const shineLRef = useRef<SVGCircleElement>(null);
-  const shineRRef = useRef<SVGCircleElement>(null);
-  const eyeWhiteLRef = useRef<SVGEllipseElement>(null);
-  const eyeWhiteRRef = useRef<SVGEllipseElement>(null);
-  const browLRef = useRef<SVGPathElement>(null);
-  const browRRef = useRef<SVGPathElement>(null);
-  const mouthRef = useRef<SVGPathElement>(null);
-  const suitcaseLidRef = useRef<SVGGElement>(null);
-  const phraseContainerRef = useRef<HTMLDivElement>(null);
   const progressLineRef = useRef<SVGPathElement>(null);
-
   const mountedRef = useRef(true);
   const stateRef = useRef<AnimState>({
     t: 0, blinkTimer: 0, isBlinking: false,
-    currentExpression: "curious", isWinking: false,
+    currentExpr: "curious", isWinking: false,
     gazeX: 0, gazeY: 0,
-    currentIndex: 0, usedPhrases: [], isAlmostDone: false,
-    itemPool: [], rafId: 0,
-    phraseIntervalId: null, itemIntervalId: null,
+    flapAngle: 0, flapTarget: 0,
+    hasSunglasses: false, sunglassAlpha: 0,
+    leftEyeExtra: { x: 0, y: 0, size: 0 },
+    rightEyeExtra: { x: 0, y: 0, size: 0 },
+    rafId: 0,
+    itemIntervalId: null,
     pendingTimeouts: new Set(),
-    baseShape: [], pointSeeds: [],
-    showPhrase: null,
+    itemPool: [],
+    currentIndex: 0,
+    isAlmostDone: false,
   });
 
-  // Handle skipToEnd prop changes
+  // Handle skipToEnd prop
   useEffect(() => {
     const s = stateRef.current;
     if (skipToEnd && !s.isAlmostDone) {
       s.isAlmostDone = true;
-      s.usedPhrases = [];
       s.currentIndex = 10;
-      s.showPhrase?.();
+      if (progressLineRef.current) {
+        progressLineRef.current.style.strokeDashoffset = String(82 * 0.08);
+      }
     }
   }, [skipToEnd]);
 
@@ -150,8 +173,16 @@ export function ExploreLoadingState({ skipToEnd }: Props) {
   useEffect(() => {
     mountedRef.current = true;
     const s = stateRef.current;
+    const canvasEl = canvasRef.current;
+    const sceneEl = sceneRef.current;
+    if (!canvasEl || !sceneEl) return;
+    const maybeCtx = canvasEl.getContext("2d");
+    if (!maybeCtx) return;
+    // Store as explicitly-typed consts so TypeScript narrows in nested closures
+    const ctx: CanvasRenderingContext2D = maybeCtx;
+    const canvas: HTMLCanvasElement = canvasEl;
+    const scene: HTMLDivElement = sceneEl;
 
-    // Safe timeout helper
     function safeTimeout(fn: () => void, delay: number) {
       const id = setTimeout(() => {
         s.pendingTimeouts.delete(id);
@@ -161,113 +192,418 @@ export function ExploreLoadingState({ skipToEnd }: Props) {
       return id;
     }
 
-    // Generate shapes (client-side only, uses Math.random)
-    s.baseShape = [];
-    for (let i = 0; i < NUM_POINTS; i++) {
-      const angle = (i / NUM_POINTS) * Math.PI * 2;
-      let r = 46;
-      if (angle > Math.PI * 0.3 && angle < Math.PI * 0.7) r += 8;
-      if (angle > Math.PI * 0.7 && angle < Math.PI * 1.3) r += 12;
-      if (angle > Math.PI * 1.3 && angle < Math.PI * 1.7) r += 8;
-      if (angle > Math.PI * 1.7 || angle < Math.PI * 0.3) r -= 6;
-      s.baseShape.push(r);
+    // ── Drawing helpers ──
+
+    function drawChubbyRect(x: number, y: number, w: number, h: number, r: number) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
     }
 
-    s.pointSeeds = Array.from({ length: NUM_POINTS }, () => ({
-      phase1: Math.random() * Math.PI * 2,
-      phase2: Math.random() * Math.PI * 2,
-      phase3: Math.random() * Math.PI * 2,
-      speed1: 0.5 + Math.random() * 0.6,
-      speed2: 0.8 + Math.random() * 0.8,
-      speed3: 1.2 + Math.random() * 1.0,
-      amp1: 3 + Math.random() * 4,
-      amp2: 1.5 + Math.random() * 3,
-      amp3: 0.8 + Math.random() * 2,
-    }));
-
-    // ── Blob path helper ──
-    function pointsToSmoothPath(points: { x: number; y: number }[]) {
-      const n = points.length;
-      let d = "";
-      for (let i = 0; i < n; i++) {
-        const p0 = points[(i - 1 + n) % n];
-        const p1 = points[i];
-        const p2 = points[(i + 1) % n];
-        const p3 = points[(i + 2) % n];
-        const tension = 4.2;
-        if (i === 0) d += `M ${p1.x.toFixed(1)},${p1.y.toFixed(1)} `;
-        d += `C ${(p1.x + (p2.x - p0.x) / tension).toFixed(1)},${(p1.y + (p2.y - p0.y) / tension).toFixed(1)} ${(p2.x - (p3.x - p1.x) / tension).toFixed(1)},${(p2.y - (p3.y - p1.y) / tension).toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)} `;
+    function drawRoundedPoly(pts: { x: number; y: number }[], r: number) {
+      ctx.beginPath();
+      for (let i = 0; i < pts.length; i++) {
+        const curr = pts[i];
+        const next = pts[(i + 1) % pts.length];
+        const prev = pts[(i - 1 + pts.length) % pts.length];
+        const dx1 = prev.x - curr.x, dy1 = prev.y - curr.y;
+        const dx2 = next.x - curr.x, dy2 = next.y - curr.y;
+        const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+        const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+        const rr = Math.min(r, len1 / 2, len2 / 2);
+        const p1 = { x: curr.x + dx1 / len1 * rr, y: curr.y + dy1 / len1 * rr };
+        const p2 = { x: curr.x + dx2 / len2 * rr, y: curr.y + dy2 / len2 * rr };
+        if (i === 0) ctx.moveTo(p1.x, p1.y);
+        else ctx.lineTo(p1.x, p1.y);
+        ctx.quadraticCurveTo(curr.x, curr.y, p2.x, p2.y);
       }
-      return d + "Z";
+      ctx.closePath();
     }
 
-    // ── Gaze targets ──
-    const gazeTargets: Record<string, { x: number; y: number }> = {
-      suitcase: { x: 4.5, y: 1.5 }, up: { x: 0, y: -4 },
-      left: { x: -4, y: 0 }, center: { x: 0, y: 0 },
-      upRight: { x: 3.5, y: -3 }, downRight: { x: 3, y: 3 },
-    };
-    const exprGaze: Record<string, string> = {
-      curious: "suitcase", excited: "upRight", thinking: "up",
-      pleased: "suitcase", surprised: "center", cheeky: "left",
-      wink: "center", nervous: "left", smug: "suitcase",
-      dreamy: "up", guilty: "left",
-    };
+    // ── Wheels ──
 
-    // ── Blob animation loop ──
-    function animateBlob() {
+    function drawWheels(f: { x: number; y: number; w: number; h: number }) {
+      const wr = 9, hr = 3;
+      const by = f.y + f.h + 5;
+      const inset = 20;
+      const wheels = [
+        { x: f.x + inset + DX * 0.55, y: by + DY * 0.55 },
+        { x: f.x + f.w - inset + DX * 0.55, y: by + DY * 0.55 },
+        { x: f.x + inset, y: by },
+        { x: f.x + f.w - inset, y: by },
+      ];
+      for (const wh of wheels) {
+        ctx.strokeStyle = C.wheelStroke; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(wh.x, wh.y - wr - 3); ctx.lineTo(wh.x, wh.y - wr + 1); ctx.stroke();
+        ctx.beginPath(); ctx.arc(wh.x, wh.y, wr, 0, Math.PI * 2);
+        ctx.fillStyle = C.wheelFill; ctx.fill();
+        ctx.strokeStyle = C.wheelStroke; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(wh.x, wh.y, hr, 0, Math.PI * 2);
+        ctx.fillStyle = C.wheelHub; ctx.fill();
+      }
+    }
+
+    // ── Face ──
+
+    function drawFace(fcx: number, fcy: number) {
+      const sm = Math.sin(s.t * 0.5) * 0.5 + 0.5;
+      const eyeSpacing = 23;
+      const lx = fcx - eyeSpacing, ly = fcy;
+      const rx = fcx + eyeSpacing, ry = fcy;
+      const baseR = 13;
+      const leftR = baseR + s.leftEyeExtra.size;
+      const rightR = baseR + s.rightEyeExtra.size;
+      const eSq = s.isBlinking ? 0.12 : 1;
+      const rSq = Math.min(eSq, s.isWinking ? 0.08 : 1);
+      const lgx = s.gazeX + s.leftEyeExtra.x;
+      const lgy = s.gazeY + s.leftEyeExtra.y;
+      const rgx = s.gazeX + s.rightEyeExtra.x;
+      const rgy = s.gazeY + s.rightEyeExtra.y;
+
+      // Eyebrows
+      ctx.strokeStyle = C.brow; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+      let lbY: number, rbY: number, lbT: number, rbT: number;
+      switch (s.currentExpr) {
+        case "curious": lbY = -2 + sm * .5; rbY = -4 - sm * .5; lbT = 0; rbT = -1; break;
+        case "excited": lbY = -5 - sm; rbY = -5 - sm; lbT = 0; rbT = 0; break;
+        case "thinking": lbY = -1 + sm; rbY = -5 - sm; lbT = 3; rbT = -2; break;
+        case "pleased": lbY = -2; rbY = -2; lbT = 0; rbT = 0; break;
+        case "surprised": lbY = -7 - sm; rbY = -7 - sm; lbT = 0; rbT = 0; break;
+        case "cheeky": lbY = 1 + sm; rbY = -3; lbT = 3; rbT = -1; break;
+        case "wink": lbY = -4 - sm; rbY = 0 + sm; lbT = 0; rbT = 1; break;
+        case "nervous": lbY = 3 + sm; rbY = 3 + sm; lbT = -3; rbT = 3; break;
+        case "smug": lbY = -1; rbY = -3; lbT = 0; rbT = -1; break;
+        case "dreamy": lbY = -2; rbY = -2; lbT = 1; rbT = -1; break;
+        case "guilty": lbY = 3 + sm; rbY = 3 + sm; lbT = -3; rbT = 3; break;
+        case "sunglasses": lbY = -2; rbY = -2; lbT = 0; rbT = 0; break;
+        default: lbY = -2; rbY = -2; lbT = 0; rbT = 0;
+      }
+
+      if (s.sunglassAlpha < 0.5) {
+        const browAlpha = 1 - s.sunglassAlpha * 2;
+        ctx.globalAlpha = browAlpha;
+        ctx.beginPath();
+        ctx.moveTo(lx - 12, ly - leftR - 4 + lbY + lbT);
+        ctx.quadraticCurveTo(lx, ly - leftR - 8 + lbY, lx + 12, ly - leftR - 4 + lbY - lbT);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(rx - 12, ry - rightR - 4 + rbY + rbT);
+        ctx.quadraticCurveTo(rx, ry - rightR - 8 + rbY, rx + 12, ry - rightR - 4 + rbY - rbT);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Left eye
+      ctx.save();
+      ctx.translate(lx, ly); ctx.scale(1, eSq);
+      ctx.beginPath(); ctx.arc(0, 0, leftR, 0, Math.PI * 2);
+      ctx.fillStyle = C.eyeWhite; ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 2; ctx.stroke();
+      if (!s.isBlinking) {
+        const pr = Math.max(3, 6.5 + s.leftEyeExtra.size * 0.3);
+        ctx.beginPath(); ctx.arc(lgx, lgy, pr, 0, Math.PI * 2);
+        ctx.fillStyle = C.pupil; ctx.fill();
+        ctx.beginPath(); ctx.arc(lgx + 2.5, lgy - 2.5, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = C.shine; ctx.fill();
+      }
+      ctx.restore();
+
+      // Right eye
+      ctx.save();
+      ctx.translate(rx, ry); ctx.scale(1, rSq);
+      ctx.beginPath(); ctx.arc(0, 0, rightR, 0, Math.PI * 2);
+      ctx.fillStyle = C.eyeWhite; ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 2; ctx.stroke();
+      if (!s.isBlinking && !s.isWinking) {
+        const pr = Math.max(3, 6.5 + s.rightEyeExtra.size * 0.3);
+        ctx.beginPath(); ctx.arc(rgx, rgy, pr, 0, Math.PI * 2);
+        ctx.fillStyle = C.pupil; ctx.fill();
+        ctx.beginPath(); ctx.arc(rgx + 2.5, rgy - 2.5, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = C.shine; ctx.fill();
+      }
+      ctx.restore();
+
+      // Wink line
+      if (s.isWinking && !s.isBlinking) {
+        ctx.strokeStyle = C.outline; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(rx - 10, ry); ctx.quadraticCurveTo(rx, ry + 5, rx + 10, ry);
+        ctx.stroke();
+      }
+
+      // Sunglasses
+      if (s.sunglassAlpha > 0.02) {
+        ctx.globalAlpha = s.sunglassAlpha;
+        // Bridge
+        ctx.strokeStyle = C.sunglassFrame; ctx.lineWidth = 3; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(lx + leftR - 2, ly - 1); ctx.lineTo(rx - rightR + 2, ry - 1); ctx.stroke();
+        // Left lens
+        ctx.beginPath();
+        drawChubbyRect(lx - leftR - 3, ly - leftR + 1, leftR * 2 + 6, leftR * 1.7, 8);
+        const lgGrad = ctx.createLinearGradient(lx - leftR, ly - leftR, lx + leftR, ly + leftR * 0.5);
+        lgGrad.addColorStop(0, "#1A2530"); lgGrad.addColorStop(0.4, "#253545");
+        lgGrad.addColorStop(0.7, "#1E2D3A"); lgGrad.addColorStop(1, "#15202A");
+        ctx.fillStyle = lgGrad; ctx.fill();
+        ctx.strokeStyle = C.sunglassFrame; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(lx - leftR + 2, ly - leftR + 5);
+        ctx.quadraticCurveTo(lx - 3, ly - leftR + 3, lx + 2, ly - leftR + 8);
+        ctx.strokeStyle = "rgba(150,200,230,0.35)"; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(lx + leftR - 5, ly + 2, 2, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(150,200,230,0.2)"; ctx.fill();
+        // Right lens
+        ctx.beginPath();
+        drawChubbyRect(rx - rightR - 3, ry - rightR + 1, rightR * 2 + 6, rightR * 1.7, 8);
+        const rgGrad = ctx.createLinearGradient(rx - rightR, ry - rightR, rx + rightR, ry + rightR * 0.5);
+        rgGrad.addColorStop(0, "#1A2530"); rgGrad.addColorStop(0.4, "#253545");
+        rgGrad.addColorStop(0.7, "#1E2D3A"); rgGrad.addColorStop(1, "#15202A");
+        ctx.fillStyle = rgGrad; ctx.fill();
+        ctx.strokeStyle = C.sunglassFrame; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(rx - rightR + 2, ry - rightR + 5);
+        ctx.quadraticCurveTo(rx - 3, ry - rightR + 3, rx + 2, ry - rightR + 8);
+        ctx.strokeStyle = "rgba(150,200,230,0.35)"; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(rx + rightR - 5, ry + 2, 2, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(150,200,230,0.2)"; ctx.fill();
+        // Arms
+        ctx.strokeStyle = C.sunglassFrame; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(lx - leftR - 3, ly); ctx.lineTo(lx - leftR - 14, ly + 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(rx + rightR + 3, ry); ctx.lineTo(rx + rightR + 14, ry + 2); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Mouth
+      const my = fcy + 28;
+      ctx.strokeStyle = C.mouthStroke; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+      switch (s.currentExpr) {
+        case "curious":
+          ctx.beginPath(); ctx.moveTo(fcx - 14, my);
+          ctx.quadraticCurveTo(fcx, my + 8 + sm * 3, fcx + 14, my); ctx.stroke(); break;
+        case "excited":
+          ctx.beginPath(); ctx.moveTo(fcx - 16, my - 2);
+          ctx.quadraticCurveTo(fcx, my + 13 + sm * 2, fcx + 16, my - 2); ctx.stroke(); break;
+        case "thinking":
+          ctx.beginPath(); ctx.moveTo(fcx - 5, my + 3);
+          ctx.quadraticCurveTo(fcx + 3, my + 7 + sm, fcx + 10, my + 2); ctx.stroke(); break;
+        case "pleased":
+          ctx.beginPath(); ctx.moveTo(fcx - 14, my);
+          ctx.quadraticCurveTo(fcx, my + 10 + sm * 2, fcx + 14, my); ctx.stroke(); break;
+        case "surprised":
+          ctx.beginPath(); ctx.arc(fcx, my + 4, 7 + sm * 2, 0, Math.PI * 2); ctx.stroke(); break;
+        case "cheeky":
+          ctx.beginPath(); ctx.moveTo(fcx - 14, my + 1);
+          ctx.quadraticCurveTo(fcx - 4, my + 8, fcx, my + 2);
+          ctx.quadraticCurveTo(fcx + 8, my + 10 + sm * 3, fcx + 16, my - 2); ctx.stroke();
+          ctx.fillStyle = "#D47070";
+          ctx.beginPath(); ctx.arc(fcx + 10, my + 5 + sm, 3, 0, Math.PI); ctx.fill(); break;
+        case "wink":
+          ctx.beginPath(); ctx.moveTo(fcx - 14, my - 1);
+          ctx.quadraticCurveTo(fcx - 10, my + 9, fcx, my + 11);
+          ctx.quadraticCurveTo(fcx + 10, my + 9, fcx + 14, my - 1);
+          ctx.quadraticCurveTo(fcx, my + 3, fcx - 14, my - 1);
+          ctx.fillStyle = C.mouthStroke; ctx.fill(); break;
+        case "nervous":
+          ctx.beginPath(); ctx.moveTo(fcx - 13, my + 2);
+          ctx.lineTo(fcx - 7, my - 2 + sm); ctx.lineTo(fcx - 1, my + 4);
+          ctx.lineTo(fcx + 5, my - 1 + sm); ctx.lineTo(fcx + 13, my + 3); ctx.stroke(); break;
+        case "smug":
+          ctx.beginPath(); ctx.moveTo(fcx - 8, my + 2);
+          ctx.quadraticCurveTo(fcx, my + 4, fcx + 6, my + 1);
+          ctx.quadraticCurveTo(fcx + 14, my + 7 + sm * 2, fcx + 18, my - 2); ctx.stroke(); break;
+        case "dreamy":
+          ctx.beginPath(); ctx.moveTo(fcx - 12, my + 1);
+          ctx.quadraticCurveTo(fcx, my + 8 + sm, fcx + 12, my + 1); ctx.stroke(); break;
+        case "guilty":
+          ctx.beginPath(); ctx.moveTo(fcx - 8, my + 3);
+          ctx.quadraticCurveTo(fcx, my + 5, fcx + 8, my + 2); ctx.stroke(); break;
+        case "sunglasses":
+          ctx.beginPath(); ctx.moveTo(fcx - 12, my + 1);
+          ctx.quadraticCurveTo(fcx - 2, my + 6, fcx + 4, my + 2);
+          ctx.quadraticCurveTo(fcx + 12, my + 7 + sm, fcx + 16, my - 1); ctx.stroke(); break;
+      }
+    }
+
+    // ── Main suitcase draw ──
+
+    function drawSuitcase() {
+      const f = { x: CX - BW / 2, y: CY - BH / 2, w: BW, h: BH };
+      const bob = Math.sin(s.t * 1.0) * 5;
+
+      ctx.save();
+      ctx.translate(0, bob);
+
+      // Shadow
+      ctx.save();
+      ctx.translate(0, -bob * 0.3);
+      const shG = ctx.createRadialGradient(CX + 8, f.y + f.h + 26, 5, CX + 8, f.y + f.h + 26, 95);
+      shG.addColorStop(0, "rgba(0,0,0,0.12)"); shG.addColorStop(1, "transparent");
+      ctx.fillStyle = shG;
+      ctx.fillRect(CX - 95, f.y + f.h + 6, 210, 44);
+      ctx.restore();
+
+      // Handle
+      const handleCx = CX + DX * 0.55;
+      const handleCy = f.y + DY * 0.35;
+      const hh = 64;
+      ctx.strokeStyle = C.handle; ctx.lineWidth = 4; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(handleCx - 14, handleCy - 2); ctx.lineTo(handleCx - 14, handleCy - hh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(handleCx + 14, handleCy - 2); ctx.lineTo(handleCx + 14, handleCy - hh); ctx.stroke();
+      ctx.strokeStyle = "rgba(160,180,195,0.3)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(handleCx - 13, handleCy - 2); ctx.lineTo(handleCx - 13, handleCy - hh); ctx.stroke();
+      // Grip
+      const gw = 36, gh = 11, gx = handleCx - gw / 2, gy = handleCy - hh - 7;
+      drawChubbyRect(gx, gy, gw, gh, 5);
+      ctx.fillStyle = C.handleDark; ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 2; ctx.stroke();
+
+      // Luggage tag
+      const tagSway = Math.sin(s.t * 1.3 + 0.5) * 5;
+      const tagAnchorX = handleCx - 14;
+      const tagAnchorY = handleCy - hh * 0.45;
+      const tagW = 24, tagH = 44, tagR = 6;
+      const tagX = tagAnchorX - tagW - 8 + tagSway;
+      const tagY = tagAnchorY + 4;
+      ctx.save();
+      ctx.translate(tagAnchorX, tagAnchorY);
+      ctx.rotate(Math.sin(s.t * 1.3 + 0.5) * 0.12);
+      ctx.translate(-tagAnchorX, -tagAnchorY);
+      ctx.strokeStyle = "#D4856A"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(tagAnchorX, tagAnchorY);
+      ctx.quadraticCurveTo(tagAnchorX - tagW * 0.4, tagAnchorY - 3, tagX + tagW / 2, tagY + 1);
+      ctx.stroke();
+      drawChubbyRect(tagX, tagY, tagW, tagH, tagR);
+      ctx.fillStyle = "#E8926E"; ctx.fill();
+      ctx.strokeStyle = "#D47A5A"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(tagX + tagW / 2, tagY + 7, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "#D47A5A"; ctx.fill();
+      ctx.beginPath(); ctx.arc(tagX + tagW / 2, tagY + 7, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#E8926E"; ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 1.5; ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(tagX + 5, tagY + 16); ctx.lineTo(tagX + tagW - 5, tagY + 16);
+      ctx.moveTo(tagX + 5, tagY + 21); ctx.lineTo(tagX + tagW - 7, tagY + 21);
+      ctx.moveTo(tagX + 5, tagY + 26); ctx.lineTo(tagX + tagW - 10, tagY + 26);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.font = "9px sans-serif";
+      ctx.fillText("\u2708", tagX + tagW / 2 - 4, tagY + tagH - 7);
+      ctx.restore();
+
+      // Top face
+      const tp = [
+        { x: f.x, y: f.y }, { x: f.x + DX, y: f.y + DY },
+        { x: f.x + f.w + DX, y: f.y + DY }, { x: f.x + f.w, y: f.y },
+      ];
+      drawRoundedPoly(tp, 12);
+      ctx.fillStyle = C.bodyTop; ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(f.x + 20, f.y - 2); ctx.lineTo(f.x + f.w - 10 + DX * 0.5, f.y + DY * 0.5 - 2);
+      ctx.stroke();
+
+      // Right side
+      const rp = [
+        { x: f.x + f.w, y: f.y }, { x: f.x + f.w + DX, y: f.y + DY },
+        { x: f.x + f.w + DX, y: f.y + f.h + DY }, { x: f.x + f.w, y: f.y + f.h },
+      ];
+      drawRoundedPoly(rp, 12);
+      const sideGrad = ctx.createLinearGradient(f.x + f.w, 0, f.x + f.w + DX, 0);
+      sideGrad.addColorStop(0, C.bodyFrontLo); sideGrad.addColorStop(1, C.bodySide);
+      ctx.fillStyle = sideGrad; ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 2; ctx.stroke();
+
+      // Wheels
+      drawWheels(f);
+
+      // Inner compartment (behind flap)
+      drawChubbyRect(f.x, f.y, f.w, f.h, CORNER_R);
+      ctx.fillStyle = C.bodyBack; ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 2; ctx.stroke();
+      const ip = 8;
+      drawChubbyRect(f.x + ip, f.y + ip, f.w - ip * 2, f.h - ip * 2, 14);
+      ctx.fillStyle = C.inner; ctx.fill();
+      ctx.strokeStyle = C.innerBorder; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = "rgba(91,184,166,0.15)"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(f.x + 22, f.y + 35); ctx.lineTo(f.x + f.w - 22, f.y + 35);
+      ctx.moveTo(f.x + 22, f.y + f.h - 35); ctx.lineTo(f.x + f.w - 22, f.y + f.h - 35);
+      ctx.stroke();
+
+      // Front flap
+      const fo = s.flapAngle;
+      ctx.save();
+      if (fo > 0.01) {
+        const hingeX = f.x + f.w;
+        const scaleX = 1 - fo * 0.72;
+        const skewY = fo * 0.1;
+        const shiftX = fo * DX * 0.55;
+        const shiftY = fo * DY * 0.35;
+        ctx.translate(hingeX, f.y);
+        ctx.transform(scaleX, skewY, 0, 1, shiftX, shiftY);
+        ctx.translate(-hingeX, -f.y);
+      }
+      drawChubbyRect(f.x, f.y, f.w, f.h, CORNER_R);
+      const flapGrad = ctx.createLinearGradient(f.x, f.y, f.x, f.y + f.h);
+      flapGrad.addColorStop(0, C.bodyFrontHi);
+      flapGrad.addColorStop(0.35, C.bodyFront);
+      flapGrad.addColorStop(1, C.bodyFrontLo);
+      ctx.fillStyle = flapGrad; ctx.fill();
+      ctx.strokeStyle = C.outline; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(f.x + CORNER_R, f.y + 2); ctx.lineTo(f.x + f.w - CORNER_R, f.y + 2);
+      ctx.stroke();
+      ctx.strokeStyle = C.flapLine; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(f.x + 24, f.y + f.h * 0.73); ctx.lineTo(f.x + f.w - 24, f.y + f.h * 0.73);
+      ctx.stroke();
+      drawChubbyRect(f.x + f.w / 2 - 10, f.y + f.h - 20, 20, 5, 2.5);
+      ctx.fillStyle = "rgba(42,94,86,0.2)"; ctx.fill();
+      ctx.fillStyle = C.outline;
+      for (let i = 0; i < 3; i++) {
+        const hy = f.y + 35 + i * (f.h - 70) / 2;
+        ctx.beginPath(); ctx.arc(f.x + f.w - 7, hy, 2, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Face on the flap
+      drawFace(f.x + f.w / 2, f.y + f.h * 0.40);
+
+      ctx.restore(); // flap transform
+      ctx.restore(); // bob
+    }
+
+    // ── Goofiness update ──
+
+    function updateGoofiness() {
+      const target = getGoofForExpression(s.currentExpr);
+      const spd = 0.08;
+      s.leftEyeExtra.x += (target.l.x - s.leftEyeExtra.x) * spd;
+      s.leftEyeExtra.y += (target.l.y - s.leftEyeExtra.y) * spd;
+      s.leftEyeExtra.size += (target.l.size - s.leftEyeExtra.size) * spd;
+      s.rightEyeExtra.x += (target.r.x - s.rightEyeExtra.x) * spd;
+      s.rightEyeExtra.y += (target.r.y - s.rightEyeExtra.y) * spd;
+      s.rightEyeExtra.size += (target.r.size - s.rightEyeExtra.size) * spd;
+      const sgTarget = s.hasSunglasses ? 1 : 0;
+      s.sunglassAlpha += (sgTarget - s.sunglassAlpha) * 0.12;
+    }
+
+    // ── Animation loop ──
+
+    function animate() {
       if (!mountedRef.current) return;
-      s.t += 0.014;
-      s.blinkTimer += 0.014;
-
-      const leanX = Math.sin(s.t * 0.25) * 3.5 + Math.cos(s.t * 0.15) * 2;
-      const leanY = Math.cos(s.t * 0.2) * 2.5 + Math.sin(s.t * 0.13) * 1.5;
-      const stretchX = 1 + Math.sin(s.t * 0.35) * 0.03;
-      const stretchY = 1 - Math.sin(s.t * 0.35) * 0.03;
-      const surge = Math.pow(Math.sin(s.t * 0.9), 12) * 6;
-      const surgeAngle = s.t * 0.25;
-
-      const points: { x: number; y: number }[] = [];
-      for (let i = 0; i < NUM_POINTS; i++) {
-        const angle = (i / NUM_POINTS) * Math.PI * 2;
-        const seed = s.pointSeeds[i];
-        const n1 = Math.sin(s.t * seed.speed1 + seed.phase1) * seed.amp1;
-        const n2 = Math.cos(s.t * seed.speed2 + seed.phase2) * seed.amp2;
-        const n3 = Math.sin(s.t * seed.speed3 + seed.phase3) * seed.amp3;
-        const angleDiff = Math.abs(Math.atan2(Math.sin(angle - surgeAngle), Math.cos(angle - surgeAngle)));
-        const surgeEffect = surge * Math.max(0, 1 - angleDiff / 1.2);
-        const r = s.baseShape[i] + n1 + n2 + n3 + surgeEffect;
-        points.push({
-          x: (100 + leanX) + Math.cos(angle) * r * stretchX,
-          y: (104 + leanY) + Math.sin(angle) * r * stretchY,
-        });
-      }
-
-      const pathD = pointsToSmoothPath(points);
-      blobFillRef.current?.setAttribute("d", pathD);
-      blobOutlineRef.current?.setAttribute("d", pathD);
-
-      // Face position
-      const avgX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
-      const avgY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
-      if (faceRef.current) {
-        faceRef.current.style.transform = `translate(calc(-50% + ${((avgX - 100) * 0.6).toFixed(1)}px), calc(-50% + ${((avgY - 104) * 0.6 - 10).toFixed(1)}px))`;
-      }
-
-      // Gaze
-      let targetGaze = gazeTargets[exprGaze[s.currentExpression] || "suitcase"];
-      const flyingItem = sceneRef.current?.querySelector(".flying-item.fly-in");
-      if (flyingItem && sceneRef.current) {
-        const rect = flyingItem.getBoundingClientRect();
-        const sceneRect = sceneRef.current.getBoundingClientRect();
-        targetGaze = {
-          x: Math.max(-5, Math.min(5, ((rect.left - sceneRect.left) / sceneRect.width - 0.3) * 12)),
-          y: Math.max(-4, Math.min(4, ((rect.top - sceneRect.top) / sceneRect.height - 0.4) * 8)),
-        };
-      }
-      targetGaze = { x: targetGaze.x + Math.sin(s.t * 1.2) * 0.4, y: targetGaze.y + Math.cos(s.t * 0.9) * 0.3 };
-      s.gazeX += (targetGaze.x - s.gazeX) * 0.08;
-      s.gazeY += (targetGaze.y - s.gazeY) * 0.08;
+      s.t += 0.016;
+      s.blinkTimer += 0.016;
+      ctx.clearRect(0, 0, W, H);
 
       // Blink
       if (s.blinkTimer > 2.5 + Math.random() * 2.5) {
@@ -276,236 +612,130 @@ export function ExploreLoadingState({ skipToEnd }: Props) {
         safeTimeout(() => { s.isBlinking = false; }, 110);
       }
 
-      // Eyes
-      const eyeSq = s.isBlinking ? 0.15 : 1;
-      const rEyeSq = Math.min(eyeSq, s.isWinking ? 0.1 : 1);
-
-      pupilLRef.current?.setAttribute("cx", (14 + s.gazeX).toFixed(1));
-      pupilLRef.current?.setAttribute("cy", (17 + s.gazeY).toFixed(1));
-      shineLRef.current?.setAttribute("cx", (16 + s.gazeX * 0.4).toFixed(1));
-      shineLRef.current?.setAttribute("cy", (14 + s.gazeY * 0.2).toFixed(1));
-      eyeWhiteLRef.current?.setAttribute("ry", (10 * eyeSq).toFixed(1));
-
-      pupilRRef.current?.setAttribute("cx", (36 + s.gazeX).toFixed(1));
-      pupilRRef.current?.setAttribute("cy", (17 + s.gazeY).toFixed(1));
-      shineRRef.current?.setAttribute("cx", (38 + s.gazeX * 0.4).toFixed(1));
-      shineRRef.current?.setAttribute("cy", (14 + s.gazeY * 0.2).toFixed(1));
-      eyeWhiteRRef.current?.setAttribute("ry", (10 * rEyeSq).toFixed(1));
-
-      if (s.isBlinking) {
-        pupilLRef.current?.setAttribute("r", "0");
-        pupilRRef.current?.setAttribute("r", "0");
-        shineLRef.current?.setAttribute("r", "0");
-        shineRRef.current?.setAttribute("r", "0");
-      } else {
-        pupilLRef.current?.setAttribute("r", "5");
-        pupilRRef.current?.setAttribute("r", s.isWinking ? "0" : "5");
-        shineLRef.current?.setAttribute("r", "1.8");
-        shineRRef.current?.setAttribute("r", s.isWinking ? "0" : "1.8");
+      // Gaze
+      let tg = GAZE_MAP[EXPR_GAZE[s.currentExpr] || "center"] || GAZE_MAP.center;
+      const fi = scene.querySelector(".flying-item.fly");
+      if (fi) {
+        const r = fi.getBoundingClientRect();
+        const sr = scene.getBoundingClientRect();
+        tg = {
+          x: Math.max(-7, Math.min(7, ((r.left - sr.left) / sr.width - 0.5) * 18)),
+          y: Math.max(-6, Math.min(6, ((r.top - sr.top) / sr.height - 0.45) * 12)),
+        };
       }
+      s.gazeX += (tg.x + Math.sin(s.t * 1.2) * 0.5 - s.gazeX) * 0.08;
+      s.gazeY += (tg.y + Math.cos(s.t * 0.9) * 0.4 - s.gazeY) * 0.08;
 
-      // Expressions
-      const sm = Math.sin(s.t * 0.5) * 0.5 + 0.5;
-      switch (s.currentExpression) {
-        case "curious":
-          browLRef.current?.setAttribute("d", `M5 ${3 + sm} Q10 ${sm * 0.5}, 18 ${2 + sm * 0.5}`);
-          browRRef.current?.setAttribute("d", `M32 ${1 - sm * 0.5} Q40 -1, 45 ${2 - sm * 0.5}`);
-          mouthRef.current?.setAttribute("d", `M18 34 Q25 ${39 + sm * 2}, 32 34`); break;
-        case "excited":
-          browLRef.current?.setAttribute("d", `M6 ${1 - sm} Q11 -2, 18 ${-sm * 0.5}`);
-          browRRef.current?.setAttribute("d", `M32 ${-sm * 0.5} Q39 -2, 44 ${1 - sm}`);
-          mouthRef.current?.setAttribute("d", `M15 33 Q25 ${43 + sm}, 35 33`); break;
-        case "thinking":
-          browLRef.current?.setAttribute("d", `M5 2 Q10 ${-1 + sm}, 18 ${3 + sm}`);
-          browRRef.current?.setAttribute("d", `M32 ${1 - sm} Q40 ${-1 - sm}, 45 ${2 - sm}`);
-          mouthRef.current?.setAttribute("d", `M20 35 Q25 ${37 + sm}, 30 35.5`); break;
-        case "pleased":
-          browLRef.current?.setAttribute("d", `M6 ${3 + sm * 0.5} Q11 1, 18 2.5`);
-          browRRef.current?.setAttribute("d", `M32 2.5 Q39 1, 44 ${3 + sm * 0.5}`);
-          mouthRef.current?.setAttribute("d", `M17 34 Q25 ${41 + sm}, 33 34`); break;
-        case "surprised":
-          browLRef.current?.setAttribute("d", `M5 ${-sm} Q10 -3, 18 ${-1 - sm * 0.5}`);
-          browRRef.current?.setAttribute("d", `M32 ${-1 - sm * 0.5} Q40 -3, 45 ${-sm}`);
-          mouthRef.current?.setAttribute("d", `M21 35 Q25 ${39 + sm}, 29 35`); break;
-        case "cheeky":
-          browLRef.current?.setAttribute("d", `M5 ${4 + sm} Q10 2, 18 1`);
-          browRRef.current?.setAttribute("d", `M32 ${1 - sm * 0.5} Q40 -1, 45 1`);
-          mouthRef.current?.setAttribute("d", `M17 34 Q22 39, 27 35 Q31 ${38 + sm * 2}, 34 33`); break;
-        case "wink":
-          browLRef.current?.setAttribute("d", `M5 ${1 - sm} Q10 -2, 18 0`);
-          browRRef.current?.setAttribute("d", `M32 ${3 + sm} Q40 3, 45 ${4 + sm}`);
-          mouthRef.current?.setAttribute("d", `M16 33 Q17 38, 25 39 Q33 38, 34 33 Q33 31, 25 30 Q17 31, 16 33`); break;
-        case "nervous":
-          browLRef.current?.setAttribute("d", `M5 ${5 + sm} Q10 3, 18 ${1 - sm}`);
-          browRRef.current?.setAttribute("d", `M32 ${1 - sm} Q40 3, 45 ${5 + sm}`);
-          mouthRef.current?.setAttribute("d", `M19 36 Q22 ${34 - sm}, 25 ${36 + sm} Q28 ${34 - sm}, 31 36`); break;
-        case "smug":
-          browLRef.current?.setAttribute("d", `M6 ${4 + sm * 0.3} Q11 3, 18 3`);
-          browRRef.current?.setAttribute("d", `M32 2 Q39 ${1 - sm * 0.3}, 44 2`);
-          mouthRef.current?.setAttribute("d", `M19 35 Q24 36, 27 35 Q32 ${39 + sm}, 35 33`); break;
-        case "dreamy":
-          browLRef.current?.setAttribute("d", `M6 3 Q11 ${2 + sm * 0.5}, 18 ${3 + sm * 0.3}`);
-          browRRef.current?.setAttribute("d", `M32 ${3 + sm * 0.3} Q39 ${2 + sm * 0.5}, 44 3`);
-          mouthRef.current?.setAttribute("d", `M17 34 Q25 ${40 + sm}, 33 34`); break;
-        case "guilty":
-          browLRef.current?.setAttribute("d", `M5 ${4 + sm} Q10 ${2 + sm}, 18 1`);
-          browRRef.current?.setAttribute("d", `M32 1 Q40 ${2 + sm}, 45 ${4 + sm}`);
-          mouthRef.current?.setAttribute("d", `M20 35 Q25 37, 30 36`); break;
-      }
+      // Flap + goofiness
+      s.flapAngle += (s.flapTarget - s.flapAngle) * 0.12;
+      updateGoofiness();
 
-      s.rafId = requestAnimationFrame(animateBlob);
+      drawSuitcase();
+      s.rafId = requestAnimationFrame(animate);
     }
 
-    // ── Packing items ──
+    // ── Item launching ──
+
     function shufflePool() {
-      s.itemPool = [...packingItems].sort(() => Math.random() - 0.5);
+      s.itemPool = [...ITEMS].sort(() => Math.random() - 0.5);
     }
 
-    function openLid() { suitcaseLidRef.current?.classList.add("open"); }
-    function closeLid() { suitcaseLidRef.current?.classList.remove("open"); }
+    function openFlap() { s.flapTarget = 1; }
+    function closeFlap() { s.flapTarget = 0; }
 
-    function launchItem() {
-      if (!mountedRef.current || !sceneRef.current) return;
+    function launch() {
+      if (!mountedRef.current || !scene) return;
       if (s.itemPool.length === 0) shufflePool();
-      const item = s.itemPool.pop()!;
+      const it = s.itemPool.pop()!;
 
       // Expression
-      s.currentExpression = item.reaction as Expression;
-      s.isWinking = item.reaction === "wink";
-      const resetDelay = item.reaction === "wink" ? 600 : 1800;
-      safeTimeout(() => { s.currentExpression = "curious"; s.isWinking = false; }, resetDelay);
+      s.hasSunglasses = it.r === "sunglasses";
+      s.currentExpr = it.r;
+      s.isWinking = it.r === "wink";
+      const dur = it.r === "wink" ? 600 : it.r === "sunglasses" ? 2000 : 1800;
+      safeTimeout(() => {
+        s.currentExpr = "curious";
+        s.isWinking = false;
+        s.hasSunglasses = false;
+      }, dur);
 
-      openLid();
+      openFlap();
 
+      // Create flying item element
       const el = document.createElement("div");
       el.className = "flying-item";
       const dot = document.createElement("span");
-      dot.className = "item-dot";
-      dot.style.background = item.color;
+      dot.className = "dot";
+      dot.style.background = it.c;
       el.appendChild(dot);
-      el.appendChild(document.createTextNode(item.label));
+      el.appendChild(document.createTextNode(it.l));
 
       const side = Math.random();
-      let startX: number, startY: number;
-      if (side < 0.4) { startX = -70 + Math.random() * 30; startY = 20 + Math.random() * 80; }
-      else if (side < 0.7) { startX = 20 + Math.random() * 100; startY = -40 + Math.random() * 20; }
-      else { startX = -30 + Math.random() * 60; startY = 150 + Math.random() * 30; }
+      let sx: number, sy: number;
+      if (side < 0.35) { sx = -90 + Math.random() * 20; sy = 50 + Math.random() * 120; }
+      else if (side < 0.65) { sx = 40 + Math.random() * 140; sy = -50 + Math.random() * 20; }
+      else { sx = 280 + Math.random() * 50; sy = 50 + Math.random() * 120; }
+      const ex = 138 + Math.random() * 35;
+      const ey = 118 + Math.random() * 30;
 
-      el.style.setProperty("--start-x", startX + "px");
-      el.style.setProperty("--start-y", startY + "px");
-      el.style.setProperty("--end-x", (200 + Math.random() * 20) + "px");
-      el.style.setProperty("--end-y", (70 + Math.random() * 15) + "px");
-      el.style.setProperty("--start-rot", ((Math.random() - 0.5) * 30) + "deg");
+      el.style.setProperty("--sx", sx + "px");
+      el.style.setProperty("--sy", sy + "px");
+      el.style.setProperty("--ex", ex + "px");
+      el.style.setProperty("--ey", ey + "px");
+      el.style.setProperty("--sr", ((Math.random() - 0.5) * 30) + "deg");
 
-      sceneRef.current.appendChild(el);
-      requestAnimationFrame(() => el.classList.add("fly-in"));
-      safeTimeout(closeLid, 1250);
-      safeTimeout(() => el.remove(), 1800);
-    }
+      scene.appendChild(el);
+      requestAnimationFrame(() => el.classList.add("fly"));
+      safeTimeout(closeFlap, 1600);
+      safeTimeout(() => el.remove(), 2200);
 
-    // ── Phrases ──
-    function getRandomFromPool(pool: string[]) {
-      if (s.usedPhrases.length >= pool.length) s.usedPhrases = [];
-      let idx: number;
-      do { idx = Math.floor(Math.random() * pool.length); } while (s.usedPhrases.includes(idx));
-      s.usedPhrases.push(idx);
-      return pool[idx];
-    }
-
-    function showPhrase() {
-      if (!mountedRef.current || !phraseContainerRef.current) return;
-      const pool = s.isAlmostDone ? almostDone : phrases;
-      const text = getRandomFromPool(pool);
-      const old = phraseContainerRef.current.querySelector(".loader-phrase");
-      if (old) old.remove();
-      const el = document.createElement("div");
-      el.className = "loader-phrase active";
-      el.innerHTML = `${text}<span class="loader-dots"><span>.</span><span>.</span><span>.</span></span>`;
-      phraseContainerRef.current.appendChild(el);
-      const progress = Math.min((s.currentIndex + 1) / 12 * 100, 100);
-      if (progressLineRef.current) {
-        progressLineRef.current.style.strokeDashoffset = String(
-          s.isAlmostDone ? 82 * 0.08 : 82 * (1 - progress / 100)
-        );
-      }
+      // Progress
       s.currentIndex++;
+      const progress = Math.min((s.currentIndex / 12) * 100, 100);
+      if (progressLineRef.current && !s.isAlmostDone) {
+        progressLineRef.current.style.strokeDashoffset = String(82 * (1 - progress / 100));
+      }
     }
-    s.showPhrase = showPhrase;
 
     // ── Start ──
     s.currentIndex = 0;
-    s.usedPhrases = [];
     s.isAlmostDone = false;
+    s.flapAngle = 0;
+    s.flapTarget = 0;
+    s.hasSunglasses = false;
+    s.sunglassAlpha = 0;
     if (progressLineRef.current) progressLineRef.current.style.strokeDashoffset = "82";
     shufflePool();
-    closeLid();
-
-    showPhrase();
-    s.phraseIntervalId = setInterval(showPhrase, 3000);
-    safeTimeout(launchItem, 600);
-    s.itemIntervalId = setInterval(launchItem, 2200);
-    s.rafId = requestAnimationFrame(animateBlob);
+    safeTimeout(launch, 800);
+    s.itemIntervalId = setInterval(() => {
+      if (mountedRef.current) launch();
+    }, 3200);
+    s.rafId = requestAnimationFrame(animate);
 
     // ── Cleanup ──
     return () => {
       mountedRef.current = false;
       cancelAnimationFrame(s.rafId);
-      if (s.phraseIntervalId) clearInterval(s.phraseIntervalId);
       if (s.itemIntervalId) clearInterval(s.itemIntervalId);
       s.pendingTimeouts.forEach((id) => clearTimeout(id));
       s.pendingTimeouts.clear();
-      sceneRef.current?.querySelectorAll(".flying-item").forEach((el) => el.remove());
-      phraseContainerRef.current?.querySelectorAll(".loader-phrase").forEach((el) => el.remove());
+      scene.querySelectorAll(".flying-item").forEach((el) => el.remove());
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-8 flex items-center justify-center shadow-sm">
+    <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 flex items-center justify-center shadow-sm">
       <div className="loader-container">
         <div className="loader-scene" ref={sceneRef}>
-          {/* Blob */}
-          <div className="blob-wrap">
-            <div className="blob-shadow" />
-            <svg className="blob-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-              <path className="blob-fill-path" ref={blobFillRef} />
-              <path className="blob-outline-path" ref={blobOutlineRef} />
-            </svg>
-            <div className="blob-face" ref={faceRef}>
-              <svg width="50" height="46" viewBox="0 0 50 46">
-                <path d="M5 3 Q10 0, 18 2" fill="none" stroke="#4A3F35" strokeWidth="2.5" strokeLinecap="round" ref={browLRef} />
-                <path d="M32 2 Q40 0, 45 3" fill="none" stroke="#4A3F35" strokeWidth="2.5" strokeLinecap="round" ref={browRRef} />
-                <ellipse cx="14" cy="17" rx="10" ry="10" fill="white" stroke="#4A3F35" strokeWidth="2.5" ref={eyeWhiteLRef} />
-                <circle cx="16" cy="16" r="5" fill="#4A3F35" ref={pupilLRef} />
-                <circle cx="18" cy="14" r="1.8" fill="white" ref={shineLRef} />
-                <ellipse cx="36" cy="17" rx="10" ry="10" fill="white" stroke="#4A3F35" strokeWidth="2.5" ref={eyeWhiteRRef} />
-                <circle cx="38" cy="16" r="5" fill="#4A3F35" ref={pupilRRef} />
-                <circle cx="40" cy="14" r="1.8" fill="white" ref={shineRRef} />
-                <path d="M16 34 Q25 42, 34 34" fill="none" stroke="#4A3F35" strokeWidth="2.5" strokeLinecap="round" ref={mouthRef} />
-              </svg>
-            </div>
-          </div>
-
-          {/* Suitcase */}
-          <div className="loader-suitcase">
-            <svg viewBox="0 0 88 72" xmlns="http://www.w3.org/2000/svg">
-              <rect x="4" y="24" width="80" height="40" rx="5" fill="#E8E0D2" stroke="#4A3F35" strokeWidth="3" />
-              <path d="M32 24 L32 14 Q32 8, 38 8 L50 8 Q56 8, 56 14 L56 24" fill="none" stroke="#4A3F35" strokeWidth="3.5" strokeLinecap="round" />
-              <rect x="37" y="21" width="14" height="7" rx="2" fill="#D4C8B4" stroke="#4A3F35" strokeWidth="2" />
-              <circle cx="18" cy="67" r="4" fill="#D4C8B4" stroke="#4A3F35" strokeWidth="2.5" />
-              <circle cx="70" cy="67" r="4" fill="#D4C8B4" stroke="#4A3F35" strokeWidth="2.5" />
-              <g className="suitcase-lid" ref={suitcaseLidRef}>
-                <rect x="4" y="22" width="80" height="10" rx="4" fill="#D4C8B4" stroke="#4A3F35" strokeWidth="3" />
-              </g>
-            </svg>
-          </div>
+          <canvas ref={canvasRef} width={680} height={520} style={{ width: "340px", height: "260px" }} />
         </div>
-
-        <div className="phrase-container" ref={phraseContainerRef} />
-
-        <div className="loader-progress">
+        <div className="phrase-container">
+          <span className="loading-text">Loading...</span>
+        </div>
+        <div className="progress-track">
           <svg viewBox="0 0 80 6">
-            <path d="M2 3 Q10 1, 20 3.5 Q30 5.5, 40 3 Q50 0.5, 60 3.5 Q70 5, 78 3" stroke="#E0D8CC" strokeWidth="2" fill="none" strokeLinecap="round" />
-            <path d="M2 3 Q10 1, 20 3.5 Q30 5.5, 40 3 Q50 0.5, 60 3.5 Q70 5, 78 3" stroke="#A89882" strokeWidth="2.5" fill="none" strokeLinecap="round" ref={progressLineRef} style={{ strokeDasharray: 82, strokeDashoffset: 82 }} />
+            <path d="M2 3Q10 1,20 3.5Q30 5.5,40 3Q50 .5,60 3.5Q70 5,78 3" stroke="rgba(91,184,166,.15)" strokeWidth="2" fill="none" strokeLinecap="round" />
+            <path d="M2 3Q10 1,20 3.5Q30 5.5,40 3Q50 .5,60 3.5Q70 5,78 3" stroke="rgba(91,184,166,.5)" strokeWidth="2" fill="none" strokeLinecap="round" ref={progressLineRef} style={{ strokeDasharray: 82, strokeDashoffset: 82 }} />
           </svg>
         </div>
       </div>
