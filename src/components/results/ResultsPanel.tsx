@@ -44,6 +44,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     object: detailObject,
     submit: submitDetail,
     isLoading: isDetailLoading,
+    error: detailError,
   } = useObject({
     api: "/api/explore/detail",
     schema: DestinationSuggestionSchema,
@@ -51,6 +52,13 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
 
   // Track which destination the current detail stream is for
   const [streamingDetailName, setStreamingDetailName] = useState<string | null>(null);
+
+  // Log detail streaming errors for debugging
+  useEffect(() => {
+    if (detailError) {
+      console.error("[detail stream] Error:", detailError);
+    }
+  }, [detailError]);
 
   // When detail stream finishes, cache the result
   useEffect(() => {
