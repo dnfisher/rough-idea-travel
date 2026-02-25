@@ -63,7 +63,7 @@ export default function RootLayout({
           <CurrencyProvider>{children}</CurrencyProvider>
         </SessionProvider>
         <span className="fixed bottom-1.5 right-2 text-[10px] text-muted-foreground/30 select-none pointer-events-none">
-          v0.4.1
+          v0.4.2
         </span>
       </body>
     </html>

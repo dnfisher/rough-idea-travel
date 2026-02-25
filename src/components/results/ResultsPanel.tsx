@@ -60,18 +60,30 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     }
   }, [detailError]);
 
-  // When detail stream finishes, cache the result (only if it looks complete)
+  // Log detail object updates for debugging
+  useEffect(() => {
+    if (detailObject && streamingDetailName) {
+      const keys = Object.keys(detailObject).filter(
+        (k) => detailObject[k as keyof typeof detailObject] != null
+      );
+      console.log("[detail stream]", streamingDetailName, "keys:", keys.join(", "));
+    }
+  }, [detailObject, streamingDetailName]);
+
+  // When detail stream finishes, cache whatever we got
   useEffect(() => {
     if (!isDetailLoading && detailObject && streamingDetailName) {
-      // Only cache if the response looks complete (has itinerary with days).
-      // Truncated responses are discarded so re-opening will refetch.
-      const hasItinerary = detailObject.itinerary?.days && detailObject.itinerary.days.length > 0;
-      if (hasItinerary) {
-        setDetailCache((prev) => ({
-          ...prev,
-          [streamingDetailName]: detailObject,
-        }));
-      }
+      console.log("[detail cache] Stream finished for:", streamingDetailName, {
+        hasItinerary: !!(detailObject.itinerary?.days && detailObject.itinerary.days.length > 0),
+        hasPros: !!(detailObject.pros?.length),
+        hasLocalInsights: !!(detailObject.localInsights?.length),
+      });
+      // Always cache whatever arrived — even partial data is better than
+      // falling back to Phase 1 summary. Re-opening will re-fetch if incomplete.
+      setDetailCache((prev) => ({
+        ...prev,
+        [streamingDetailName]: detailObject,
+      }));
       setStreamingDetailName(null);
     }
   }, [isDetailLoading, detailObject, streamingDetailName]);
@@ -216,14 +228,21 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     setSelectedDestination((prev) => (prev === id ? null : id));
   }, []);
 
-  // Card click: highlight + open detail sheet + fetch detail if not cached
+  // Card click: highlight + open detail sheet + fetch detail if not cached (or incomplete)
   const handleCardClick = useCallback((name: string | undefined) => {
     if (!name) return;
     setSelectedDestination(name);
     setDetailDestination(name);
 
     const dest = sortedDestinations.find((d) => d?.name === name);
-    if (dest && !detailCacheRef.current[name] && tripInput) {
+    if (!dest || !tripInput) return;
+
+    const cached = detailCacheRef.current[name];
+    const isComplete = cached?.itinerary?.days && cached.itinerary.days.length > 0;
+
+    // Fetch if not cached, or if cached but incomplete (e.g., previous stream was truncated)
+    if (!cached || !isComplete) {
+      console.log("[detail fetch]", name, cached ? "re-fetching incomplete" : "first fetch");
       setStreamingDetailName(name);
       submitDetail({
         destinationName: name,

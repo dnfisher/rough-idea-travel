@@ -12,6 +12,41 @@ interface DestinationImageProps {
   fallbackName?: string;
 }
 
+// Module-level cache: all DestinationImage instances share resolved URLs.
+// This guarantees that the card and detail views for the same destination
+// always render the same image, regardless of mount timing or Vercel instance.
+const resolvedUrlCache = new Map<string, string | null>();
+
+// Track in-flight fetches so concurrent mounts coalesce into one request.
+const pendingFetches = new Map<string, Promise<string | null>>();
+
+async function resolveImageUrl(apiUrl: string): Promise<string | null> {
+  if (resolvedUrlCache.has(apiUrl)) {
+    return resolvedUrlCache.get(apiUrl)!;
+  }
+  if (pendingFetches.has(apiUrl)) {
+    return pendingFetches.get(apiUrl)!;
+  }
+  const promise = fetch(apiUrl)
+    .then((res) => {
+      if (!res.ok) return null;
+      return res.json();
+    })
+    .then((data) => {
+      const url: string | null = data?.url ?? null;
+      resolvedUrlCache.set(apiUrl, url);
+      pendingFetches.delete(apiUrl);
+      return url;
+    })
+    .catch(() => {
+      resolvedUrlCache.set(apiUrl, null);
+      pendingFetches.delete(apiUrl);
+      return null;
+    });
+  pendingFetches.set(apiUrl, promise);
+  return promise;
+}
+
 // Deterministic gradient based on destination name
 function getGradient(name: string): string {
   let hash = 0;
@@ -33,6 +68,7 @@ function getGradient(name: string): string {
 
 export function DestinationImage({ name, country, className = "", searchName, fallbackName }: DestinationImageProps) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
 
   // Once an image has loaded, lock that URL to prevent flicker when props change during streaming.
   // Reset only when the destination identity (name) changes.
@@ -40,10 +76,11 @@ export function DestinationImage({ name, country, className = "", searchName, fa
 
   useEffect(() => {
     lockedUrlRef.current = null;
+    setResolvedSrc(null);
     setStatus("loading");
   }, [name]);
 
-  const desiredUrl = useMemo(() => {
+  const apiUrl = useMemo(() => {
     const queryName = searchName || name;
     if (!queryName) return null;
     const params = new URLSearchParams({ name: queryName });
@@ -51,10 +88,48 @@ export function DestinationImage({ name, country, className = "", searchName, fa
     return `/api/destination-image?${params.toString()}`;
   }, [name, searchName, country]);
 
-  const imageUrl = lockedUrlRef.current ?? desiredUrl;
+  // Fetch the resolved image URL from the JSON API (or use module-level cache)
+  useEffect(() => {
+    if (!apiUrl || lockedUrlRef.current) return;
 
-  if (!imageUrl) {
+    // Check module-level cache synchronously for instant hit
+    if (resolvedUrlCache.has(apiUrl)) {
+      const cached = resolvedUrlCache.get(apiUrl)!;
+      if (cached) {
+        setResolvedSrc(cached);
+      } else {
+        setStatus("error");
+      }
+      return;
+    }
+
+    let cancelled = false;
+    resolveImageUrl(apiUrl).then((url) => {
+      if (!cancelled) {
+        if (url) {
+          setResolvedSrc(url);
+        } else {
+          setStatus("error");
+        }
+      }
+    });
+    return () => { cancelled = true; };
+  }, [apiUrl]);
+
+  const imageUrl = lockedUrlRef.current ?? resolvedSrc;
+
+  // No URL and not loading — show fallback
+  if (!imageUrl && status !== "loading") {
     return <Fallback name={fallbackName ?? name} country={country} className={className} />;
+  }
+
+  // Still resolving — show shimmer
+  if (!imageUrl) {
+    return (
+      <div className={`relative bg-muted ${className}`}>
+        <div className="absolute inset-0 animate-shimmer" />
+      </div>
+    );
   }
 
   return (
