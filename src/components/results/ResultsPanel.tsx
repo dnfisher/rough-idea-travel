@@ -6,6 +6,7 @@ import type { DeepPartial } from "ai";
 import type {
   ExplorationSummaryResult,
   DestinationSuggestion,
+  DestinationSummary,
   TripInput,
 } from "@/lib/ai/schemas";
 import { DestinationSuggestionSchema } from "@/lib/ai/schemas";
@@ -149,6 +150,18 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     if (!detailDestination) return undefined;
     const idx = sortedDestinations.findIndex((d) => d?.name === detailDestination);
     return idx >= 0 ? idx + 1 : undefined;
+  }, [detailDestination, sortedDestinations]);
+
+  // Extract image search name from Phase 1 summary so detail view uses the same image as the card
+  const detailImageSearchName = useMemo(() => {
+    if (!detailDestination) return undefined;
+    const summary = sortedDestinations.find((d) => d?.name === detailDestination);
+    if (!summary) return undefined;
+    const routeStops = "routeStops" in summary
+      ? (summary as DeepPartial<DestinationSummary>).routeStops
+      : undefined;
+    if (routeStops && routeStops.length > 1) return routeStops[0] as string;
+    return undefined;
   }, [detailDestination, sortedDestinations]);
 
   // Map markers — show itinerary route from detail if available
@@ -305,6 +318,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       {/* Detail sheet */}
       <DestinationDetailSheet
         destination={detailData}
+        imageSearchName={detailImageSearchName}
         isOpen={detailDestination !== null}
         rank={detailDestRank}
         isRecommended={detailData?.name === result?.recommendedDestination}

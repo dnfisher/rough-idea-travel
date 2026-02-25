@@ -71,6 +71,8 @@ function DestinationDetailSkeleton() {
 
 interface DestinationDetailSheetProps {
   destination: DeepPartial<DestinationSuggestion> | null;
+  /** Override image search name from Phase 1 summary (ensures card/detail images match) */
+  imageSearchName?: string;
   isOpen?: boolean;
   rank?: number;
   isRecommended?: boolean;
@@ -81,6 +83,7 @@ interface DestinationDetailSheetProps {
 
 export function DestinationDetailSheet({
   destination,
+  imageSearchName,
   isOpen: isOpenProp,
   rank,
   isRecommended,
@@ -148,6 +151,7 @@ export function DestinationDetailSheet({
               <>
                 <DestinationDetailContent
                   destination={destination}
+                  imageSearchName={imageSearchName}
                   rank={rank}
                   isRecommended={isRecommended}
                   actions={actions}

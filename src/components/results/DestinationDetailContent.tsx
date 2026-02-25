@@ -51,6 +51,8 @@ const EVENT_TYPE_STYLES: Record<string, { bg: string; text: string }> = {
 
 interface DestinationDetailContentProps {
   destination: DeepPartial<DestinationSuggestion>;
+  /** Override image search name from Phase 1 summary (ensures card/detail images match) */
+  imageSearchName?: string;
   rank?: number;
   isRecommended?: boolean;
   /** Slot for action buttons (favorite, share, close) rendered above the content */
@@ -61,6 +63,7 @@ interface DestinationDetailContentProps {
 
 export function DestinationDetailContent({
   destination,
+  imageSearchName: imageSearchNameProp,
   rank,
   isRecommended,
   actions,
@@ -82,15 +85,18 @@ export function DestinationDetailContent({
     }));
 
   // For road trip routes, use first itinerary location for the image instead of the route title
+  // Prefer the prop override from Phase 1 summary (ensures card/detail images match)
   const itineraryLocations = destination.itinerary?.days
     ?.map((d) => d?.location)
     .filter(Boolean) ?? [];
   const uniqueLocations = [...new Set(itineraryLocations)];
   const isMultiStop = uniqueLocations.length > 1;
 
-  const imageSearchName = isMultiStop
-    ? destination.itinerary?.days?.[0]?.location ?? destination.country
-    : undefined;
+  const resolvedImageSearchName = imageSearchNameProp
+    ?? (isMultiStop ? destination.itinerary?.days?.[0]?.location ?? destination.country : undefined);
+
+  const resolvedFallbackName = imageSearchNameProp
+    ?? (isMultiStop ? (destination.itinerary?.days?.[0]?.location ?? destination.country ?? undefined) : undefined);
 
   return (
     <div className="space-y-6">
@@ -99,8 +105,8 @@ export function DestinationDetailContent({
         <DestinationImage
           name={destination.name}
           country={destination.country}
-          searchName={imageSearchName ?? undefined}
-          fallbackName={isMultiStop ? (destination.itinerary?.days?.[0]?.location ?? destination.country ?? undefined) : undefined}
+          searchName={resolvedImageSearchName ?? undefined}
+          fallbackName={resolvedFallbackName ?? undefined}
           className="w-full h-full"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
