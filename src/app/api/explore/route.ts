@@ -35,7 +35,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const input = TripInputSchema.parse(body);
 
-    const systemPrompt = isRoadTripInput(input)
+    const isRoadTrip = isRoadTripInput(input);
+
+    const systemPrompt = isRoadTrip
       ? ROAD_TRIP_SUMMARY_SYSTEM_PROMPT
       : EXPLORATION_SUMMARY_SYSTEM_PROMPT;
 
@@ -44,6 +46,7 @@ export async function POST(req: Request) {
       system: systemPrompt,
       prompt: buildExplorationPrompt(input),
       output: Output.object({ schema: ExplorationSummaryResultSchema }),
+      maxOutputTokens: isRoadTrip ? 12288 : 8192,
     });
 
     return result.toTextStreamResponse();

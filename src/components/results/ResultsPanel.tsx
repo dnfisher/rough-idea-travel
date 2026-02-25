@@ -60,13 +60,18 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     }
   }, [detailError]);
 
-  // When detail stream finishes, cache the result
+  // When detail stream finishes, cache the result (only if it looks complete)
   useEffect(() => {
     if (!isDetailLoading && detailObject && streamingDetailName) {
-      setDetailCache((prev) => ({
-        ...prev,
-        [streamingDetailName]: detailObject,
-      }));
+      // Only cache if the response looks complete (has itinerary with days).
+      // Truncated responses are discarded so re-opening will refetch.
+      const hasItinerary = detailObject.itinerary?.days && detailObject.itinerary.days.length > 0;
+      if (hasItinerary) {
+        setDetailCache((prev) => ({
+          ...prev,
+          [streamingDetailName]: detailObject,
+        }));
+      }
       setStreamingDetailName(null);
     }
   }, [isDetailLoading, detailObject, streamingDetailName]);
@@ -169,7 +174,9 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       ? (summary as DeepPartial<DestinationSummary>).routeStops
       : undefined;
     if (routeStops && routeStops.length > 1) return routeStops[0] as string;
-    return undefined;
+    // For non-road-trips, return the destination name so the detail view uses
+    // the same image as the card (prevents Phase 2 itinerary fallback diverging)
+    return summary.name as string;
   }, [detailDestination, sortedDestinations]);
 
   // Map markers — show itinerary route from detail if available
