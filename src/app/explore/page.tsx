@@ -40,6 +40,7 @@ export default function ExplorePage() {
 
   // Restore state from sessionStorage on mount (after OAuth redirect)
   const restoredRef = useRef(false);
+  const resultsRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (restoredRef.current) return;
     restoredRef.current = true;
@@ -67,9 +68,18 @@ export default function ExplorePage() {
   function handleSubmit(input: TripInput) {
     if (!checkSearchAllowed()) return;
     console.log("[Rough Idea] Submitting:", input);
-    setRestoredResult(null); // clear restored state when new search starts
+    setRestoredResult(null);
     setCurrentTripInput(input);
     submit(input);
+
+    // Scroll so user sees loading animation and results
+    if (window.innerWidth < 1024) {
+      requestAnimationFrame(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   // Save state to sessionStorage before OAuth redirect
@@ -93,7 +103,7 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-surface relative">
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <a href="/" className="font-logo text-3xl uppercase tracking-[-0.02em]">
             ROUGH IDEA<span className="text-highlight">.</span>
           </a>
@@ -109,15 +119,15 @@ export default function ExplorePage() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-6 py-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4 sm:gap-6 lg:gap-8">
           {/* Input sidebar */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm">
               <h2 className="font-display font-semibold text-xl mb-1">
                 Where should you go?
               </h2>
-              <p className="text-sm text-muted-foreground mb-6">
+              <p className="text-sm text-muted-foreground mb-4 sm:mb-6">
                 Tell us roughly what you&apos;re after and we&apos;ll find your perfect trip.
               </p>
               <TripInputForm onSubmit={handleSubmit} isLoading={isLoading} hasResults={hasResults} />
@@ -125,7 +135,7 @@ export default function ExplorePage() {
           </aside>
 
           {/* Results */}
-          <section className="min-w-0">
+          <section ref={resultsRef} className="min-w-0">
             <ResultsPanel
               result={effectiveResult ?? undefined}
               isLoading={isLoading}
