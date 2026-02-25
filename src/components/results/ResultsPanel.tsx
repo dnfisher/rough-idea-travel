@@ -191,6 +191,13 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     return summary.name as string;
   }, [detailDestination, sortedDestinations]);
 
+  // Stable country from Phase 1 summary — prevents streaming-induced image changes in detail view
+  const detailStableCountry = useMemo(() => {
+    if (!detailDestination) return undefined;
+    const summary = sortedDestinations.find((d) => d?.name === detailDestination);
+    return summary?.country as string | undefined;
+  }, [detailDestination, sortedDestinations]);
+
   // Map markers — show itinerary route from detail if available
   const mapMarkers = useMemo((): MapMarker[] => {
     // If we have detail data with itinerary for the selected destination, show route
@@ -238,7 +245,9 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     if (!dest || !tripInput) return;
 
     const cached = detailCacheRef.current[name];
-    const isComplete = cached?.itinerary?.days && cached.itinerary.days.length > 0;
+    const isComplete = cached?.itinerary?.days && cached.itinerary.days.length > 0
+      && cached?.pros && cached.pros.length > 0
+      && (cached?.localInsights?.length ?? 0) > 0;
 
     // Fetch if not cached, or if cached but incomplete (e.g., previous stream was truncated)
     if (!cached || !isComplete) {
@@ -353,6 +362,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       <DestinationDetailSheet
         destination={detailData}
         imageSearchName={detailImageSearchName}
+        stableCountry={detailStableCountry}
         isOpen={detailDestination !== null}
         rank={detailDestRank}
         isRecommended={detailData?.name === result?.recommendedDestination}

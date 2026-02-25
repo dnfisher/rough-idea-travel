@@ -70,23 +70,47 @@ export function DestinationImage({ name, country, className = "", searchName, fa
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
   const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
 
+  // The stable identity for this image. When searchName is provided (detail view),
+  // it comes from Phase 1 data and won't change during Phase 2 streaming.
+  const identityKey = searchName || name;
+
   // Once an image has loaded, lock that URL to prevent flicker when props change during streaming.
-  // Reset only when the destination identity (name) changes.
   const lockedUrlRef = useRef<string | null>(null);
 
+  // Reset state when destination identity changes
   useEffect(() => {
     lockedUrlRef.current = null;
     setResolvedSrc(null);
     setStatus("loading");
-  }, [name]);
+  }, [identityKey]);
 
-  const apiUrl = useMemo(() => {
+  // Compute the candidate API URL from current props.
+  const candidateApiUrl = useMemo(() => {
     const queryName = searchName || name;
     if (!queryName) return null;
     const params = new URLSearchParams({ name: queryName });
     if (country) params.set("country", country);
     return `/api/destination-image?${params.toString()}`;
   }, [name, searchName, country]);
+
+  // Lock the API URL for a given identity: once we have a good URL, don't downgrade it
+  // (e.g., when country temporarily goes undefined during Phase 2 streaming).
+  const lockedApiUrlRef = useRef<string | null>(null);
+  const prevIdentityRef = useRef<string | undefined>(identityKey);
+
+  // Synchronous reset when identity changes (runs during render, before effects)
+  if (prevIdentityRef.current !== identityKey) {
+    prevIdentityRef.current = identityKey;
+    lockedApiUrlRef.current = null;
+  }
+
+  // Adopt a new candidate URL if we don't have one, or if the new one is more specific
+  // (includes country when the locked one doesn't). Never downgrade from having country.
+  if (candidateApiUrl && (!lockedApiUrlRef.current || (country && !lockedApiUrlRef.current.includes("country=")))) {
+    lockedApiUrlRef.current = candidateApiUrl;
+  }
+
+  const apiUrl = lockedApiUrlRef.current ?? candidateApiUrl;
 
   // Fetch the resolved image URL from the JSON API (or use module-level cache)
   useEffect(() => {

@@ -7,7 +7,7 @@ import {
 } from "@/lib/ai/prompts";
 import { z } from "zod";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const DetailRequestSchema = z.object({
   destinationName: z.string(),
