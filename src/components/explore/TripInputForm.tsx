@@ -15,7 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   Home,
-  Plane,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TripInput } from "@/lib/ai/schemas";
@@ -110,10 +110,10 @@ function StepSection({ visible, children }: { visible: boolean; children: React.
   return (
     <div
       className={cn(
-        "transition-all duration-500 ease-out overflow-hidden",
+        "transition-all duration-500 ease-out",
         visible
-          ? "max-h-[800px] opacity-100 translate-y-0"
-          : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
+          ? "max-h-[800px] opacity-100 translate-y-0 overflow-visible"
+          : "max-h-0 opacity-0 -translate-y-2 pointer-events-none overflow-hidden"
       )}
     >
       {children}
@@ -127,15 +127,15 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [homeCity, setHomeCity] = useState("");
   const [travelRange, setTravelRange] = useState<TripInput["travelRange"]>("any");
 
-  const [dateType, setDateType] = useState<"flexible" | "specific">("flexible");
+  const [dateType, setDateType] = useState<"flexible" | "specific">("specific");
   const [dateDescription, setDateDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [durationMin, setDurationMin] = useState(5);
-  const [durationMax, setDurationMax] = useState(10);
+  const [duration, setDuration] = useState(7);
 
   const [interests, setInterests] = useState<string[]>([]);
   const [customInterest, setCustomInterest] = useState("");
+  const [showCustomInterestInput, setShowCustomInterestInput] = useState(false);
   const [weatherPreference, setWeatherPreference] = useState("warm");
   const [budgetLevel, setBudgetLevel] = useState<TripInput["budgetLevel"]>("moderate");
   const [tripStyle, setTripStyle] = useState<TripInput["tripStyle"]>("mixed");
@@ -160,11 +160,42 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   // Debounce timer for home city
   const homeCityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const customInterestInputRef = useRef<HTMLInputElement>(null);
+
+  // City autocomplete state
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+  const [citySuggestionIndex, setCitySuggestionIndex] = useState(-1);
+  const [showStartPointSuggestions, setShowStartPointSuggestions] = useState(false);
+  const [startPointSuggestionIndex, setStartPointSuggestionIndex] = useState(-1);
+  const citySuggestionsRef = useRef<HTMLDivElement>(null);
+  const startPointSuggestionsRef = useRef<HTMLDivElement>(null);
+
+  const filteredCities = homeCity.trim().length >= 1
+    ? COMMON_CITIES.filter((c) => c.toLowerCase().includes(homeCity.toLowerCase())).slice(0, 8)
+    : [];
+
+  const filteredStartCities = startingPoint.trim().length >= 1
+    ? COMMON_CITIES.filter((c) => c.toLowerCase().includes(startingPoint.toLowerCase())).slice(0, 8)
+    : [];
 
   const isExpanded = hasSubmittedOnce || !!hasResults;
 
   // Step visibility
   const isStepVisible = (step: number) => isExpanded || step <= currentStep;
+
+  // Click-outside to close city suggestion dropdowns
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (citySuggestionsRef.current && !citySuggestionsRef.current.contains(e.target as Node)) {
+        setShowCitySuggestions(false);
+      }
+      if (startPointSuggestionsRef.current && !startPointSuggestionsRef.current.contains(e.target as Node)) {
+        setShowStartPointSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Auto-advance: home city (debounced 500ms)
   useEffect(() => {
@@ -250,6 +281,13 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     }
   }, [locationType, locationTouched, regionConfirmed, comparePlaces.length, currentStep, isExpanded]);
 
+  // Auto-focus custom interest input when revealed
+  useEffect(() => {
+    if (showCustomInterestInput && customInterestInputRef.current) {
+      customInterestInputRef.current.focus();
+    }
+  }, [showCustomInterestInput]);
+
   function toggleInterest(interest: string) {
     setInterests((prev) =>
       prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
@@ -286,8 +324,10 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       ...(travelRange && travelRange !== "any" ? { travelRange } : {}),
       dates: {
         flexible: dateType === "flexible",
-        ...(dateType === "flexible" ? { description: dateDescription } : { startDate, endDate }),
-        durationDays: { min: durationMin, max: durationMax },
+        ...(dateType === "flexible"
+          ? { description: dateDescription, durationDays: { min: duration, max: duration } }
+          : { startDate, endDate }
+        ),
       },
       travelers,
       interests,
@@ -306,7 +346,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Progress indicator — hidden once expanded */}
       {!isExpanded && (
         <div className="flex gap-1.5">
@@ -314,7 +354,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             <div
               key={i}
               className={cn(
-                "h-1 rounded-full flex-1 transition-all duration-500",
+                "h-1.5 rounded-full flex-1 transition-all duration-500",
                 i <= currentStep ? "bg-primary" : "bg-border"
               )}
             />
@@ -328,28 +368,72 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           <Home className="h-4 w-4 text-primary" />
           Where are you based?
         </legend>
-        <input
-          type="text"
-          value={homeCity}
-          onChange={(e) => setHomeCity(e.target.value)}
-          placeholder='e.g. "London", "Berlin", "New York"'
-          className={inputClass}
-          autoFocus={!isExpanded}
-          list="home-city-suggestions"
-          autoComplete="off"
-        />
-        <datalist id="home-city-suggestions">
-          {COMMON_CITIES.map((city) => (
-            <option key={city} value={city} />
-          ))}
-        </datalist>
+        <div className="relative" ref={citySuggestionsRef}>
+          <input
+            type="text"
+            value={homeCity}
+            onChange={(e) => {
+              setHomeCity(e.target.value);
+              setShowCitySuggestions(true);
+              setCitySuggestionIndex(-1);
+            }}
+            onFocus={() => {
+              if (homeCity.trim().length >= 1) setShowCitySuggestions(true);
+            }}
+            onKeyDown={(e) => {
+              if (!showCitySuggestions || filteredCities.length === 0) return;
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setCitySuggestionIndex((prev) => Math.min(prev + 1, filteredCities.length - 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setCitySuggestionIndex((prev) => Math.max(prev - 1, 0));
+              } else if (e.key === "Enter" && citySuggestionIndex >= 0) {
+                e.preventDefault();
+                setHomeCity(filteredCities[citySuggestionIndex]);
+                setShowCitySuggestions(false);
+                setCitySuggestionIndex(-1);
+              } else if (e.key === "Escape") {
+                setShowCitySuggestions(false);
+              }
+            }}
+            placeholder='e.g. "London", "Berlin", "New York"'
+            className={inputClass}
+            autoFocus={!isExpanded}
+            autoComplete="off"
+          />
+          {showCitySuggestions && filteredCities.length > 0 && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-background shadow-lg">
+              {filteredCities.map((city, i) => (
+                <button
+                  key={city}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setHomeCity(city);
+                    setShowCitySuggestions(false);
+                    setCitySuggestionIndex(-1);
+                  }}
+                  className={cn(
+                    "w-full px-3.5 py-2 text-sm text-left transition-colors",
+                    i === citySuggestionIndex
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-muted"
+                  )}
+                >
+                  {city}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </fieldset>
 
       {/* Step 1: Travel Range */}
       <StepSection visible={isStepVisible(1)}>
         <fieldset>
           <legend className="flex items-center gap-2 text-sm font-medium mb-3">
-            <Plane className="h-4 w-4 text-primary" />
+            <Globe className="h-4 w-4 text-primary" />
             How far do you want to go?
           </legend>
           <div className="grid grid-cols-2 gap-2">
@@ -362,6 +446,9 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
                   setTravelRangeTouched(true);
                   if (range.value === "driving_distance") {
                     setTripStyle("road_trip");
+                    if (!startingPoint.trim() && homeCity.trim()) {
+                      setStartingPoint(homeCity);
+                    }
                   }
                 }}
                 className={cn(chipClass(travelRange === range.value), "flex flex-col items-start text-left")}
@@ -376,15 +463,64 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
               <label className="text-xs text-muted-foreground mb-1 block">
                 Starting point for your road trip
               </label>
-              <input
-                type="text"
-                value={startingPoint}
-                onChange={(e) => setStartingPoint(e.target.value)}
-                placeholder='e.g. "Frankfurt", "London"'
-                className={inputClass}
-                list="home-city-suggestions"
-                autoComplete="off"
-              />
+              <div className="relative" ref={startPointSuggestionsRef}>
+                <input
+                  type="text"
+                  value={startingPoint}
+                  onChange={(e) => {
+                    setStartingPoint(e.target.value);
+                    setShowStartPointSuggestions(true);
+                    setStartPointSuggestionIndex(-1);
+                  }}
+                  onFocus={() => {
+                    if (startingPoint.trim().length >= 1) setShowStartPointSuggestions(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!showStartPointSuggestions || filteredStartCities.length === 0) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setStartPointSuggestionIndex((prev) => Math.min(prev + 1, filteredStartCities.length - 1));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setStartPointSuggestionIndex((prev) => Math.max(prev - 1, 0));
+                    } else if (e.key === "Enter" && startPointSuggestionIndex >= 0) {
+                      e.preventDefault();
+                      setStartingPoint(filteredStartCities[startPointSuggestionIndex]);
+                      setShowStartPointSuggestions(false);
+                      setStartPointSuggestionIndex(-1);
+                    } else if (e.key === "Escape") {
+                      setShowStartPointSuggestions(false);
+                    }
+                  }}
+                  placeholder='e.g. "Frankfurt", "London"'
+                  className={inputClass}
+                  autoComplete="off"
+                />
+                {showStartPointSuggestions && filteredStartCities.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-background shadow-lg">
+                    {filteredStartCities.map((city, i) => (
+                      <button
+                        key={city}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setStartingPoint(city);
+                          setShowStartPointSuggestions(false);
+                          setStartPointSuggestionIndex(-1);
+                        }}
+                        className={cn(
+                          "w-full px-3.5 py-2 text-sm text-left transition-colors",
+                          i === startPointSuggestionIndex
+                            ? "bg-accent text-accent-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        {city}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </fieldset>
@@ -398,11 +534,11 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             When do you want to travel?
           </legend>
           <div className="flex gap-2 mb-3">
-            <button type="button" onClick={() => setDateType("flexible")} className={pillClass(dateType === "flexible")}>
-              Flexible dates
-            </button>
             <button type="button" onClick={() => setDateType("specific")} className={pillClass(dateType === "specific")}>
               Specific dates
+            </button>
+            <button type="button" onClick={() => setDateType("flexible")} className={pillClass(dateType === "flexible")}>
+              Flexible dates
             </button>
           </div>
           {dateType === "flexible" ? (
@@ -446,13 +582,20 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
               <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={cn(inputClass, "flex-1")} />
             </div>
           )}
-          <div className="mt-3 flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Duration:</span>
-            <input type="number" min={1} max={90} value={durationMin} onChange={(e) => setDurationMin(Number(e.target.value))} className="w-16 px-2 py-2 rounded-xl border border-border bg-background text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            <span className="text-sm text-muted-foreground">to</span>
-            <input type="number" min={1} max={90} value={durationMax} onChange={(e) => setDurationMax(Number(e.target.value))} className="w-16 px-2 py-2 rounded-xl border border-border bg-background text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            <span className="text-sm text-muted-foreground">days</span>
-          </div>
+          {dateType === "flexible" && (
+            <div className="mt-3 flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Duration:</span>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={duration}
+                onChange={(e) => setDuration(Math.min(30, Math.max(1, Number(e.target.value))))}
+                className="w-16 px-2 py-2 rounded-xl border border-border bg-background text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <span className="text-sm text-muted-foreground">days</span>
+            </div>
+          )}
         </fieldset>
       </StepSection>
 
@@ -469,48 +612,63 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
                 {interest}
               </button>
             ))}
-          </div>
-          {customInterests.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {customInterests.map((interest) => (
-                <span
-                  key={interest}
-                  className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-sm bg-accent text-accent-foreground border border-primary/30 shadow-sm"
+            {customInterests.map((interest) => (
+              <span
+                key={interest}
+                className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-sm bg-accent text-accent-foreground border border-primary/30 shadow-sm"
+              >
+                {interest}
+                <button
+                  type="button"
+                  onClick={() => toggleInterest(interest)}
+                  className="hover:text-destructive transition-colors"
                 >
-                  {interest}
-                  <button
-                    type="button"
-                    onClick={() => toggleInterest(interest)}
-                    className="hover:text-destructive transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+            {!showCustomInterestInput && (
+              <button
+                type="button"
+                onClick={() => setShowCustomInterestInput(true)}
+                className={cn(chipClass(false), "inline-flex items-center gap-1")}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add your own
+              </button>
+            )}
+          </div>
+          {showCustomInterestInput && (
+            <div className="flex gap-2 mt-2">
+              <input
+                ref={customInterestInputRef}
+                type="text"
+                value={customInterest}
+                onChange={(e) => setCustomInterest(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomInterest();
+                  }
+                }}
+                onBlur={() => {
+                  if (!customInterest.trim()) {
+                    setShowCustomInterestInput(false);
+                  }
+                }}
+                placeholder="Type an interest and press Enter..."
+                className={cn(inputClass, "flex-1")}
+              />
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={addCustomInterest}
+                className="px-3.5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
             </div>
           )}
-          <div className="flex gap-2 mt-2">
-            <input
-              type="text"
-              value={customInterest}
-              onChange={(e) => setCustomInterest(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addCustomInterest();
-                }
-              }}
-              placeholder="Add your own interest..."
-              className={cn(inputClass, "flex-1")}
-            />
-            <button
-              type="button"
-              onClick={addCustomInterest}
-              className="px-3.5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
         </fieldset>
       </StepSection>
 
@@ -684,7 +842,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
       {/* Step 6: Advanced + Submit */}
       <StepSection visible={isStepVisible(6)}>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Advanced toggle */}
           <button
             type="button"
@@ -703,10 +861,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
                   How many travelers?
                 </legend>
                 <input type="number" min={1} max={20} value={travelers} onChange={(e) => setTravelers(Number(e.target.value))} className="w-20 px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </fieldset>
-              <fieldset>
-                <legend className="text-sm font-medium mb-2">Starting point (for road trips)</legend>
-                <input type="text" value={startingPoint} onChange={(e) => setStartingPoint(e.target.value)} placeholder='e.g. "Frankfurt", "London"' className={inputClass} />
               </fieldset>
               <fieldset>
                 <legend className="text-sm font-medium mb-2">Anything else we should know?</legend>
