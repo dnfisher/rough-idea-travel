@@ -36,6 +36,7 @@ export const TripInputSchema = z.object({
   }),
   startingPoint: z.string().optional(),
   additionalNotes: z.string().optional(),
+  currency: z.string().optional(),
 });
 
 export type TripInput = z.infer<typeof TripInputSchema>;
@@ -99,6 +100,10 @@ export const DestinationSummarySchema = z.object({
   topActivities: z.array(z.string()),
   weather: WeatherDataSchema,
   suggestedDuration: z.string(),
+  // Road trip route fields (optional, only for multi-stop routes)
+  routeStops: z.array(z.string()).optional(),
+  drivingPace: z.enum(["relaxed", "moderate", "intensive"]).optional(),
+  estimatedTotalDriveHours: z.number().optional(),
 });
 
 export type DestinationSummary = z.infer<typeof DestinationSummarySchema>;

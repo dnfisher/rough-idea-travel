@@ -3,12 +3,15 @@
 import { MapPin, Car, Utensils, Lightbulb, Bed } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type { ItinerarySuggestion } from "@/lib/ai/schemas";
+import { useCurrency } from "@/components/CurrencyProvider";
+import { formatPrice } from "@/lib/currency";
 
 interface ItineraryTimelineProps {
   itinerary: DeepPartial<ItinerarySuggestion>;
 }
 
 export function ItineraryTimeline({ itinerary }: ItineraryTimelineProps) {
+  const { currency } = useCurrency();
   if (!itinerary || !itinerary.days?.length) return null;
 
   return (
@@ -28,7 +31,7 @@ export function ItineraryTimeline({ itinerary }: ItineraryTimelineProps) {
             </span>
           )}
           {itinerary.estimatedTotalCostEur != null && (
-            <span>~€{itinerary.estimatedTotalCostEur} total</span>
+            <span>~{formatPrice(itinerary.estimatedTotalCostEur, currency)} total</span>
           )}
         </div>
       </div>

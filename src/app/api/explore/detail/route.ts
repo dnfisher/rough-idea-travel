@@ -3,6 +3,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { DestinationSuggestionSchema, TripInputSchema } from "@/lib/ai/schemas";
 import {
   DESTINATION_DETAIL_SYSTEM_PROMPT,
+  isRoadTripInput,
   buildDetailPrompt,
 } from "@/lib/ai/prompts";
 import { z } from "zod";
@@ -33,13 +34,15 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { destinationName, country, tripInput } = DetailRequestSchema.parse(body);
 
+    const isRoadTrip = isRoadTripInput(tripInput);
+
     const result = streamText({
       model: anthropic("claude-sonnet-4-5-20250929"),
       system: DESTINATION_DETAIL_SYSTEM_PROMPT,
       prompt: buildDetailPrompt(destinationName, country, tripInput),
       output: Output.object({ schema: DestinationSuggestionSchema }),
       temperature: 0.7,
-      maxOutputTokens: 4096,
+      maxOutputTokens: isRoadTrip ? 8192 : 4096,
     });
 
     return result.toTextStreamResponse();

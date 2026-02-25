@@ -16,6 +16,7 @@ import {
   loadPendingAuthState,
   clearPendingAuthState,
 } from "@/lib/auth-persistence";
+import { useCurrency } from "@/components/CurrencyProvider";
 
 export default function ExplorePage() {
   const { object, submit, isLoading, error } = useObject({
@@ -23,6 +24,7 @@ export default function ExplorePage() {
     schema: ExplorationSummaryResultSchema,
   });
 
+  const { currency } = useCurrency();
   const [currentTripInput, setCurrentTripInput] = useState<TripInput | null>(null);
 
   // Restored state from sessionStorage (survives OAuth redirect)
@@ -67,10 +69,11 @@ export default function ExplorePage() {
 
   function handleSubmit(input: TripInput) {
     if (!checkSearchAllowed()) return;
-    console.log("[Rough Idea] Submitting:", input);
+    const enrichedInput = { ...input, currency };
+    console.log("[Rough Idea] Submitting:", enrichedInput);
     setRestoredResult(null);
-    setCurrentTripInput(input);
-    submit(input);
+    setCurrentTripInput(enrichedInput);
+    submit(enrichedInput);
 
     // Scroll so user sees loading animation and results
     if (window.innerWidth < 1024) {

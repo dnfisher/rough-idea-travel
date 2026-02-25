@@ -3,6 +3,8 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { ExplorationSummaryResultSchema, TripInputSchema } from "@/lib/ai/schemas";
 import {
   EXPLORATION_SUMMARY_SYSTEM_PROMPT,
+  ROAD_TRIP_SUMMARY_SYSTEM_PROMPT,
+  isRoadTripInput,
   buildExplorationPrompt,
 } from "@/lib/ai/prompts";
 
@@ -33,9 +35,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const input = TripInputSchema.parse(body);
 
+    const systemPrompt = isRoadTripInput(input)
+      ? ROAD_TRIP_SUMMARY_SYSTEM_PROMPT
+      : EXPLORATION_SUMMARY_SYSTEM_PROMPT;
+
     const result = streamText({
       model: anthropic("claude-sonnet-4-5-20250929"),
-      system: EXPLORATION_SUMMARY_SYSTEM_PROMPT,
+      system: systemPrompt,
       prompt: buildExplorationPrompt(input),
       output: Output.object({ schema: ExplorationSummaryResultSchema }),
     });

@@ -36,10 +36,26 @@ export function BookingLinks({ destination }: BookingLinksProps) {
       ? `https://www.skyscanner.net/transport/flights/${flight.fromAirportCode.toLowerCase()}/${flight.toAirportCode.toLowerCase()}/`
       : null;
 
+  // Build multi-stop Google Maps URL from itinerary when available
+  const itineraryStops = destination.itinerary?.days
+    ?.map((d) => d?.location)
+    .filter(Boolean) as string[] | undefined;
+  // Deduplicate consecutive same-location days
+  const uniqueStops = itineraryStops?.reduce<string[]>((acc, stop) => {
+    if (acc.length === 0 || acc[acc.length - 1] !== stop) acc.push(stop);
+    return acc;
+  }, []);
+
   const googleMapsUrl =
-    driving?.startingPoint
-      ? `https://www.google.com/maps/dir/${encodeURIComponent(driving.startingPoint)}/${encodeURIComponent(`${destName}, ${country}`)}`
-      : `https://www.google.com/maps/dir//${encodeURIComponent(`${destName}, ${country}`)}`;
+    uniqueStops && uniqueStops.length > 1
+      ? driving?.startingPoint
+        ? `https://www.google.com/maps/dir/${encodeURIComponent(driving.startingPoint)}/${uniqueStops.map((s) => encodeURIComponent(s)).join("/")}`
+        : `https://www.google.com/maps/dir/${uniqueStops.map((s) => encodeURIComponent(s)).join("/")}`
+      : driving?.startingPoint
+        ? `https://www.google.com/maps/dir/${encodeURIComponent(driving.startingPoint)}/${encodeURIComponent(`${destName}, ${country}`)}`
+        : `https://www.google.com/maps/dir//${encodeURIComponent(`${destName}, ${country}`)}`;
+
+  const hasMultiStopRoute = uniqueStops && uniqueStops.length > 1;
 
   const linkClass =
     "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors";
@@ -135,7 +151,7 @@ export function BookingLinks({ destination }: BookingLinksProps) {
               rel="noopener noreferrer"
               className={linkClass}
             >
-              Google Maps
+              {hasMultiStopRoute ? "See driving directions" : "Google Maps"}
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>

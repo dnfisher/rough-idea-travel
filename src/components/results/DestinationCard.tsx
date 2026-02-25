@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Star, ChevronRight } from "lucide-react";
+import { Clock, Star, ChevronRight, Car } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DeepPartial } from "ai";
 import type { DestinationSummary, DestinationSuggestion } from "@/lib/ai/schemas";
@@ -27,6 +27,12 @@ export function DestinationCard({
   const activities = destination.topActivities ?? [];
   const displayActivities = activities.slice(0, 3);
   const moreCount = activities.length - 3;
+
+  // Road trip route data (optional)
+  const routeStops = "routeStops" in destination ? (destination as DeepPartial<DestinationSummary>).routeStops : undefined;
+  const drivingPace = "drivingPace" in destination ? (destination as DeepPartial<DestinationSummary>).drivingPace : undefined;
+  const estimatedTotalDriveHours = "estimatedTotalDriveHours" in destination ? (destination as DeepPartial<DestinationSummary>).estimatedTotalDriveHours : undefined;
+  const isRoute = routeStops && routeStops.length > 1;
 
   return (
     <div
@@ -71,8 +77,13 @@ export function DestinationCard({
               </span>
             )}
           </h3>
-          {destination.country && (
+          {destination.country && !isRoute && (
             <p className="text-xs text-white/80">{destination.country}</p>
+          )}
+          {isRoute && (
+            <p className="text-xs text-white/80 truncate">
+              {routeStops.filter(Boolean).join(" → ")}
+            </p>
           )}
         </div>
       </div>
@@ -83,6 +94,24 @@ export function DestinationCard({
           <p className="text-sm text-muted-foreground line-clamp-2">
             {destination.reasoning}
           </p>
+        )}
+
+        {/* Driving pace + total drive hours badge for routes */}
+        {isRoute && (drivingPace || estimatedTotalDriveHours != null) && (
+          <div className="flex flex-wrap gap-1.5">
+            {drivingPace && (
+              <span className="px-2 py-0.5 rounded-lg bg-accent text-xs text-accent-foreground capitalize flex items-center gap-1">
+                <Car className="h-3 w-3" />
+                {drivingPace} pace
+              </span>
+            )}
+            {estimatedTotalDriveHours != null && (
+              <span className="px-2 py-0.5 rounded-lg bg-accent text-xs text-accent-foreground flex items-center gap-1">
+                <Car className="h-3 w-3" />
+                ~{estimatedTotalDriveHours}h total driving
+              </span>
+            )}
+          </div>
         )}
 
         <div className="flex gap-4 text-sm">

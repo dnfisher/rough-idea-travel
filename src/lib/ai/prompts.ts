@@ -1,4 +1,5 @@
 import type { TripInput } from "./schemas";
+import { getCurrencySymbol, type CurrencyCode } from "@/lib/currency";
 
 // Phase 1: Summary prompt — fast, 8-10 lightweight suggestions
 export const EXPLORATION_SUMMARY_SYSTEM_PROMPT = `You are a travel planning expert helping users discover destinations based on loose preferences. You provide thoughtful, well-reasoned travel suggestions with accurate data.
@@ -7,7 +8,7 @@ Guidelines:
 - Suggest 8-10 destinations ranked by match score (descending)
 - Provide accurate GPS coordinates (latitude, longitude) for all locations
 - Weather data should be realistic averages for the specified travel dates
-- Cost estimates should be in EUR and reflect actual current prices
+- Numeric cost fields (estimatedDailyCostEur etc.) must always be in EUR. When mentioning prices in free-text (reasoning, tips, descriptions), use the user's preferred currency if specified; otherwise default to EUR
 - Include a mix of well-known and off-the-beaten-path suggestions
 - Match scores (0-100) should genuinely reflect how well each destination matches ALL stated preferences
 - Keep reasoning concise: 1-2 sentences explaining why this destination fits
@@ -27,14 +28,48 @@ Guidelines:
 - Keep practical tips to 3-5 items maximum
 - For meals, suggest 1 specific restaurant or food type per meal (not multiple options)
 - Day tips should be 1 concise sentence each
-- Provide accommodation estimates: average nightly rate in EUR for mid-range options in the recommended area
+- Provide accommodation estimates: average nightly rate in EUR for mid-range options in the recommended area. Numeric cost fields must always be in EUR; use the user's preferred currency for any prices mentioned in free-text (reasoning, pros, cons, tips)
 - For flying trips: Include the nearest airport IATA code and the departure airport IATA code from the user's home city. Estimate round-trip flight cost in EUR.
 - For road trips (tripStyle: "road_trip"): Do NOT include flightEstimate or airport codes. Instead, provide drivingEstimate with: estimatedGasCostEur (total fuel cost, assume ~7L/100km at ~1.70 EUR/L), estimatedTotalDriveKm (total driving distance), estimatedDriveHours (total driving time), and startingPoint.
 - Calculate estimated total trip cost: For flights: (nightly rate x nights) + flight cost + (daily expenses x days). For road trips: (nightly rate x nights) + gas cost + (daily expenses x days).
 - Focus on accuracy over exhaustiveness — be concise`;
 
+// Phase 1: Road trip summary prompt — themed multi-stop driving routes
+export const ROAD_TRIP_SUMMARY_SYSTEM_PROMPT = `You are a travel planning expert specializing in road trips and driving holidays. You design multi-stop driving routes that are practical, scenic, and thematic.
+
+Guidelines:
+- Suggest 4-6 themed multi-stop driving ROUTES (not individual destinations)
+- Each route should visit 3-6 locations connected by driving
+- Give each route a distinct theme/flavour, for example:
+  • Food & wine trail (vineyards, local markets, restaurants)
+  • Coastal scenic drive (beaches, cliffs, seaside villages)
+  • Nature & hiking (national parks, scenic vistas, trails)
+  • Cultural heritage (historic towns, museums, architecture)
+  • Off-the-beaten-path (lesser-known gems, local life)
+  • Mix of above
+- Route naming: Use evocative names like "Tuscan Food Trail: Florence → Siena → Montepulciano → Rome"
+- Populate the routeStops array with the key stops in order (e.g. ["Florence", "Siena", "Montepulciano", "Rome"])
+- Set drivingPace for each route:
+  • "relaxed" = 1-3 hours driving per day
+  • "moderate" = 3-4 hours driving per day
+  • "intensive" = 4-5 hours driving per day
+  NEVER suggest more than 5 hours of daily driving. Mix paces across suggestions.
+- Set estimatedTotalDriveHours for total route driving time
+- Coordinates should be the route's starting point or central location
+- Numeric cost fields (estimatedDailyCostEur etc.) must always be in EUR. When mentioning prices in free-text, use the user's preferred currency if specified; otherwise default to EUR
+- Keep topActivities to 3-4 key highlights along the entire route
+- Keep reasoning concise: 1-2 sentences explaining the route's appeal
+- Match scores (0-100) should reflect how well the route matches ALL preferences
+- Weather data should be for the route's primary region
+- suggestedDuration should reflect total trip days (e.g. "7-10 days")
+- Do NOT include itineraries, pros/cons, or detailed breakdowns — just summary data`;
+
 // Legacy prompt (kept for reference)
 export const EXPLORATION_SYSTEM_PROMPT = EXPLORATION_SUMMARY_SYSTEM_PROMPT;
+
+export function isRoadTripInput(input: TripInput): boolean {
+  return input.tripStyle === "road_trip" || input.travelRange === "driving_distance";
+}
 
 function buildPreferenceParts(input: TripInput): string[] {
   const parts: string[] = [];
@@ -78,8 +113,8 @@ function buildPreferenceParts(input: TripInput): string[] {
   parts.push(`Budget level: ${input.budgetLevel}`);
   parts.push(`Trip style: ${input.tripStyle.replace(/_/g, " ")}`);
 
-  if (input.tripStyle === "road_trip") {
-    parts.push("IMPORTANT: This is a road trip. Do NOT suggest flights. Focus on driving routes and provide gas/fuel cost estimates instead of flight costs.");
+  if (input.tripStyle === "road_trip" || input.travelRange === "driving_distance") {
+    parts.push("IMPORTANT: This is a road trip. Do NOT suggest flights. Each suggestion should be a DRIVING ROUTE visiting multiple locations, not a single destination. Focus on driving routes and provide gas/fuel cost estimates instead of flight costs.");
   }
 
   if (
@@ -108,6 +143,11 @@ function buildPreferenceParts(input: TripInput): string[] {
     parts.push(`Additional context: ${input.additionalNotes}`);
   }
 
+  if (input.currency && input.currency !== "EUR") {
+    const symbol = getCurrencySymbol(input.currency as CurrencyCode);
+    parts.push(`Currency: Use ${symbol} (${input.currency}) for any prices mentioned in text. Numeric schema fields remain in EUR.`);
+  }
+
   return parts;
 }
 
@@ -126,5 +166,17 @@ export function buildDetailPrompt(
     "User preferences:",
     ...buildPreferenceParts(input),
   ];
+
+  if (isRoadTripInput(input)) {
+    parts.push("");
+    parts.push("ROAD TRIP ROUTE INSTRUCTIONS:");
+    parts.push("- This is a multi-stop driving route, NOT a single destination. The itinerary should progress through all the stops in order.");
+    parts.push("- Each day should have a different location with accurate GPS coordinates for that stop.");
+    parts.push("- Include realistic driveTimeFromPrevious and driveDistanceKm between consecutive stops.");
+    parts.push("- Keep daily driving to a maximum of 4-5 hours. Plan rest days or short-drive days where appropriate.");
+    parts.push("- Highlights should be specific to each stop's location.");
+    parts.push("- Do NOT include flightEstimate or airport data. Provide drivingEstimate with total fuel cost, distance, and hours.");
+  }
+
   return parts.join("\n");
 }
