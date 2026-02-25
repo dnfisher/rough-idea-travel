@@ -189,7 +189,8 @@ export function WishlistDetailClient({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((fav) => {
-              const dest = fav.destinationData as Partial<DestinationSuggestion>;
+              const dest = fav.destinationData as Partial<DestinationSuggestion> & { routeStops?: string[] };
+              const firstStop = dest?.routeStops?.[0] ?? dest?.itinerary?.days?.[0]?.location;
               return (
                 <div
                   key={fav.id}
@@ -200,6 +201,8 @@ export function WishlistDetailClient({
                     <DestinationImage
                       name={fav.destinationName}
                       country={fav.country}
+                      searchName={firstStop}
+                      fallbackName={firstStop}
                       className="w-full h-full"
                     />
                     <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />

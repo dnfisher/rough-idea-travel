@@ -8,6 +8,8 @@ interface DestinationImageProps {
   className?: string;
   /** Override the name used for the image API query (e.g. first route stop instead of full route title) */
   searchName?: string;
+  /** Short name for the gradient fallback when image fails (defaults to name) */
+  fallbackName?: string;
 }
 
 // Deterministic gradient based on destination name
@@ -29,7 +31,7 @@ function getGradient(name: string): string {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
-export function DestinationImage({ name, country, className = "", searchName }: DestinationImageProps) {
+export function DestinationImage({ name, country, className = "", searchName, fallbackName }: DestinationImageProps) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
   const imageUrl = useMemo(() => {
@@ -41,7 +43,7 @@ export function DestinationImage({ name, country, className = "", searchName }: 
   }, [name, searchName, country]);
 
   if (!imageUrl) {
-    return <Fallback name={name} country={country} className={className} />;
+    return <Fallback name={fallbackName ?? name} country={country} className={className} />;
   }
 
   return (
@@ -52,7 +54,7 @@ export function DestinationImage({ name, country, className = "", searchName }: 
       )}
 
       {/* Error fallback — stylish gradient with name */}
-      {status === "error" && <Fallback name={name} country={country} className="absolute inset-0" />}
+      {status === "error" && <Fallback name={fallbackName ?? name} country={country} className="absolute inset-0" />}
 
       {/* Actual image */}
       <img

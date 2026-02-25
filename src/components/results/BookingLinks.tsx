@@ -21,10 +21,13 @@ export function BookingLinks({ destination }: BookingLinksProps) {
 
   const destName = destination.name ?? "";
   const country = destination.country ?? "";
-  const searchLocation = accommodation?.recommendedArea ?? `${destName}, ${country}`;
+  // For road trips with long route names, use the first itinerary stop for search queries
+  const firstStop = destination.itinerary?.days?.[0]?.location;
+  const searchDestName = firstStop && destName.length > 40 ? firstStop : destName;
+  const searchLocation = accommodation?.recommendedArea ?? `${searchDestName}, ${country}`;
 
   const bookingUrl = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(searchLocation)}`;
-  const airbnbUrl = `https://www.airbnb.com/s/${encodeURIComponent(`${destName}, ${country}`)}/homes`;
+  const airbnbUrl = `https://www.airbnb.com/s/${encodeURIComponent(`${searchDestName}, ${country}`)}/homes`;
 
   const googleFlightsUrl =
     flight?.fromAirportCode && flight?.toAirportCode
@@ -52,8 +55,8 @@ export function BookingLinks({ destination }: BookingLinksProps) {
         ? `https://www.google.com/maps/dir/${encodeURIComponent(driving.startingPoint)}/${uniqueStops.map((s) => encodeURIComponent(s)).join("/")}`
         : `https://www.google.com/maps/dir/${uniqueStops.map((s) => encodeURIComponent(s)).join("/")}`
       : driving?.startingPoint
-        ? `https://www.google.com/maps/dir/${encodeURIComponent(driving.startingPoint)}/${encodeURIComponent(`${destName}, ${country}`)}`
-        : `https://www.google.com/maps/dir//${encodeURIComponent(`${destName}, ${country}`)}`;
+        ? `https://www.google.com/maps/dir/${encodeURIComponent(driving.startingPoint)}/${encodeURIComponent(`${searchDestName}, ${country}`)}`
+        : `https://www.google.com/maps/dir//${encodeURIComponent(`${searchDestName}, ${country}`)}`;
 
   const hasMultiStopRoute = uniqueStops && uniqueStops.length > 1;
 

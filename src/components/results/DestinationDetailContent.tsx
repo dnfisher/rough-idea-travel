@@ -82,7 +82,13 @@ export function DestinationDetailContent({
     }));
 
   // For road trip routes, use first itinerary location for the image instead of the route title
-  const imageSearchName = destination.name?.includes("\u2192")
+  const itineraryLocations = destination.itinerary?.days
+    ?.map((d) => d?.location)
+    .filter(Boolean) ?? [];
+  const uniqueLocations = [...new Set(itineraryLocations)];
+  const isMultiStop = uniqueLocations.length > 1;
+
+  const imageSearchName = isMultiStop
     ? destination.itinerary?.days?.[0]?.location ?? destination.country
     : undefined;
 
@@ -94,6 +100,7 @@ export function DestinationDetailContent({
           name={destination.name}
           country={destination.country}
           searchName={imageSearchName ?? undefined}
+          fallbackName={isMultiStop ? (destination.itinerary?.days?.[0]?.location ?? destination.country ?? undefined) : undefined}
           className="w-full h-full"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />

@@ -52,6 +52,7 @@ export function DestinationCard({
           name={destination.name}
           country={destination.country}
           searchName={isRoute ? (routeStops[0] as string) : undefined}
+          fallbackName={isRoute ? (routeStops[0] as string) : undefined}
           className="w-full h-full"
         />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
@@ -79,13 +80,8 @@ export function DestinationCard({
               </span>
             )}
           </h3>
-          {destination.country && !isRoute && (
+          {destination.country && (
             <p className="text-xs text-white/80">{destination.country}</p>
-          )}
-          {isRoute && (
-            <p className="text-xs text-white/80 truncate">
-              {routeStops.filter(Boolean).join(" → ")}
-            </p>
           )}
         </div>
       </div>
