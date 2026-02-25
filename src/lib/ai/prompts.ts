@@ -24,14 +24,17 @@ Guidelines:
 - Provide honest pros and cons (3-4 each) — mention downsides like crowds, cost, logistics
 - Drive times should be realistic
 - For road trips, plan reasonable daily driving (no more than 4-5 hours on the road)
+- For any driving leg exceeding 4 hours, break it with an overnight stop in a worthwhile town along the way. These stopover towns should have their own highlights and meal recommendations — make the journey part of the adventure
 - Keep packing tips to 3-5 items maximum
 - Keep practical tips to 3-5 items maximum
 - For meals, suggest 1 specific restaurant or food type per meal (not multiple options)
 - Day tips should be 1 concise sentence each
 - Provide accommodation estimates: average nightly rate in EUR for mid-range options in the recommended area. Numeric cost fields must always be in EUR; use the user's preferred currency for any prices mentioned in free-text (reasoning, pros, cons, tips)
 - For flying trips: Include the nearest airport IATA code and the departure airport IATA code from the user's home city. Estimate round-trip flight cost in EUR.
-- For road trips (tripStyle: "road_trip"): Do NOT include flightEstimate or airport codes. Instead, provide drivingEstimate with: estimatedGasCostEur (total fuel cost, assume ~7L/100km at ~1.70 EUR/L), estimatedTotalDriveKm (total driving distance), estimatedDriveHours (total driving time), and startingPoint.
-- Calculate estimated total trip cost: For flights: (nightly rate x nights) + flight cost + (daily expenses x days). For road trips: (nightly rate x nights) + gas cost + (daily expenses x days).
+- For road trips (tripStyle: "road_trip"): Always provide drivingEstimate with: estimatedGasCostEur (total fuel cost, assume ~7L/100km at ~1.70 EUR/L), estimatedTotalDriveKm (total driving distance), estimatedDriveHours (total driving time), and startingPoint (the city where driving begins). If the route region is far from the user's home city (4-5+ hours drive), ALSO include flightEstimate with the flight to the nearest airport, and include airport details in accommodation. The user would fly in and hire a car — the road trip is the experience at the destination, not the journey to it. If within driving distance of home, omit flightEstimate.
+- Calculate estimated total trip cost: For flights: (nightly rate x nights) + flight cost + (daily expenses x days). For fly+drive road trips: (nightly rate x nights) + flight cost + gas cost + (daily expenses x days). For drive-only road trips: (nightly rate x nights) + gas cost + (daily expenses x days).
+- Include 5-8 local insights giving the traveler insider knowledge. Categories: "Food & Drink" (local specialities, dining customs, what to order), "Customs" (social norms, tipping, greetings), "Language" (useful phrases with meaning), "Getting Around" (local transport tips, taxi apps), "Money" (payment norms, bargaining), "Hidden Gems" (lesser-known spots locals love), "Local Tips" (timing, seasonal advice, things tourists get wrong). Each insight should be specific and actionable — not generic travel advice.
+- Include 2-4 notable local events, festivals, or markets happening during or near the travel dates. For flexible/undated trips, suggest the most interesting seasonal events for the destination. Include festivals, weekly markets, cultural celebrations, food fairs, sporting events, and religious holidays unique to the region. Each event needs: name, approximate date/timing, a brief description, and type (festival/cultural/music/food/sports/religious/market).
 - Focus on accuracy over exhaustiveness — be concise`;
 
 // Phase 1: Road trip summary prompt — themed multi-stop driving routes
@@ -55,13 +58,14 @@ Guidelines:
   • "intensive" = 4-5 hours driving per day
   NEVER suggest more than 5 hours of daily driving. Mix paces across suggestions.
 - Set estimatedTotalDriveHours for total route driving time
+- IMPORTANT — Fly & Drive logic: If the route region is more than ~4-5 hours drive from the user's home city, set travelMode to "fly_and_drive". The user flies to a nearby airport and hires a car locally — the road trip is the driving experience AT the destination, not the journey TO it. If within reasonable driving distance (under ~4-5 hours), set travelMode to "drive_only"
 - Coordinates should be the route's starting point or central location
 - Numeric cost fields (estimatedDailyCostEur etc.) must always be in EUR. When mentioning prices in free-text, use the user's preferred currency if specified; otherwise default to EUR
 - Keep topActivities to 3-4 key highlights along the entire route
 - Keep reasoning concise: 1-2 sentences explaining the route's appeal
 - Match scores (0-100) should reflect how well the route matches ALL preferences
 - Weather data should be for the route's primary region
-- suggestedDuration should reflect total trip days (e.g. "7-10 days")
+- suggestedDuration should reflect total trip days (e.g. "7-10 days"). Factor in that long driving legs (4+ hours) should be broken into two days with an overnight stop — a route with 20 hours of total driving at moderate pace needs at least 6-7 driving days, not 5
 - Do NOT include itineraries, pros/cons, or detailed breakdowns — just summary data`;
 
 // Legacy prompt (kept for reference)
@@ -114,7 +118,7 @@ function buildPreferenceParts(input: TripInput): string[] {
   parts.push(`Trip style: ${input.tripStyle.replace(/_/g, " ")}`);
 
   if (input.tripStyle === "road_trip" || input.travelRange === "driving_distance") {
-    parts.push("IMPORTANT: This is a road trip. Do NOT suggest flights. Each suggestion should be a DRIVING ROUTE visiting multiple locations, not a single destination. Focus on driving routes and provide gas/fuel cost estimates instead of flight costs.");
+    parts.push("IMPORTANT: This is a road trip. Each suggestion should be a DRIVING ROUTE visiting multiple locations, not a single destination. If the route is far from the home city (4-5+ hours drive), suggest flying to the nearest airport and hiring a car (fly_and_drive). Otherwise it's drive_only from home. Focus on the driving experience at the destination.");
   }
 
   if (
@@ -174,8 +178,10 @@ export function buildDetailPrompt(
     parts.push("- Each day should have a different location with accurate GPS coordinates for that stop.");
     parts.push("- Include realistic driveTimeFromPrevious and driveDistanceKm between consecutive stops.");
     parts.push("- Keep daily driving to a maximum of 4-5 hours. Plan rest days or short-drive days where appropriate.");
+    parts.push("- For long distances between key stops (over 4 hours driving), break the journey with an overnight stop in an interesting town along the way. These transit stops should have full itinerary day entries with coordinates, highlights, overnight accommodation, and meal recommendations — they are part of the experience, not just logistics.");
     parts.push("- Highlights should be specific to each stop's location.");
-    parts.push("- Do NOT include flightEstimate or airport data. Provide drivingEstimate with total fuel cost, distance, and hours.");
+    parts.push("- TRAVEL MODE: If the route region is more than ~4-5 hours drive from the user's home city, this is a 'fly and drive' trip. Include BOTH flightEstimate (flight to the nearest airport to the route start) AND drivingEstimate (for the road trip itself). Set drivingEstimate.startingPoint to the airport/car hire city, NOT the user's home city. Also include accommodation.nearestAirportCode and accommodation.nearestAirportName for the arrival airport.");
+    parts.push("- If the route is within reasonable driving distance of the home city (~4-5 hours or less), do NOT include flightEstimate. Provide only drivingEstimate with startingPoint set to the home city.");
   }
 
   return parts.join("\n");

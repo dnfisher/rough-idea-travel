@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Star, ChevronRight, Car } from "lucide-react";
+import { Clock, Star, ChevronRight, Car, Plane } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DeepPartial } from "ai";
 import type { DestinationSummary, DestinationSuggestion } from "@/lib/ai/schemas";
@@ -32,6 +32,7 @@ export function DestinationCard({
   const routeStops = "routeStops" in destination ? (destination as DeepPartial<DestinationSummary>).routeStops : undefined;
   const drivingPace = "drivingPace" in destination ? (destination as DeepPartial<DestinationSummary>).drivingPace : undefined;
   const estimatedTotalDriveHours = "estimatedTotalDriveHours" in destination ? (destination as DeepPartial<DestinationSummary>).estimatedTotalDriveHours : undefined;
+  const travelMode = "travelMode" in destination ? (destination as DeepPartial<DestinationSummary>).travelMode : undefined;
   const isRoute = routeStops && routeStops.length > 1;
 
   return (
@@ -96,9 +97,15 @@ export function DestinationCard({
           </p>
         )}
 
-        {/* Driving pace + total drive hours badge for routes */}
-        {isRoute && (drivingPace || estimatedTotalDriveHours != null) && (
+        {/* Route badges: travel mode, driving pace, total drive hours */}
+        {isRoute && (travelMode || drivingPace || estimatedTotalDriveHours != null) && (
           <div className="flex flex-wrap gap-1.5">
+            {travelMode === "fly_and_drive" && (
+              <span className="px-2 py-0.5 rounded-lg bg-primary/10 text-xs text-primary font-medium flex items-center gap-1">
+                <Plane className="h-3 w-3" />
+                Fly + Drive
+              </span>
+            )}
             {drivingPace && (
               <span className="px-2 py-0.5 rounded-lg bg-accent text-xs text-accent-foreground capitalize flex items-center gap-1">
                 <Car className="h-3 w-3" />

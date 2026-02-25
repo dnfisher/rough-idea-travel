@@ -104,6 +104,7 @@ export const DestinationSummarySchema = z.object({
   routeStops: z.array(z.string()).optional(),
   drivingPace: z.enum(["relaxed", "moderate", "intensive"]).optional(),
   estimatedTotalDriveHours: z.number().optional(),
+  travelMode: z.enum(["drive_only", "fly_and_drive"]).optional(),
 });
 
 export type DestinationSummary = z.infer<typeof DestinationSummarySchema>;
@@ -141,6 +142,22 @@ export const DrivingEstimateSchema = z.object({
 
 export type DrivingEstimate = z.infer<typeof DrivingEstimateSchema>;
 
+export const LocalInsightSchema = z.object({
+  category: z.string(),
+  insight: z.string(),
+});
+
+export type LocalInsight = z.infer<typeof LocalInsightSchema>;
+
+export const LocalEventSchema = z.object({
+  name: z.string(),
+  date: z.string(),
+  description: z.string(),
+  type: z.enum(["festival", "cultural", "music", "food", "sports", "religious", "market"]),
+});
+
+export type LocalEvent = z.infer<typeof LocalEventSchema>;
+
 export const DestinationSuggestionSchema = z.object({
   name: z.string(),
   country: z.string(),
@@ -162,6 +179,8 @@ export const DestinationSuggestionSchema = z.object({
   flightEstimate: FlightEstimateSchema.optional(),
   drivingEstimate: DrivingEstimateSchema.optional(),
   estimatedTotalTripCostEur: z.number().optional(),
+  localInsights: z.array(LocalInsightSchema).optional(),
+  localEvents: z.array(LocalEventSchema).optional(),
 });
 
 export type DestinationSuggestion = z.infer<typeof DestinationSuggestionSchema>;

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ElementType } from "react";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -9,6 +10,14 @@ import {
   CloudRain,
   Thermometer,
   CalendarDays,
+  Globe,
+  Utensils,
+  MessageCircle,
+  MapPinned,
+  Banknote,
+  Gem,
+  Lightbulb,
+  Calendar,
 } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
@@ -19,6 +28,26 @@ import { BookingLinks } from "./BookingLinks";
 import type { MapMarker } from "./ExploreMapInner";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { formatPrice } from "@/lib/currency";
+
+const INSIGHT_ICONS: Record<string, ElementType> = {
+  "Food & Drink": Utensils,
+  "Customs": Globe,
+  "Language": MessageCircle,
+  "Getting Around": MapPinned,
+  "Money": Banknote,
+  "Hidden Gems": Gem,
+  "Local Tips": Lightbulb,
+};
+
+const EVENT_TYPE_STYLES: Record<string, { bg: string; text: string }> = {
+  festival: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-300" },
+  cultural: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-300" },
+  music: { bg: "bg-pink-100 dark:bg-pink-900/30", text: "text-pink-700 dark:text-pink-300" },
+  food: { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-300" },
+  sports: { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-700 dark:text-green-300" },
+  religious: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-300" },
+  market: { bg: "bg-teal-100 dark:bg-teal-900/30", text: "text-teal-700 dark:text-teal-300" },
+};
 
 interface DestinationDetailContentProps {
   destination: DeepPartial<DestinationSuggestion>;
@@ -242,6 +271,68 @@ export function DestinationDetailContent({
           {destination.weather.description && (
             <p className="mt-3 text-xs text-muted-foreground">{destination.weather.description}</p>
           )}
+        </div>
+      )}
+
+      {/* Local Insights */}
+      {destination.localInsights && destination.localInsights.length > 0 && (
+        <div>
+          <h3 className="font-display font-semibold text-sm mb-3 flex items-center gap-1.5">
+            <Globe className="h-4 w-4 text-primary" />
+            Local Insights
+          </h3>
+          <div className="space-y-2">
+            {destination.localInsights.map((insight, i) => {
+              if (!insight?.category || !insight?.insight) return null;
+              const Icon = INSIGHT_ICONS[insight.category] ?? Lightbulb;
+              return (
+                <div key={i} className="flex items-start gap-3 rounded-xl border border-border p-3">
+                  <Icon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="text-xs font-medium text-primary">{insight.category}</span>
+                    <p className="text-sm text-muted-foreground">{insight.insight}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Local Events */}
+      {destination.localEvents && destination.localEvents.length > 0 && (
+        <div>
+          <h3 className="font-display font-semibold text-sm mb-3 flex items-center gap-1.5">
+            <Calendar className="h-4 w-4 text-primary" />
+            What&apos;s Happening
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {destination.localEvents.map((event, i) => {
+              if (!event?.name) return null;
+              const typeStyle = EVENT_TYPE_STYLES[event.type ?? "cultural"] ?? EVENT_TYPE_STYLES.cultural;
+              return (
+                <div key={i} className="rounded-xl border border-border p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-medium text-sm">{event.name}</h4>
+                    {event.type && (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${typeStyle.bg} ${typeStyle.text} capitalize flex-shrink-0`}>
+                        {event.type}
+                      </span>
+                    )}
+                  </div>
+                  {event.date && (
+                    <p className="text-xs text-primary font-medium flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {event.date}
+                    </p>
+                  )}
+                  {event.description && (
+                    <p className="text-xs text-muted-foreground">{event.description}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

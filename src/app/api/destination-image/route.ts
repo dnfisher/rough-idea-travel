@@ -6,16 +6,27 @@ const UA = "RoughIdeaTravel/1.0 (travel planning tool)";
 
 // URL patterns that indicate non-photo content (maps, charts, logos, etc.)
 const NON_PHOTO_PATTERNS = [
+  // Maps & geography
   "Map_of_", "map_of_", "_map.", "_Map.", "locator_map", "location_map",
   "_in_Europe", "_in_Asia", "_in_Africa", "_in_North_America", "_in_South_America",
   "_in_Oceania", "_in_the_", "_on_the_globe",
-  "coat_of_arms", "Coat_of_arms", "Coat_of_Arms",
-  "Logo_", "logo_", "_logo.", "_Logo.",
-  "Symbol_", "symbol_", "Diagram", "diagram", "Chart_", "chart_",
-  "Seal_of_", "seal_of_", "Emblem_of_", "emblem_of_",
-  "Blason_", "Wappen_", "Escudo_de_",
   "_orthographic", "_globe", "topographic_map", "relief_map", "political_map",
   "Administrative_", "administrative_", "Location_dot_",
+  // Logos, emblems, heraldry
+  "coat_of_arms", "Coat_of_arms", "Coat_of_Arms",
+  "Logo_", "logo_", "_logo.", "_Logo.",
+  "Symbol_", "symbol_", "Seal_of_", "seal_of_",
+  "Emblem_of_", "emblem_of_", "Blason_", "Wappen_", "Escudo_de_",
+  // Charts, diagrams, data graphics
+  "Diagram", "diagram", "Chart_", "chart_",
+  "comparison", "Comparison_", "timeline", "Timeline_",
+  // Text-heavy / composite images
+  "panorama_label", "Panorama_label", "annotated", "Annotated_",
+  "collage", "Collage_", "montage", "Montage_",
+  "poster_", "Poster_", "brochure", "Brochure_",
+  "infographic", "Infographic", "illustration", "Illustration_",
+  "stamp_", "Stamp_", "postcard", "Postcard_",
+  "icon_", "Icon_", "badge_", "Badge_",
 ];
 
 function isLikelyPhoto(url: string): boolean {
@@ -86,7 +97,7 @@ async function fetchCommonsImage(query: string): Promise<string | null> {
   url.searchParams.set("gsrlimit", "5");
   url.searchParams.set("gsrnamespace", "6");
   url.searchParams.set("prop", "imageinfo");
-  url.searchParams.set("iiprop", "url|mime");
+  url.searchParams.set("iiprop", "url|mime|size");
   url.searchParams.set("iiurlwidth", "800");
   url.searchParams.set("format", "json");
 
@@ -105,7 +116,9 @@ async function fetchCommonsImage(query: string): Promise<string | null> {
     const info = page?.imageinfo?.[0];
     const thumbUrl = info?.thumburl;
     const mime = info?.mime ?? "";
-    if (thumbUrl && mime.startsWith("image/jpeg") && isLikelyPhoto(thumbUrl)) {
+    const width = info?.width ?? 0;
+    const height = info?.height ?? 0;
+    if (thumbUrl && mime.startsWith("image/jpeg") && isLikelyPhoto(thumbUrl) && width >= 800 && height >= 400) {
       return thumbUrl;
     }
   }
@@ -140,20 +153,29 @@ export async function GET(req: NextRequest) {
     if (imageUrl) break;
   }
 
-  // 2. Try Wikipedia search — finds related articles with images
+  // 2. Try Wikipedia search with adaptive suffixes (landscape works for islands/regions, skyline for cities)
   if (!imageUrl) {
-    const searchTerms = country ? `${name} ${country} city skyline` : `${name} city skyline`;
-    imageUrl = await fetchWikipediaSearchImage(searchTerms);
+    const suffixes = ["landscape", "scenic view", "city skyline", "panoramic"];
+    for (const suffix of suffixes) {
+      const searchTerms = country ? `${name} ${country} ${suffix}` : `${name} ${suffix}`;
+      imageUrl = await fetchWikipediaSearchImage(searchTerms);
+      if (imageUrl) break;
+    }
   }
 
-  // 3. Fall back to Wikimedia Commons search (great for regions/islands)
+  // 3. Fall back to Wikimedia Commons — prefer photography-focused queries
+  if (!imageUrl) {
+    imageUrl = await fetchCommonsImage(`${name} landscape photograph`);
+  }
+
+  // 4. Try Commons with just the name
   if (!imageUrl) {
     imageUrl = await fetchCommonsImage(name);
   }
 
-  // 4. Try Commons with country added for more specificity
+  // 5. Try Commons with country for more specificity
   if (!imageUrl && country) {
-    imageUrl = await fetchCommonsImage(`${name} ${country}`);
+    imageUrl = await fetchCommonsImage(`${name} ${country} scenic`);
   }
 
   CACHE.set(cacheKey, { url: imageUrl, ts: Date.now() });
