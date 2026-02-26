@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { experimental_useObject as useObject } from "@ai-sdk/react";
 import type { DeepPartial } from "ai";
 import type {
   ExplorationSummaryResult,
@@ -9,7 +8,7 @@ import type {
   DestinationSummary,
   TripInput,
 } from "@/lib/ai/schemas";
-import { DestinationSuggestionSchema } from "@/lib/ai/schemas";
+import { useDetailFetch } from "@/lib/hooks/useDetailFetch";
 import { DestinationCard } from "./DestinationCard";
 import { ExploreLoadingState } from "./ExploreLoadingState";
 import { DestinationSortBar, type SortOption } from "./DestinationSortBar";
@@ -35,72 +34,8 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
   const [detailDestination, setDetailDestination] = useState<string | null>(null);
   const [favoritesMap, setFavoritesMap] = useState<Record<string, string>>({});
 
-  // Detail loading: cache + streaming
-  const [detailCache, setDetailCache] = useState<Record<string, DeepPartial<DestinationSuggestion>>>({});
-  const detailCacheRef = useRef(detailCache);
-  detailCacheRef.current = detailCache;
-
-  const {
-    object: detailObject,
-    submit: submitDetail,
-    isLoading: isDetailLoading,
-    error: detailError,
-  } = useObject({
-    api: "/api/explore/detail",
-    schema: DestinationSuggestionSchema,
-  });
-
-  // Track which destination the current detail stream is for
-  const [streamingDetailName, setStreamingDetailName] = useState<string | null>(null);
-
-  // Log detail streaming errors for debugging
-  useEffect(() => {
-    if (detailError) {
-      console.error("[detail stream] Error:", detailError);
-    }
-  }, [detailError]);
-
-  // Log detail object updates for debugging
-  useEffect(() => {
-    if (detailObject && streamingDetailName) {
-      const keys = Object.keys(detailObject).filter(
-        (k) => detailObject[k as keyof typeof detailObject] != null
-      );
-      console.log("[detail stream]", streamingDetailName, "keys:", keys.join(", "));
-    }
-  }, [detailObject, streamingDetailName]);
-
-  // When detail stream finishes successfully, cache the result
-  useEffect(() => {
-    if (!isDetailLoading && detailObject && streamingDetailName && !detailError) {
-      console.log("[detail cache] Stream finished for:", streamingDetailName, {
-        hasItinerary: !!(detailObject.itinerary?.days && detailObject.itinerary.days.length > 0),
-        hasPros: !!(detailObject.pros?.length),
-        hasLocalInsights: !!(detailObject.localInsights?.length),
-      });
-      setDetailCache((prev) => ({
-        ...prev,
-        [streamingDetailName]: detailObject,
-      }));
-      setStreamingDetailName(null);
-    }
-  }, [isDetailLoading, detailObject, streamingDetailName, detailError]);
-
-  // Clear streaming state on error so re-clicking the card retries the fetch
-  useEffect(() => {
-    if (detailError && streamingDetailName) {
-      setStreamingDetailName(null);
-    }
-  }, [detailError, streamingDetailName]);
-
-  // Safety net: clear streaming state when loading finishes but detailObject is empty
-  // (stream completed without producing parseable data — e.g. protocol mismatch)
-  useEffect(() => {
-    if (!isDetailLoading && !detailObject && streamingDetailName && !detailError) {
-      console.warn("[detail stream] Stream finished with no data for:", streamingDetailName);
-      setStreamingDetailName(null);
-    }
-  }, [isDetailLoading, detailObject, streamingDetailName, detailError]);
+  // Detail fetching via plain fetch + cache (replaces useObject streaming)
+  const { getDetail, isLoading: isDetailLoading, error: detailError, fetchDetail, clearCache } = useDetailFetch();
 
   // Auto-favorite a destination after auth flow returns
   const autoFavoriteHandled = useRef(false);
@@ -133,12 +68,12 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
   const prevIsLoading = useRef(isLoading);
   useEffect(() => {
     if (isLoading && !prevIsLoading.current) {
-      setDetailCache({});
+      clearCache();
       setDetailDestination(null);
       setSelectedDestination(null);
     }
     prevIsLoading.current = isLoading;
-  }, [isLoading]);
+  }, [isLoading, clearCache]);
 
   // Sort destinations
   const sortedDestinations = useMemo(() => {
@@ -175,26 +110,15 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     return sortedDestinations.find((d) => d?.name === selectedDestination) ?? null;
   }, [selectedDestination, sortedDestinations]);
 
-  // Detail data: merge streaming/cached detail ON TOP of Phase 1 summary so fields
-  // never disappear during streaming (Phase 1 fields persist until streamed replacements arrive)
+  // Detail data: use cached Phase 2 data if available, otherwise fall back to Phase 1 summary
   const detailData: DeepPartial<DestinationSuggestion> | null = useMemo(() => {
     if (!detailDestination) return null;
+    const cached = getDetail(detailDestination);
+    if (cached) return cached;
+    // Fall back to Phase 1 summary while detail is loading
     const summary = sortedDestinations.find((d) => d?.name === detailDestination) ?? null;
-    const streamed = detailCache[detailDestination]
-      ?? (streamingDetailName === detailDestination && detailObject ? detailObject : null);
-
-    if (!streamed) return summary;
-    if (!summary) return streamed;
-
-    // Shallow merge: streamed fields win, but Phase 1 fields persist when not yet streamed
-    const merged: Record<string, unknown> = {};
-    for (const key of new Set([...Object.keys(summary), ...Object.keys(streamed)])) {
-      const streamedVal = (streamed as Record<string, unknown>)[key];
-      const summaryVal = (summary as Record<string, unknown>)[key];
-      merged[key] = (streamedVal != null && streamedVal !== undefined) ? streamedVal : summaryVal;
-    }
-    return merged as DeepPartial<DestinationSuggestion>;
-  }, [detailDestination, detailCache, streamingDetailName, detailObject, sortedDestinations]);
+    return summary as DeepPartial<DestinationSuggestion> | null;
+  }, [detailDestination, getDetail, sortedDestinations]);
 
   const detailDestRank = useMemo(() => {
     if (!detailDestination) return undefined;
@@ -203,6 +127,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
   }, [detailDestination, sortedDestinations]);
 
   // Extract image search name from Phase 1 summary so detail view uses the same image as the card
+  // Also filters out home city from routeStops to avoid showing departure city images
   const detailImageSearchName = useMemo(() => {
     if (!detailDestination) return undefined;
     const summary = sortedDestinations.find((d) => d?.name === detailDestination);
@@ -210,11 +135,17 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     const routeStops = "routeStops" in summary
       ? (summary as DeepPartial<DestinationSummary>).routeStops
       : undefined;
-    if (routeStops && routeStops.length > 1) return routeStops[0] as string;
-    // For non-road-trips, return the destination name so the detail view uses
-    // the same image as the card (prevents Phase 2 itinerary fallback diverging)
+    if (routeStops && routeStops.length > 1) {
+      const homeCity = tripInput?.homeCity;
+      const firstDest = routeStops.find(
+        (s) => s && homeCity
+          ? s.toLowerCase() !== homeCity.toLowerCase()
+          : true
+      );
+      return (firstDest as string) ?? (summary.name as string);
+    }
     return summary.name as string;
-  }, [detailDestination, sortedDestinations]);
+  }, [detailDestination, sortedDestinations, tripInput?.homeCity]);
 
   // Stable country from Phase 1 summary — prevents streaming-induced image changes in detail view
   const detailStableCountry = useMemo(() => {
@@ -225,20 +156,22 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
 
   // Map markers — show itinerary route from detail if available
   const mapMarkers = useMemo((): MapMarker[] => {
-    // If we have detail data with itinerary for the selected destination, show route
-    if (selectedDest?.name && detailCache[selectedDest.name]?.itinerary?.days?.length) {
-      const days = detailCache[selectedDest.name].itinerary!.days!;
-      return days
-        .filter((d) => d?.coordinates?.lat != null && d?.coordinates?.lng != null)
-        .map((d, i) => ({
-          id: `day-${d!.dayNumber ?? i + 1}`,
-          lat: d!.coordinates!.lat!,
-          lng: d!.coordinates!.lng!,
-          label: d!.dayNumber ?? i + 1,
-          title: `Day ${d!.dayNumber ?? i + 1}`,
-          subtitle: d!.location,
-          isItinerary: true,
-        }));
+    if (selectedDest?.name) {
+      const cached = getDetail(selectedDest.name);
+      if (cached?.itinerary?.days?.length) {
+        const days = cached.itinerary.days;
+        return days
+          .filter((d) => d?.coordinates?.lat != null && d?.coordinates?.lng != null)
+          .map((d, i) => ({
+            id: `day-${d!.dayNumber ?? i + 1}`,
+            lat: d!.coordinates!.lat!,
+            lng: d!.coordinates!.lng!,
+            label: d!.dayNumber ?? i + 1,
+            title: `Day ${d!.dayNumber ?? i + 1}`,
+            subtitle: d!.location,
+            isItinerary: true,
+          }));
+      }
     }
 
     return sortedDestinations
@@ -251,9 +184,9 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
         title: d!.name ?? "Unknown",
         subtitle: d!.country,
       }));
-  }, [selectedDest, sortedDestinations, detailCache]);
+  }, [selectedDest, sortedDestinations, getDetail]);
 
-  const showRoute = !!(selectedDest?.name && detailCache[selectedDest.name]?.itinerary?.days?.length);
+  const showRoute = !!(selectedDest?.name && getDetail(selectedDest.name)?.itinerary?.days?.length);
 
   const handleMarkerClick = useCallback((id: string) => {
     if (id.startsWith("day-")) return;
@@ -267,23 +200,10 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     setDetailDestination(name);
 
     const dest = sortedDestinations.find((d) => d?.name === name);
-    if (!dest || !tripInput) return;
-
-    const cached = detailCacheRef.current[name];
-    const isComplete = cached?.itinerary?.days && cached.itinerary.days.length > 0
-      && cached?.pros && cached.pros.length > 0;
-
-    // Fetch if not cached, or if cached but incomplete (e.g., previous stream was truncated)
-    if (!cached || !isComplete) {
-      console.log("[detail fetch]", name, cached ? "re-fetching incomplete" : "first fetch");
-      setStreamingDetailName(name);
-      submitDetail({
-        destinationName: name,
-        country: dest.country ?? "",
-        tripInput,
-      });
+    if (dest && tripInput) {
+      fetchDetail(name, dest.country ?? "", tripInput);
     }
-  }, [sortedDestinations, tripInput, submitDetail]);
+  }, [sortedDestinations, tripInput, fetchDetail]);
 
   const handleCloseDetail = useCallback(() => {
     setDetailDestination(null);
@@ -350,6 +270,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
                       isRecommended={dest.name === result.recommendedDestination}
                       isSelected={selectedDestination === dest.name}
                       onClick={() => handleCardClick(dest.name)}
+                      homeCity={tripInput?.homeCity}
                     />
                   </div>
                 );
@@ -391,7 +312,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
         rank={detailDestRank}
         isRecommended={detailData?.name === result?.recommendedDestination}
         onClose={handleCloseDetail}
-        isDetailLoading={isDetailLoading && streamingDetailName === detailDestination}
+        isDetailLoading={detailDestination ? isDetailLoading(detailDestination) : false}
         error={detailError ?? undefined}
         actions={
           detailData ? (

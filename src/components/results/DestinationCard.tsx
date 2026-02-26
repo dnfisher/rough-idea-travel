@@ -14,6 +14,8 @@ interface DestinationCardProps {
   isRecommended?: boolean;
   isSelected?: boolean;
   onClick?: () => void;
+  /** Home/departure city — used to filter it out of routeStops for image selection */
+  homeCity?: string;
 }
 
 export function DestinationCard({
@@ -22,6 +24,7 @@ export function DestinationCard({
   isRecommended,
   isSelected,
   onClick,
+  homeCity,
 }: DestinationCardProps) {
   const { currency } = useCurrency();
   const activities = destination.topActivities ?? [];
@@ -34,6 +37,15 @@ export function DestinationCard({
   const estimatedTotalDriveHours = "estimatedTotalDriveHours" in destination ? (destination as DeepPartial<DestinationSummary>).estimatedTotalDriveHours : undefined;
   const travelMode = "travelMode" in destination ? (destination as DeepPartial<DestinationSummary>).travelMode : undefined;
   const isRoute = routeStops && routeStops.length > 1;
+
+  // For road trips, pick the first route stop that isn't the departure/home city
+  const firstDestStop = isRoute
+    ? (routeStops.find(
+        (stop) =>
+          stop &&
+          (!homeCity || stop.toLowerCase() !== homeCity.toLowerCase())
+      ) as string | undefined)
+    : undefined;
 
   return (
     <div
@@ -51,8 +63,8 @@ export function DestinationCard({
         <DestinationImage
           name={destination.name}
           country={destination.country}
-          searchName={isRoute ? (routeStops[0] as string) : undefined}
-          fallbackName={isRoute ? (routeStops[0] as string) : undefined}
+          searchName={firstDestStop}
+          fallbackName={firstDestStop}
           className="w-full h-full"
         />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />

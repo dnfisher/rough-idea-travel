@@ -1,4 +1,4 @@
-import { streamObject } from "ai";
+import { generateObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { DestinationSuggestionSchema, TripInputSchema } from "@/lib/ai/schemas";
 import {
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { destinationName, country, tripInput } = DetailRequestSchema.parse(body);
 
-    const result = streamObject({
+    const { object } = await generateObject({
       model: anthropic("claude-sonnet-4-5-20250929"),
       schema: DestinationSuggestionSchema,
       system: DESTINATION_DETAIL_SYSTEM_PROMPT,
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       maxOutputTokens: 32768,
     });
 
-    return result.toTextStreamResponse();
+    return Response.json(object);
   } catch (error) {
     console.error("[explore/detail] Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
