@@ -137,12 +137,9 @@ export async function GET(req: NextRequest) {
   const cached = CACHE.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     if (!cached.url) {
-      return NextResponse.json({ url: null }, { status: 404 });
+      return new NextResponse(null, { status: 404 });
     }
-    return NextResponse.json(
-      { url: cached.url },
-      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } }
-    );
+    return NextResponse.redirect(cached.url);
   }
 
   let imageUrl: string | null = null;
@@ -186,11 +183,8 @@ export async function GET(req: NextRequest) {
   CACHE.set(cacheKey, { url: imageUrl, ts: Date.now() });
 
   if (!imageUrl) {
-    return NextResponse.json({ url: null }, { status: 404 });
+    return new NextResponse(null, { status: 404 });
   }
 
-  return NextResponse.json(
-    { url: imageUrl },
-    { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } }
-  );
+  return NextResponse.redirect(imageUrl);
 }

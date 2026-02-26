@@ -70,23 +70,28 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     }
   }, [detailObject, streamingDetailName]);
 
-  // When detail stream finishes, cache whatever we got
+  // When detail stream finishes successfully, cache the result
   useEffect(() => {
-    if (!isDetailLoading && detailObject && streamingDetailName) {
+    if (!isDetailLoading && detailObject && streamingDetailName && !detailError) {
       console.log("[detail cache] Stream finished for:", streamingDetailName, {
         hasItinerary: !!(detailObject.itinerary?.days && detailObject.itinerary.days.length > 0),
         hasPros: !!(detailObject.pros?.length),
         hasLocalInsights: !!(detailObject.localInsights?.length),
       });
-      // Always cache whatever arrived — even partial data is better than
-      // falling back to Phase 1 summary. Re-opening will re-fetch if incomplete.
       setDetailCache((prev) => ({
         ...prev,
         [streamingDetailName]: detailObject,
       }));
       setStreamingDetailName(null);
     }
-  }, [isDetailLoading, detailObject, streamingDetailName]);
+  }, [isDetailLoading, detailObject, streamingDetailName, detailError]);
+
+  // Clear streaming state on error so re-clicking the card retries the fetch
+  useEffect(() => {
+    if (detailError && streamingDetailName) {
+      setStreamingDetailName(null);
+    }
+  }, [detailError, streamingDetailName]);
 
   // Auto-favorite a destination after auth flow returns
   const autoFavoriteHandled = useRef(false);
@@ -161,25 +166,12 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     return sortedDestinations.find((d) => d?.name === selectedDestination) ?? null;
   }, [selectedDestination, sortedDestinations]);
 
-  // Detail data: merge streaming/cached detail ON TOP of Phase 1 summary so fields
-  // never disappear during streaming (Phase 1 fields persist until streamed replacements arrive)
+  // Detail data: simple fallback chain — cached > streaming > Phase 1 summary
   const detailData: DeepPartial<DestinationSuggestion> | null = useMemo(() => {
     if (!detailDestination) return null;
-    const summary = sortedDestinations.find((d) => d?.name === detailDestination) ?? null;
-    const streamed = detailCache[detailDestination]
-      ?? (streamingDetailName === detailDestination && detailObject ? detailObject : null);
-
-    if (!streamed) return summary;
-    if (!summary) return streamed;
-
-    // Shallow merge: streamed fields win, but Phase 1 fields persist when not yet streamed
-    const merged: Record<string, unknown> = {};
-    for (const key of new Set([...Object.keys(summary), ...Object.keys(streamed)])) {
-      const streamedVal = (streamed as Record<string, unknown>)[key];
-      const summaryVal = (summary as Record<string, unknown>)[key];
-      merged[key] = (streamedVal != null && streamedVal !== undefined) ? streamedVal : summaryVal;
-    }
-    return merged as DeepPartial<DestinationSuggestion>;
+    if (detailCache[detailDestination]) return detailCache[detailDestination];
+    if (streamingDetailName === detailDestination && detailObject) return detailObject;
+    return sortedDestinations.find((d) => d?.name === detailDestination) ?? null;
   }, [detailDestination, detailCache, streamingDetailName, detailObject, sortedDestinations]);
 
   const detailDestRank = useMemo(() => {
@@ -246,23 +238,15 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     setSelectedDestination((prev) => (prev === id ? null : id));
   }, []);
 
-  // Card click: highlight + open detail sheet + fetch detail if not cached (or incomplete)
+  // Card click: highlight + open detail sheet + fetch detail if not cached
   const handleCardClick = useCallback((name: string | undefined) => {
     if (!name) return;
     setSelectedDestination(name);
     setDetailDestination(name);
 
     const dest = sortedDestinations.find((d) => d?.name === name);
-    if (!dest || !tripInput) return;
-
-    const cached = detailCacheRef.current[name];
-    const isComplete = cached?.itinerary?.days && cached.itinerary.days.length > 0
-      && cached?.pros && cached.pros.length > 0
-      && (cached?.localInsights?.length ?? 0) > 0;
-
-    // Fetch if not cached, or if cached but incomplete (e.g., previous stream was truncated)
-    if (!cached || !isComplete) {
-      console.log("[detail fetch]", name, cached ? "re-fetching incomplete" : "first fetch");
+    if (dest && !detailCacheRef.current[name] && tripInput) {
+      console.log("[detail fetch]", name, "first fetch");
       setStreamingDetailName(name);
       submitDetail({
         destinationName: name,
@@ -379,6 +363,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
         isRecommended={detailData?.name === result?.recommendedDestination}
         onClose={handleCloseDetail}
         isDetailLoading={isDetailLoading && streamingDetailName === detailDestination}
+        error={detailError ?? undefined}
         actions={
           detailData ? (
             <>

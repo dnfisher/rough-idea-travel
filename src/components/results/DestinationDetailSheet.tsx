@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
@@ -81,6 +81,7 @@ interface DestinationDetailSheetProps {
   onClose: () => void;
   actions?: React.ReactNode;
   isDetailLoading?: boolean;
+  error?: Error;
 }
 
 export function DestinationDetailSheet({
@@ -93,6 +94,7 @@ export function DestinationDetailSheet({
   onClose,
   actions,
   isDetailLoading,
+  error,
 }: DestinationDetailSheetProps) {
   const isOpen = isOpenProp ?? destination !== null;
 
@@ -164,6 +166,12 @@ export function DestinationDetailSheet({
                   <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading full trip details...
+                  </div>
+                )}
+                {error && !isDetailLoading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 px-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                    <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                    <span>Failed to load full details. Some information may be missing.</span>
                   </div>
                 )}
               </>
