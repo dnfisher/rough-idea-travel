@@ -53,6 +53,8 @@ interface DestinationDetailContentProps {
   destination: DeepPartial<DestinationSuggestion>;
   /** Override image search name from Phase 1 summary (ensures card/detail images match) */
   imageSearchName?: string;
+  /** Stable country from Phase 1 summary (prevents streaming-induced image changes) */
+  stableCountry?: string;
   rank?: number;
   isRecommended?: boolean;
   /** Slot for action buttons (favorite, share, close) rendered above the content */
@@ -64,6 +66,7 @@ interface DestinationDetailContentProps {
 export function DestinationDetailContent({
   destination,
   imageSearchName: imageSearchNameProp,
+  stableCountry,
   rank,
   isRecommended,
   actions,
@@ -104,7 +107,7 @@ export function DestinationDetailContent({
       <div className="relative h-56 sm:h-72 -mx-6 -mt-6">
         <DestinationImage
           name={destination.name}
-          country={destination.country}
+          country={stableCountry ?? destination.country}
           searchName={resolvedImageSearchName ?? undefined}
           fallbackName={resolvedFallbackName ?? undefined}
           className="w-full h-full"

@@ -161,14 +161,25 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     return sortedDestinations.find((d) => d?.name === selectedDestination) ?? null;
   }, [selectedDestination, sortedDestinations]);
 
-  // Detail data: use cache if available, else streaming object if it matches
+  // Detail data: merge streaming/cached detail ON TOP of Phase 1 summary so fields
+  // never disappear during streaming (Phase 1 fields persist until streamed replacements arrive)
   const detailData: DeepPartial<DestinationSuggestion> | null = useMemo(() => {
     if (!detailDestination) return null;
-    if (detailCache[detailDestination]) return detailCache[detailDestination];
-    if (streamingDetailName === detailDestination && detailObject) return detailObject;
-    // Fallback: use summary data so there's never a null gap while detail streams in
-    const summary = sortedDestinations.find((d) => d?.name === detailDestination);
-    return summary ?? null;
+    const summary = sortedDestinations.find((d) => d?.name === detailDestination) ?? null;
+    const streamed = detailCache[detailDestination]
+      ?? (streamingDetailName === detailDestination && detailObject ? detailObject : null);
+
+    if (!streamed) return summary;
+    if (!summary) return streamed;
+
+    // Shallow merge: streamed fields win, but Phase 1 fields persist when not yet streamed
+    const merged: Record<string, unknown> = {};
+    for (const key of new Set([...Object.keys(summary), ...Object.keys(streamed)])) {
+      const streamedVal = (streamed as Record<string, unknown>)[key];
+      const summaryVal = (summary as Record<string, unknown>)[key];
+      merged[key] = (streamedVal != null && streamedVal !== undefined) ? streamedVal : summaryVal;
+    }
+    return merged as DeepPartial<DestinationSuggestion>;
   }, [detailDestination, detailCache, streamingDetailName, detailObject, sortedDestinations]);
 
   const detailDestRank = useMemo(() => {
@@ -189,6 +200,13 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     // For non-road-trips, return the destination name so the detail view uses
     // the same image as the card (prevents Phase 2 itinerary fallback diverging)
     return summary.name as string;
+  }, [detailDestination, sortedDestinations]);
+
+  // Stable country from Phase 1 summary — prevents streaming-induced image changes in detail view
+  const detailStableCountry = useMemo(() => {
+    if (!detailDestination) return undefined;
+    const summary = sortedDestinations.find((d) => d?.name === detailDestination);
+    return summary?.country as string | undefined;
   }, [detailDestination, sortedDestinations]);
 
   // Map markers — show itinerary route from detail if available
@@ -238,7 +256,9 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     if (!dest || !tripInput) return;
 
     const cached = detailCacheRef.current[name];
-    const isComplete = cached?.itinerary?.days && cached.itinerary.days.length > 0;
+    const isComplete = cached?.itinerary?.days && cached.itinerary.days.length > 0
+      && cached?.pros && cached.pros.length > 0
+      && (cached?.localInsights?.length ?? 0) > 0;
 
     // Fetch if not cached, or if cached but incomplete (e.g., previous stream was truncated)
     if (!cached || !isComplete) {
@@ -353,6 +373,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       <DestinationDetailSheet
         destination={detailData}
         imageSearchName={detailImageSearchName}
+        stableCountry={detailStableCountry}
         isOpen={detailDestination !== null}
         rank={detailDestRank}
         isRecommended={detailData?.name === result?.recommendedDestination}

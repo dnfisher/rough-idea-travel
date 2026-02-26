@@ -7,7 +7,7 @@ import {
 } from "@/lib/ai/prompts";
 import { z } from "zod";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const DetailRequestSchema = z.object({
   destinationName: z.string(),
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       system: DESTINATION_DETAIL_SYSTEM_PROMPT,
       prompt: buildDetailPrompt(destinationName, country, tripInput),
       temperature: 0.7,
-      maxOutputTokens: 16384,
+      maxOutputTokens: 32768,
     });
 
     return result.toTextStreamResponse();

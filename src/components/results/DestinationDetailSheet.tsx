@@ -73,6 +73,8 @@ interface DestinationDetailSheetProps {
   destination: DeepPartial<DestinationSuggestion> | null;
   /** Override image search name from Phase 1 summary (ensures card/detail images match) */
   imageSearchName?: string;
+  /** Stable country from Phase 1 summary (prevents streaming-induced image changes) */
+  stableCountry?: string;
   isOpen?: boolean;
   rank?: number;
   isRecommended?: boolean;
@@ -84,6 +86,7 @@ interface DestinationDetailSheetProps {
 export function DestinationDetailSheet({
   destination,
   imageSearchName,
+  stableCountry,
   isOpen: isOpenProp,
   rank,
   isRecommended,
@@ -152,6 +155,7 @@ export function DestinationDetailSheet({
                 <DestinationDetailContent
                   destination={destination}
                   imageSearchName={imageSearchName}
+                  stableCountry={stableCountry}
                   rank={rank}
                   isRecommended={isRecommended}
                   actions={actions}
