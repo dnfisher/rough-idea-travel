@@ -93,6 +93,15 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     }
   }, [detailError, streamingDetailName]);
 
+  // Safety net: clear streaming state when loading finishes but detailObject is empty
+  // (stream completed without producing parseable data — e.g. protocol mismatch)
+  useEffect(() => {
+    if (!isDetailLoading && !detailObject && streamingDetailName && !detailError) {
+      console.warn("[detail stream] Stream finished with no data for:", streamingDetailName);
+      setStreamingDetailName(null);
+    }
+  }, [isDetailLoading, detailObject, streamingDetailName, detailError]);
+
   // Auto-favorite a destination after auth flow returns
   const autoFavoriteHandled = useRef(false);
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { streamText, Output } from "ai";
+import { streamObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { DestinationSuggestionSchema, TripInputSchema } from "@/lib/ai/schemas";
 import {
@@ -33,9 +33,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { destinationName, country, tripInput } = DetailRequestSchema.parse(body);
 
-    const result = streamText({
+    const result = streamObject({
       model: anthropic("claude-sonnet-4-5-20250929"),
-      output: Output.object({ schema: DestinationSuggestionSchema }),
+      schema: DestinationSuggestionSchema,
       system: DESTINATION_DETAIL_SYSTEM_PROMPT,
       prompt: buildDetailPrompt(destinationName, country, tripInput),
       maxOutputTokens: 32768,
