@@ -1,6 +1,6 @@
-import { streamText, Output } from "ai";
+import { generateText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { DestinationSuggestionSchema, TripInputSchema } from "@/lib/ai/schemas";
+import { TripInputSchema } from "@/lib/ai/schemas";
 import {
   DESTINATION_DETAIL_SYSTEM_PROMPT,
   buildDetailPrompt,
@@ -33,22 +33,31 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { destinationName, country, tripInput } = DetailRequestSchema.parse(body);
 
-    // Use streamText + Output.object (same proven pattern as Phase 1 explore route)
-    // then consume the full result server-side. This avoids generateObject's strict
-    // structured-output mode which fails on complex schemas.
-    const result = streamText({
+    // Use plain generateText — no schema sent to the API.
+    // The schema is described in the system prompt as a JSON shape,
+    // and we parse the response ourselves. This avoids the
+    // "compiled grammar is too large" error from Anthropic's
+    // structured output engine.
+    const { text } = await generateText({
       model: anthropic("claude-sonnet-4-5-20250929"),
       system: DESTINATION_DETAIL_SYSTEM_PROMPT,
       prompt: buildDetailPrompt(destinationName, country, tripInput),
-      output: Output.object({ schema: DestinationSuggestionSchema }),
       maxOutputTokens: 16384,
     });
 
-    // Consume the full streamed text
-    const fullText = await result.text;
+    // Extract JSON from the response — handle possible markdown fences
+    let jsonText = text.trim();
+    const fenceMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch) {
+      jsonText = fenceMatch[1].trim();
+    }
+    // Also handle case where model prefixes with text before the JSON
+    const braceStart = jsonText.indexOf("{");
+    if (braceStart > 0) {
+      jsonText = jsonText.slice(braceStart);
+    }
 
-    // Parse the JSON — streamText + Output.object instructs the model to produce JSON
-    const data = JSON.parse(fullText);
+    const data = JSON.parse(jsonText);
     return Response.json(data);
   } catch (error) {
     console.error("[explore/detail] Error:", error);
