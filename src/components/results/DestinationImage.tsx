@@ -17,6 +17,10 @@ interface DestinationImageProps {
 // always render the same image, regardless of mount timing or Vercel instance.
 const resolvedUrlCache = new Map<string, string | null>();
 
+// Identity-based cache: maps identityKey (e.g. "Montreal") → resolved image URL.
+// When the card loads an image, the detail page reuses it instantly — no second fetch.
+const identityImageCache = new Map<string, string>();
+
 // Track in-flight fetches so concurrent mounts coalesce into one request.
 const pendingFetches = new Map<string, Promise<string | null>>();
 
@@ -77,11 +81,18 @@ export function DestinationImage({ name, country, className = "", searchName, fa
   // Once an image has loaded, lock that URL to prevent flicker when props change during streaming.
   const lockedUrlRef = useRef<string | null>(null);
 
-  // Reset state when destination identity changes
+  // Reset state when destination identity changes — but reuse cached image if available
   useEffect(() => {
-    lockedUrlRef.current = null;
-    setResolvedSrc(null);
-    setStatus("loading");
+    const cachedUrl = identityKey ? identityImageCache.get(identityKey) : undefined;
+    if (cachedUrl) {
+      lockedUrlRef.current = cachedUrl;
+      setResolvedSrc(cachedUrl);
+      setStatus("loaded");
+    } else {
+      lockedUrlRef.current = null;
+      setResolvedSrc(null);
+      setStatus("loading");
+    }
   }, [identityKey]);
 
   // Compute the candidate API URL from current props.
@@ -177,6 +188,7 @@ export function DestinationImage({ name, country, className = "", searchName, fa
         onLoad={() => {
           setStatus("loaded");
           lockedUrlRef.current = imageUrl;
+          if (identityKey) identityImageCache.set(identityKey, imageUrl);
         }}
         onError={() => setStatus("error")}
       />
