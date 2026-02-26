@@ -77,9 +77,9 @@ export const ItinerarySuggestionSchema = z.object({
   totalDriveTimeHours: z.number().optional(),
   totalDistanceKm: z.number().optional(),
   days: z.array(ItineraryDaySchema),
-  estimatedTotalCostEur: z.number(),
-  packingTips: z.array(z.string()),
-  practicalTips: z.array(z.string()),
+  estimatedTotalCostEur: z.number().optional(),
+  packingTips: z.array(z.string()).optional(),
+  practicalTips: z.array(z.string()).optional(),
 });
 
 export type ItinerarySuggestion = z.infer<typeof ItinerarySuggestionSchema>;
