@@ -4,19 +4,15 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import type { DeepPartial } from "ai";
 import type {
   ExplorationSummaryResult,
-  DestinationSuggestion,
   DestinationSummary,
   TripInput,
 } from "@/lib/ai/schemas";
-import { useDetailFetch } from "@/lib/hooks/useDetailFetch";
 import { DestinationCard } from "./DestinationCard";
 import { ExploreLoadingState } from "./ExploreLoadingState";
 import { DestinationSortBar, type SortOption } from "./DestinationSortBar";
 import { ExploreMap } from "./ExploreMap";
-import { DestinationDetailSheet } from "./DestinationDetailSheet";
-import { FavoriteButton } from "@/components/favorites/FavoriteButton";
-import { ShareButton } from "@/components/share/ShareButton";
 import type { MapMarker } from "./ExploreMapInner";
+import { slugify, storeDestinationContext } from "@/lib/destination-url";
 
 interface ResultsPanelProps {
   result: DeepPartial<ExplorationSummaryResult> | undefined;
@@ -31,11 +27,7 @@ interface ResultsPanelProps {
 export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired, pendingAutoFavorite, onAutoFavoriteComplete }: ResultsPanelProps) {
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("match");
-  const [detailDestination, setDetailDestination] = useState<string | null>(null);
   const [favoritesMap, setFavoritesMap] = useState<Record<string, string>>({});
-
-  // Detail fetching via plain fetch + cache (replaces useObject streaming)
-  const { getDetail, isLoading: isDetailLoading, error: detailError, fetchDetail, clearCache } = useDetailFetch();
 
   // Auto-favorite a destination after auth flow returns
   const autoFavoriteHandled = useRef(false);
@@ -64,16 +56,14 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       .finally(() => onAutoFavoriteComplete?.());
   }, [pendingAutoFavorite, result?.destinations, onAutoFavoriteComplete]);
 
-  // Clear caches when new search starts
+  // Reset selection when new search starts
   const prevIsLoading = useRef(isLoading);
   useEffect(() => {
     if (isLoading && !prevIsLoading.current) {
-      clearCache();
-      setDetailDestination(null);
       setSelectedDestination(null);
     }
     prevIsLoading.current = isLoading;
-  }, [isLoading, clearCache]);
+  }, [isLoading]);
 
   // Sort destinations
   const sortedDestinations = useMemo(() => {
@@ -110,70 +100,8 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     return sortedDestinations.find((d) => d?.name === selectedDestination) ?? null;
   }, [selectedDestination, sortedDestinations]);
 
-  // Detail data: use cached Phase 2 data if available, otherwise fall back to Phase 1 summary
-  const detailData: DeepPartial<DestinationSuggestion> | null = useMemo(() => {
-    if (!detailDestination) return null;
-    const cached = getDetail(detailDestination);
-    if (cached) return cached;
-    // Fall back to Phase 1 summary while detail is loading
-    const summary = sortedDestinations.find((d) => d?.name === detailDestination) ?? null;
-    return summary as DeepPartial<DestinationSuggestion> | null;
-  }, [detailDestination, getDetail, sortedDestinations]);
-
-  const detailDestRank = useMemo(() => {
-    if (!detailDestination) return undefined;
-    const idx = sortedDestinations.findIndex((d) => d?.name === detailDestination);
-    return idx >= 0 ? idx + 1 : undefined;
-  }, [detailDestination, sortedDestinations]);
-
-  // Extract image search name from Phase 1 summary so detail view uses the same image as the card
-  // Also filters out home city from routeStops to avoid showing departure city images
-  const detailImageSearchName = useMemo(() => {
-    if (!detailDestination) return undefined;
-    const summary = sortedDestinations.find((d) => d?.name === detailDestination);
-    if (!summary) return undefined;
-    const routeStops = "routeStops" in summary
-      ? (summary as DeepPartial<DestinationSummary>).routeStops
-      : undefined;
-    if (routeStops && routeStops.length > 1) {
-      const homeCity = tripInput?.homeCity;
-      const firstDest = routeStops.find(
-        (s) => s && homeCity
-          ? s.toLowerCase() !== homeCity.toLowerCase()
-          : true
-      );
-      return (firstDest as string) ?? (summary.name as string);
-    }
-    return summary.name as string;
-  }, [detailDestination, sortedDestinations, tripInput?.homeCity]);
-
-  // Stable country from Phase 1 summary — prevents streaming-induced image changes in detail view
-  const detailStableCountry = useMemo(() => {
-    if (!detailDestination) return undefined;
-    const summary = sortedDestinations.find((d) => d?.name === detailDestination);
-    return summary?.country as string | undefined;
-  }, [detailDestination, sortedDestinations]);
-
-  // Map markers — show itinerary route from detail if available
+  // Map markers
   const mapMarkers = useMemo((): MapMarker[] => {
-    if (selectedDest?.name) {
-      const cached = getDetail(selectedDest.name);
-      if (cached?.itinerary?.days?.length) {
-        const days = cached.itinerary.days;
-        return days
-          .filter((d) => d?.coordinates?.lat != null && d?.coordinates?.lng != null)
-          .map((d, i) => ({
-            id: `day-${d!.dayNumber ?? i + 1}`,
-            lat: d!.coordinates!.lat!,
-            lng: d!.coordinates!.lng!,
-            label: d!.dayNumber ?? i + 1,
-            title: `Day ${d!.dayNumber ?? i + 1}`,
-            subtitle: d!.location,
-            isItinerary: true,
-          }));
-      }
-    }
-
     return sortedDestinations
       .filter((d) => d?.coordinates?.lat != null && d?.coordinates?.lng != null)
       .map((d, i) => ({
@@ -184,30 +112,50 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
         title: d!.name ?? "Unknown",
         subtitle: d!.country,
       }));
-  }, [selectedDest, sortedDestinations, getDetail]);
-
-  const showRoute = !!(selectedDest?.name && getDetail(selectedDest.name)?.itinerary?.days?.length);
+  }, [sortedDestinations]);
 
   const handleMarkerClick = useCallback((id: string) => {
-    if (id.startsWith("day-")) return;
     setSelectedDestination((prev) => (prev === id ? null : id));
   }, []);
 
-  // Card click: highlight + open detail sheet + fetch detail if not cached
+  // Card click: store context in sessionStorage + open detail page in new tab
   const handleCardClick = useCallback((name: string | undefined) => {
-    if (!name) return;
-    setSelectedDestination(name);
-    setDetailDestination(name);
+    if (!name || !tripInput) return;
 
     const dest = sortedDestinations.find((d) => d?.name === name);
-    if (dest && tripInput) {
-      fetchDetail(name, dest.country ?? "", tripInput);
-    }
-  }, [sortedDestinations, tripInput, fetchDetail]);
+    if (!dest) return;
 
-  const handleCloseDetail = useCallback(() => {
-    setDetailDestination(null);
-  }, []);
+    setSelectedDestination(name);
+
+    // Compute image search name (same logic as before)
+    const routeStops = "routeStops" in dest
+      ? (dest as DeepPartial<DestinationSummary>).routeStops
+      : undefined;
+    let imageSearchName: string | undefined;
+    if (routeStops && routeStops.length > 1) {
+      const homeCity = tripInput.homeCity;
+      const firstDest = routeStops.find(
+        (s) => s && homeCity ? s.toLowerCase() !== homeCity.toLowerCase() : true
+      );
+      imageSearchName = (firstDest as string) ?? (name as string);
+    } else {
+      imageSearchName = name;
+    }
+
+    const rank = sortedDestinations.findIndex((d) => d?.name === name) + 1;
+    const slug = slugify(name);
+
+    storeDestinationContext(slug, {
+      tripInput,
+      summary: dest as DeepPartial<DestinationSummary>,
+      imageSearchName,
+      stableCountry: dest.country as string | undefined,
+      rank: rank > 0 ? rank : undefined,
+      isRecommended: dest.name === result?.recommendedDestination,
+    });
+
+    window.open(`/destination/${slug}`, "_blank");
+  }, [sortedDestinations, tripInput, result?.recommendedDestination]);
 
   // Show loading until at least 1 destination has streamed in (summaries are fast)
   const destinationCount = result?.destinations?.filter(Boolean)?.length ?? 0;
@@ -244,7 +192,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
         <ExploreMap
           markers={mapMarkers}
           selectedId={selectedDestination}
-          showRoute={showRoute}
+          showRoute={false}
           onMarkerClick={handleMarkerClick}
           height={500}
         />
@@ -302,44 +250,6 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
           )}
         </>
       )}
-
-      {/* Detail sheet */}
-      <DestinationDetailSheet
-        destination={detailData}
-        imageSearchName={detailImageSearchName}
-        stableCountry={detailStableCountry}
-        isOpen={detailDestination !== null}
-        rank={detailDestRank}
-        isRecommended={detailData?.name === result?.recommendedDestination}
-        onClose={handleCloseDetail}
-        isDetailLoading={detailDestination ? isDetailLoading(detailDestination) : false}
-        error={detailError ?? undefined}
-        actions={
-          detailData ? (
-            <>
-              <FavoriteButton
-                destination={detailData}
-                isFavorited={!!(detailData.name && favoritesMap[detailData.name])}
-                favoriteId={detailData.name ? favoritesMap[detailData.name] ?? null : null}
-                onAuthRequired={() => onAuthRequired?.(detailData.name)}
-                onToggle={(newId) => {
-                  if (!detailData.name) return;
-                  setFavoritesMap((prev) => {
-                    const next = { ...prev };
-                    if (newId) {
-                      next[detailData.name!] = newId;
-                    } else {
-                      delete next[detailData.name!];
-                    }
-                    return next;
-                  });
-                }}
-              />
-              <ShareButton destination={detailData} />
-            </>
-          ) : undefined
-        }
-      />
     </div>
   );
 }
