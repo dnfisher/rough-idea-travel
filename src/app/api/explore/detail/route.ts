@@ -38,8 +38,7 @@ export async function POST(req: Request) {
       output: Output.object({ schema: DestinationSuggestionSchema }),
       system: DESTINATION_DETAIL_SYSTEM_PROMPT,
       prompt: buildDetailPrompt(destinationName, country, tripInput),
-      temperature: 0.7,
-      maxOutputTokens: 16384,
+      maxOutputTokens: 32768,
     });
 
     return result.toTextStreamResponse();
