@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Heart, Compass } from "lucide-react";
+import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
-import { DestinationDetailSheet } from "@/components/results/DestinationDetailSheet";
+import { Heart, Compass } from "lucide-react";
+import { slugify, storeDestinationContext } from "@/lib/destination-url";
 import { DestinationImage } from "@/components/results/DestinationImage";
 
 interface FavoriteRow {
@@ -25,12 +25,18 @@ export function SharedWishlistClient({
   items,
   createdAt,
 }: SharedWishlistClientProps) {
-  const [detailName, setDetailName] = useState<string | null>(null);
-
-  const detailFav = detailName
-    ? items.find((f) => f.destinationName === detailName)
-    : null;
-  const detailDest = detailFav?.destinationData as Partial<DestinationSuggestion> | undefined;
+  function openInNewTab(fav: FavoriteRow) {
+    const dest = fav.destinationData as DeepPartial<DestinationSuggestion> & { routeStops?: string[] };
+    const firstStop = dest?.routeStops?.[0] ?? dest?.itinerary?.days?.[0]?.location;
+    const slug = slugify(fav.destinationName);
+    storeDestinationContext(slug, {
+      summary: { name: fav.destinationName, country: fav.country },
+      detail: dest,
+      imageSearchName: firstStop ?? fav.destinationName,
+      stableCountry: fav.country,
+    });
+    window.open(`/destination/${slug}`, "_blank");
+  }
 
   return (
     <>
@@ -75,12 +81,12 @@ export function SharedWishlistClient({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((fav) => {
-            const dest = fav.destinationData as Partial<DestinationSuggestion> & { routeStops?: string[] };
+            const dest = fav.destinationData as DeepPartial<DestinationSuggestion> & { routeStops?: string[] };
             const firstStop = dest?.routeStops?.[0] ?? dest?.itinerary?.days?.[0]?.location;
             return (
             <div
               key={fav.id}
-              onClick={() => setDetailName(fav.destinationName)}
+              onClick={() => openInNewTab(fav)}
               className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition-all"
             >
               <div className="relative h-40">
@@ -104,12 +110,6 @@ export function SharedWishlistClient({
           })}
         </div>
       )}
-
-      {/* Detail sheet — read-only (no favorite button) */}
-      <DestinationDetailSheet
-        destination={detailDest ?? null}
-        onClose={() => setDetailName(null)}
-      />
     </>
   );
 }
