@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, Compass, Plus, ChevronDown, ChevronUp, Share2, ExternalLink } from "lucide-react";
+import { Heart, Compass, Plus, ChevronDown, ChevronUp, Share2 } from "lucide-react";
 import Link from "next/link";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
@@ -256,7 +256,7 @@ export function FavoritesClient({
                 {showUncategorized && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {uncategorized.map((fav) => {
-                      const dest = fav.destinationData as Partial<DestinationSuggestion> & { routeStops?: string[] };
+                      const dest = fav.destinationData as DeepPartial<DestinationSuggestion> & { routeStops?: string[] };
                       const firstStop = dest?.routeStops?.[0] ?? dest?.itinerary?.days?.[0]?.location;
                       return (
                         <div
