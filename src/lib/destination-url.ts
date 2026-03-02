@@ -1,10 +1,11 @@
 import type { DeepPartial } from "ai";
-import type { DestinationSummary, TripInput } from "@/lib/ai/schemas";
+import type { DestinationSuggestion, DestinationSummary, TripInput } from "@/lib/ai/schemas";
 
 /** Data we stash in sessionStorage so the detail page can show Phase 1 data instantly */
 export interface DestinationPageContext {
-  tripInput: TripInput;
+  tripInput?: TripInput;
   summary: DeepPartial<DestinationSummary>;
+  detail?: DeepPartial<DestinationSuggestion>;
   imageSearchName?: string;
   stableCountry?: string;
   rank?: number;
