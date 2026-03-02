@@ -53,7 +53,7 @@ describe('storeDestinationContext / getDestinationContext', () => {
     storeDestinationContext('lisbon', mockContext)
     const result = getDestinationContext('lisbon')
     expect(result?.summary.name).toBe('Lisbon')
-    expect(result?.tripInput.travelers).toBe(2)
+    expect(result?.tripInput?.travelers).toBe(2)
   })
 
   it('returns null after sessionStorage is cleared', () => {
