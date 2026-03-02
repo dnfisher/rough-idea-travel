@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, Share2, Pencil, Check, X, Compass, Heart } from "lucide-react";
 import Link from "next/link";
+import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
-import { DestinationDetailSheet } from "@/components/results/DestinationDetailSheet";
+import { slugify, storeDestinationContext } from "@/lib/destination-url";
 import { DestinationImage } from "@/components/results/DestinationImage";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { UserButton } from "@/components/auth/UserButton";
@@ -40,17 +41,11 @@ export function WishlistDetailClient({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(wishlist.name);
   const [copied, setCopied] = useState(false);
-  const [detailName, setDetailName] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isEditing) editInputRef.current?.focus();
   }, [isEditing]);
-
-  const detailFav = detailName
-    ? items.find((f) => f.destinationName === detailName)
-    : null;
-  const detailDest = detailFav?.destinationData as Partial<DestinationSuggestion> | undefined;
 
   function handleRemove(favId: string) {
     setItems((prev) => prev.filter((f) => f.id !== favId));
@@ -84,6 +79,19 @@ export function WishlistDetailClient({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  }
+
+  function openInNewTab(fav: FavoriteRow) {
+    const dest = fav.destinationData as DeepPartial<DestinationSuggestion>;
+    const firstStop = dest?.itinerary?.days?.[0]?.location;
+    const slug = slugify(fav.destinationName);
+    storeDestinationContext(slug, {
+      summary: { name: fav.destinationName, country: fav.country },
+      detail: dest,
+      imageSearchName: firstStop ?? fav.destinationName,
+      stableCountry: fav.country,
+    });
+    window.open(`/destination/${slug}`, "_blank");
   }
 
   return (
@@ -189,12 +197,12 @@ export function WishlistDetailClient({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((fav) => {
-              const dest = fav.destinationData as Partial<DestinationSuggestion> & { routeStops?: string[] };
-              const firstStop = dest?.routeStops?.[0] ?? dest?.itinerary?.days?.[0]?.location;
+              const dest = fav.destinationData as DeepPartial<DestinationSuggestion>;
+              const firstStop = dest?.itinerary?.days?.[0]?.location;
               return (
                 <div
                   key={fav.id}
-                  onClick={() => setDetailName(fav.destinationName)}
+                  onClick={() => openInNewTab(fav)}
                   className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition-all"
                 >
                   <div className="relative h-40">
@@ -241,11 +249,6 @@ export function WishlistDetailClient({
         )}
       </main>
 
-      {/* Detail sheet */}
-      <DestinationDetailSheet
-        destination={detailDest ?? null}
-        onClose={() => setDetailName(null)}
-      />
     </div>
   );
 }

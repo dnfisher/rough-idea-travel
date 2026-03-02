@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, Compass, Plus, ChevronDown, ChevronUp, Share2, ExternalLink } from "lucide-react";
+import { Heart, Compass, Plus, ChevronDown, ChevronUp, Share2 } from "lucide-react";
 import Link from "next/link";
+import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
-import { DestinationDetailSheet } from "@/components/results/DestinationDetailSheet";
+import { slugify, storeDestinationContext } from "@/lib/destination-url";
 import { DestinationImage } from "@/components/results/DestinationImage";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { UserButton } from "@/components/auth/UserButton";
@@ -41,16 +42,9 @@ export function FavoritesClient({
   const [wishlists, setWishlists] = useState(initialWishlists);
   const [uncategorized, setUncategorized] = useState(initialUncategorized);
   const [showUncategorized, setShowUncategorized] = useState(true);
-  const [detailName, setDetailName] = useState<string | null>(null);
   const [creatingList, setCreatingList] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
-
-  // Find detail destination from uncategorized
-  const detailFav = detailName
-    ? uncategorized.find((f) => f.destinationName === detailName)
-    : null;
-  const detailDest = detailFav?.destinationData as Partial<DestinationSuggestion> | undefined;
 
   function handleRemoveUncategorized(favId: string) {
     setUncategorized((prev) => prev.filter((f) => f.id !== favId));
@@ -81,6 +75,19 @@ export function FavoritesClient({
       setCopiedShareId(shareId);
       setTimeout(() => setCopiedShareId(null), 2000);
     });
+  }
+
+  function openInNewTab(fav: FavoriteRow) {
+    const dest = fav.destinationData as DeepPartial<DestinationSuggestion>;
+    const firstStop = dest?.itinerary?.days?.[0]?.location;
+    const slug = slugify(fav.destinationName);
+    storeDestinationContext(slug, {
+      summary: { name: fav.destinationName, country: fav.country },
+      detail: dest,
+      imageSearchName: firstStop ?? fav.destinationName,
+      stableCountry: fav.country,
+    });
+    window.open(`/destination/${slug}`, "_blank");
   }
 
   const totalSaved = wishlists.reduce((sum, wl) => sum + wl.itemCount, 0) + uncategorized.length;
@@ -249,12 +256,12 @@ export function FavoritesClient({
                 {showUncategorized && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {uncategorized.map((fav) => {
-                      const dest = fav.destinationData as Partial<DestinationSuggestion> & { routeStops?: string[] };
-                      const firstStop = dest?.routeStops?.[0] ?? dest?.itinerary?.days?.[0]?.location;
+                      const dest = fav.destinationData as DeepPartial<DestinationSuggestion>;
+                      const firstStop = dest?.itinerary?.days?.[0]?.location;
                       return (
                         <div
                           key={fav.id}
-                          onClick={() => setDetailName(fav.destinationName)}
+                          onClick={() => openInNewTab(fav)}
                           className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition-all"
                         >
                           <div className="relative h-40">
@@ -305,11 +312,6 @@ export function FavoritesClient({
         )}
       </main>
 
-      {/* Detail sheet */}
-      <DestinationDetailSheet
-        destination={detailDest ?? null}
-        onClose={() => setDetailName(null)}
-      />
     </div>
   );
 }

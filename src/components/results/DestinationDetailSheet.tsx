@@ -84,6 +84,11 @@ interface DestinationDetailSheetProps {
   error?: Error;
 }
 
+/**
+ * @deprecated Use the new-tab destination detail page (`/destination/[slug]`) instead.
+ * Call `storeDestinationContext` then `window.open(\`/destination/\${slug}\`, '_blank')`.
+ * This component is kept for reference only and will be removed in a future cleanup.
+ */
 export function DestinationDetailSheet({
   destination,
   imageSearchName,
