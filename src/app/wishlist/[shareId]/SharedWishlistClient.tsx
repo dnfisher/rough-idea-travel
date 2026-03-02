@@ -26,8 +26,8 @@ export function SharedWishlistClient({
   createdAt,
 }: SharedWishlistClientProps) {
   function openInNewTab(fav: FavoriteRow) {
-    const dest = fav.destinationData as DeepPartial<DestinationSuggestion> & { routeStops?: string[] };
-    const firstStop = dest?.routeStops?.[0] ?? dest?.itinerary?.days?.[0]?.location;
+    const dest = fav.destinationData as DeepPartial<DestinationSuggestion>;
+    const firstStop = dest?.itinerary?.days?.[0]?.location;
     const slug = slugify(fav.destinationName);
     storeDestinationContext(slug, {
       summary: { name: fav.destinationName, country: fav.country },
@@ -81,8 +81,8 @@ export function SharedWishlistClient({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((fav) => {
-            const dest = fav.destinationData as DeepPartial<DestinationSuggestion> & { routeStops?: string[] };
-            const firstStop = dest?.routeStops?.[0] ?? dest?.itinerary?.days?.[0]?.location;
+            const dest = fav.destinationData as DeepPartial<DestinationSuggestion>;
+            const firstStop = dest?.itinerary?.days?.[0]?.location;
             return (
             <div
               key={fav.id}
