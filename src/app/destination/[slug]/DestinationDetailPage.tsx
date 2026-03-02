@@ -23,7 +23,7 @@ import {
   Loader2,
 } from "lucide-react";
 import type { DeepPartial } from "ai";
-import type { DestinationSuggestion, DestinationSummary, TripInput } from "@/lib/ai/schemas";
+import type { DestinationSuggestion } from "@/lib/ai/schemas";
 import { getDestinationContext, type DestinationPageContext } from "@/lib/destination-url";
 import { DestinationImage } from "@/components/results/DestinationImage";
 import { ItineraryTimeline } from "@/components/results/ItineraryTimeline";
@@ -138,6 +138,9 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   // Favorites
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
 
+  // Track whether we're displaying pre-loaded Phase 2 data (no fetch needed)
+  const [usePreloaded, setUsePreloaded] = useState(true);
+
   // Read context from sessionStorage on mount
   useEffect(() => {
     const data = getDestinationContext(slug);
@@ -148,13 +151,20 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
     }
   }, [slug]);
 
-  // Fetch Phase 2 detail once we have context
+  // Fetch Phase 2 detail once we have context (skipped if pre-loaded)
   useEffect(() => {
     if (!ctx) return;
 
+    // Use pre-loaded Phase 2 data if available (e.g. opened from favorites)
+    if (ctx.detail && usePreloaded) {
+      setDetail(ctx.detail);
+      return;
+    }
+
+    // Need both name and tripInput to fetch Phase 2
     const name = ctx.summary.name;
     const country = ctx.summary.country ?? "";
-    if (!name) return;
+    if (!name || !ctx.tripInput) return;
 
     const controller = new AbortController();
     setDetailLoading(true);
@@ -190,7 +200,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
       });
 
     return () => controller.abort();
-  }, [ctx]);
+  }, [ctx, usePreloaded]);
 
   // Merged data: Phase 2 detail overrides Phase 1 summary fields
   const destination: DeepPartial<DestinationSuggestion> | null = useMemo(() => {
@@ -228,6 +238,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   }, [destination]);
 
   const hasPhase2 = !!detail;
+  const showRefresh = usePreloaded && !!ctx?.detail && !!ctx?.tripInput;
   const goBack = useCallback(() => window.close(), []);
 
   // ── No context fallback ──
@@ -351,6 +362,19 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 px-3 rounded-lg bg-destructive/5 border border-destructive/20">
             <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
             <span>Failed to load full details. Some information may be missing.</span>
+          </div>
+        )}
+
+        {/* Refresh banner — shown when displaying pre-loaded saved data */}
+        {showRefresh && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Showing saved data.</span>
+            <button
+              onClick={() => setUsePreloaded(false)}
+              className="text-primary hover:underline"
+            >
+              Refresh
+            </button>
           </div>
         )}
 
