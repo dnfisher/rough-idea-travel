@@ -13,6 +13,7 @@ import { DestinationSortBar, type SortOption } from "./DestinationSortBar";
 import { ExploreMap } from "./ExploreMap";
 import type { MapMarker } from "./ExploreMapInner";
 import { slugify, storeDestinationContext } from "@/lib/destination-url";
+import { useDetailFetch } from "@/lib/hooks/useDetailFetch";
 
 interface ResultsPanelProps {
   result: DeepPartial<ExplorationSummaryResult> | undefined;
@@ -29,8 +30,11 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
   const [sortBy, setSortBy] = useState<SortOption>("match");
   const [favoritesMap, setFavoritesMap] = useState<Record<string, string>>({});
 
+  const { fetchDetail, getDetail, clearCache } = useDetailFetch();
+
   // Auto-favorite a destination after auth flow returns
   const autoFavoriteHandled = useRef(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!pendingAutoFavorite || !result?.destinations || autoFavoriteHandled.current) return;
     autoFavoriteHandled.current = true;
@@ -56,14 +60,22 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       .finally(() => onAutoFavoriteComplete?.());
   }, [pendingAutoFavorite, result?.destinations, onAutoFavoriteComplete]);
 
-  // Reset selection when new search starts
+  // Reset selection when new search starts; auto-prefetch top result when Phase 1 finishes
   const prevIsLoading = useRef(isLoading);
   useEffect(() => {
     if (isLoading && !prevIsLoading.current) {
+      // New search starting — reset and clear prefetch cache
       setSelectedDestination(null);
+      clearCache();
+    } else if (!isLoading && prevIsLoading.current && tripInput && sortedDestinations.length > 0) {
+      // Phase 1 just finished — prefetch the top-ranked result
+      const top = sortedDestinations[0];
+      if (top?.name && top?.country) {
+        fetchDetail(top.name, top.country, tripInput);
+      }
     }
     prevIsLoading.current = isLoading;
-  }, [isLoading]);
+  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sort destinations
   const sortedDestinations = useMemo(() => {
@@ -118,6 +130,24 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     setSelectedDestination((prev) => (prev === id ? null : id));
   }, []);
 
+  // Hover prefetch: start Phase 2 after 300ms hover — fire-and-forget
+  const handleCardMouseEnter = useCallback(
+    (dest: { name?: string; country?: string }) => {
+      if (!tripInput || !dest.name || !dest.country) return;
+      hoverTimerRef.current = setTimeout(() => {
+        fetchDetail(dest.name!, dest.country!, tripInput);
+      }, 300);
+    },
+    [fetchDetail, tripInput]
+  );
+
+  const handleCardMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }, []);
+
   // Card click: store context in sessionStorage + open detail page in new tab
   const handleCardClick = useCallback((name: string | undefined) => {
     if (!name || !tripInput) return;
@@ -145,6 +175,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     const rank = sortedDestinations.findIndex((d) => d?.name === name) + 1;
     const slug = slugify(name);
 
+    const cachedDetail = getDetail(name);
     storeDestinationContext(slug, {
       tripInput,
       summary: dest as DeepPartial<DestinationSummary>,
@@ -152,10 +183,11 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       stableCountry: dest.country as string | undefined,
       rank: rank > 0 ? rank : undefined,
       isRecommended: dest.name === result?.recommendedDestination,
+      detail: cachedDetail ?? undefined,
     });
 
     window.open(`/destination/${slug}`, "_blank");
-  }, [sortedDestinations, tripInput, result?.recommendedDestination]);
+  }, [sortedDestinations, tripInput, result?.recommendedDestination, getDetail]);
 
   // Show loading until at least 1 destination has streamed in (summaries are fast)
   const destinationCount = result?.destinations?.filter(Boolean)?.length ?? 0;
@@ -211,7 +243,12 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
               {sortedDestinations.map((dest, i) => {
                 if (!dest) return null;
                 return (
-                  <div key={dest.name || i} data-destination-id={dest.name}>
+                  <div
+                    key={dest.name || i}
+                    data-destination-id={dest.name}
+                    onMouseEnter={() => handleCardMouseEnter(dest)}
+                    onMouseLeave={handleCardMouseLeave}
+                  >
                     <DestinationCard
                       destination={dest}
                       rank={i + 1}
