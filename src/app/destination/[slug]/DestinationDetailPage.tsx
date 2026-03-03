@@ -580,7 +580,11 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         ) : null}
 
         {/* Booking CTAs */}
-        {hasBooking && <BookingLinks destination={destination} />}
+        {hasBooking ? (
+          <BookingLinks destination={destination} />
+        ) : detailLoading ? (
+          <SectionSkeleton rows={2} />
+        ) : null}
 
         {/* Bottom padding */}
         <div className="h-8" />
