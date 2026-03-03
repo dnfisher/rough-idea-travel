@@ -204,18 +204,15 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           : { startDate, endDate }
         ),
       },
-      travelers,
       interests,
       weatherPreference: weatherPreference === "any" ? undefined : weatherPreference,
       budgetLevel,
       tripStyle,
       locationPreference: {
-        type: locationType,
+        type: locationType as "open" | "region",
         ...(locationType === "region" ? { value: regionValue } : {}),
-        ...(locationType === "specific" ? { comparePlaces } : {}),
       },
       ...(startingPoint ? { startingPoint } : {}),
-      ...(additionalNotes ? { additionalNotes } : {}),
     };
   }
 
