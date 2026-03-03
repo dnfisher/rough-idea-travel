@@ -16,6 +16,10 @@ export interface DetailStreamResult {
  *
  * Sections arrive in order: quick (~3-5s), itinerary (~8-12s),
  * insights (~12-18s), booking (~15-20s). State updates after each complete line.
+ *
+ * NOTE: One-shot hook — once the stream starts (startedRef=true), it will NOT
+ * re-fetch even if name/country/tripInput change. Designed for DestinationDetailPage
+ * which opens in a new tab and mounts exactly once per session.
  */
 export function useDetailStream(
   name: string | undefined,

@@ -205,7 +205,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   const hasQuick = !!(detail?.pros?.length);
   const hasItinerary = !!(detail?.itinerary?.days?.length);
   const hasInsights = !!(detail?.localInsights?.length);
-  const hasBooking = !!(detail?.accommodation);
+  const hasBooking = !!(detail?.accommodation || detail?.flightEstimate || detail?.drivingEstimate || detail?.estimatedTotalTripCostEur);
   const showRefresh = usePreloaded && !!ctx?.detail && !!ctx?.tripInput;
   const goBack = useCallback(() => window.close(), []);
 

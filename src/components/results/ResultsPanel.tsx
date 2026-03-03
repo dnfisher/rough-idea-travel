@@ -104,7 +104,10 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       }
     }
     prevIsLoading.current = isLoading;
-  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Intentional: only fire on isLoading transitions. Omitting sortedDestinations/tripInput/
+  // fetchDetail/clearCache prevents auto-prefetch from re-firing on every sort change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   // Selected destination for map (summary data)
   const selectedDest = useMemo(() => {
