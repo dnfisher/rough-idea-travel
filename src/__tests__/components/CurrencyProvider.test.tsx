@@ -32,7 +32,7 @@ describe('CurrencyProvider (unauthenticated)', () => {
     vi.restoreAllMocks()
   })
 
-  it('defaults to EUR and becomes ready', async () => {
+  it('defaults to USD and becomes ready', async () => {
     render(
       <CurrencyProvider>
         <CurrencyConsumer />
@@ -41,7 +41,7 @@ describe('CurrencyProvider (unauthenticated)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('loading')).toHaveTextContent('ready')
     })
-    expect(screen.getByTestId('currency')).toHaveTextContent('EUR')
+    expect(screen.getByTestId('currency')).toHaveTextContent('USD')
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
@@ -69,7 +69,7 @@ describe('CurrencyProvider (unauthenticated)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('loading')).toHaveTextContent('ready')
     })
-    expect(screen.getByTestId('currency')).toHaveTextContent('EUR')
+    expect(screen.getByTestId('currency')).toHaveTextContent('USD')
   })
 
   it('updates currency and persists to localStorage when setCurrency is called', async () => {
@@ -122,7 +122,7 @@ describe('CurrencyProvider (authenticated)', () => {
     expect(global.fetch).toHaveBeenCalledWith('/api/user/preferences')
   })
 
-  it('falls back to EUR when server returns invalid currency', async () => {
+  it('falls back to USD when server returns invalid currency', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValueOnce(
       new Response(JSON.stringify({ currency: 'INVALID' }), { status: 200 })
     )
@@ -137,10 +137,10 @@ describe('CurrencyProvider (authenticated)', () => {
       expect(screen.getByTestId('loading')).toHaveTextContent('ready')
     })
 
-    expect(screen.getByTestId('currency')).toHaveTextContent('EUR')
+    expect(screen.getByTestId('currency')).toHaveTextContent('USD')
   })
 
-  it('stays ready and defaults to EUR when server fetch fails', async () => {
+  it('stays ready and defaults to USD when server fetch fails', async () => {
     vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network error'))
 
     render(
@@ -153,6 +153,6 @@ describe('CurrencyProvider (authenticated)', () => {
       expect(screen.getByTestId('loading')).toHaveTextContent('ready')
     })
 
-    expect(screen.getByTestId('currency')).toHaveTextContent('EUR')
+    expect(screen.getByTestId('currency')).toHaveTextContent('USD')
   })
 })
