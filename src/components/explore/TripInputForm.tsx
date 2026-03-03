@@ -135,6 +135,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   // Card mode state (post-submit editing)
   const [activeCard, setActiveCard] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<"forward" | "back">("forward");
 
   const customInterestInputRef = useRef<HTMLInputElement>(null);
 
@@ -226,6 +227,19 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   function handleUpdateSearch() {
     setIsEditing(false);
     onSubmit(buildTripInput());
+  }
+
+  function goToCard(index: number) {
+    setSlideDirection(index > activeCard ? "forward" : "back");
+    setActiveCard(index);
+  }
+
+  function handleNext() {
+    if (activeCard < TOTAL_CARDS - 1) goToCard(activeCard + 1);
+  }
+
+  function handleBack() {
+    if (activeCard > 0) goToCard(activeCard - 1);
   }
 
   // --- Reusable field content (shared between progressive + card mode) ---
@@ -660,8 +674,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     </fieldset>
   );
 
-  // --- Summary pills for collapsed view ---
-
+  // --- Summary pills ---
   const summaryPills: { label: string; card: number }[] = [];
   if (homeCity) summaryPills.push({ label: homeCity, card: 0 });
   if (travelRange && travelRange !== "any") {
@@ -684,9 +697,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const budgetLabel = BUDGET_LEVELS.find((b) => b.value === budgetLevel)?.label;
   if (budgetLabel) summaryPills.push({ label: budgetLabel, card: 3 });
 
-  // --- Render ---
-
-  // Mode 1: Collapsed summary (after search, not editing)
+  // --- Render: summary mode ---
   if (showSummary) {
     return (
       <div className="space-y-3">
@@ -694,7 +705,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           <h3 className="text-sm font-medium text-muted-foreground">Your search</h3>
           <button
             type="button"
-            onClick={() => { setIsEditing(true); setActiveCard(0); }}
+            onClick={() => { setIsEditing(true); goToCard(0); }}
             className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
           >
             <Pencil className="h-3 w-3" />
@@ -706,7 +717,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             <button
               key={i}
               type="button"
-              onClick={() => { setIsEditing(true); setActiveCard(pill.card); }}
+              onClick={() => { setIsEditing(true); goToCard(pill.card); }}
               className="px-2.5 py-1 rounded-full bg-accent text-accent-foreground text-xs border border-border hover:border-primary/30 transition-colors"
             >
               {pill.label}
@@ -740,143 +751,111 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     );
   }
 
-  // Mode 2: Card-based editing (post-submit, editing mode)
-  if (showCardMode) {
-    return (
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Clickable progress dots */}
-        <div className="flex gap-1.5">
-          {Array.from({ length: TOTAL_CARDS }).map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setActiveCard(i)}
-              className={cn(
-                "h-1.5 rounded-full flex-1 transition-all duration-300",
-                i === activeCard ? "bg-primary" : i < activeCard ? "bg-primary/40" : "bg-border"
-              )}
-              title={CARD_LABELS[i]}
-            />
-          ))}
-        </div>
+  // --- Render: card mode (initial fill + post-submit editing) ---
+  const cardContent = [
+    <div key={0} className="space-y-5">{homeCityField}{travelRangeField}</div>,
+    <div key={1} className="space-y-5">{datesField}</div>,
+    <div key={2} className="space-y-5">{interestsField}{tripStyleField}</div>,
+    <div key={3} className="space-y-5">{weatherBudgetField}{locationField}</div>,
+  ];
 
-        {/* Card label */}
-        <p className="text-xs text-muted-foreground font-medium">{CARD_LABELS[activeCard]}</p>
+  const isLastCard = activeCard === TOTAL_CARDS - 1;
 
-        {/* Card content with fade animation */}
-        <div key={activeCard} className="animate-fade-in">
-          {activeCard === 0 && <div className="space-y-4">{homeCityField}{travelRangeField}</div>}
-          {activeCard === 1 && <div className="space-y-4">{datesField}</div>}
-          {activeCard === 2 && <div className="space-y-4">{interestsField}</div>}
-          {activeCard === 3 && <div className="space-y-4">{preferencesField}</div>}
-          {activeCard === 4 && <div className="space-y-4">{locationField}{advancedAndSubmitField}</div>}
-        </div>
+  const searchButton = (primary: boolean) => (
+    <button
+      type="submit"
+      disabled={isLoading}
+      className={cn(
+        "w-full rounded-xl font-medium text-sm transition-all",
+        primary
+          ? cn(
+              "py-3",
+              isLoading
+                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                : "bg-foreground text-background hover:opacity-90 shadow-md hover:shadow-lg"
+            )
+          : cn(
+              "py-2.5 border",
+              isLoading
+                ? "border-border text-muted-foreground cursor-not-allowed"
+                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            )
+      )}
+    >
+      {isLoading ? (
+        <span className="flex items-center justify-center gap-2">
+          <span className="h-4 w-4 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+          Exploring...
+        </span>
+      ) : (
+        <span className="flex items-center justify-center gap-2">
+          <Compass className="h-4 w-4" />
+          {primary ? "Search" : "Search now"}
+        </span>
+      )}
+    </button>
+  );
 
-        {/* Navigation */}
-        <div className="flex gap-3 pt-1">
-          {activeCard > 0 && (
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Progress bar — clickable segments */}
+      <div className="flex gap-1.5">
+        {Array.from({ length: TOTAL_CARDS }).map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => goToCard(i)}
+            className={cn(
+              "h-1.5 rounded-full flex-1 transition-all duration-300",
+              i <= activeCard ? "bg-primary" : "bg-border"
+            )}
+            title={CARD_LABELS[i]}
+          />
+        ))}
+      </div>
+
+      {/* Step label */}
+      <p className="text-xs text-muted-foreground font-medium">
+        Step {activeCard + 1} of {TOTAL_CARDS} · {CARD_LABELS[activeCard]}
+      </p>
+
+      {/* Card content with directional slide animation */}
+      <div
+        key={activeCard}
+        className={slideDirection === "forward" ? "animate-slide-from-right" : "animate-slide-from-left"}
+      >
+        {cardContent[activeCard]}
+      </div>
+
+      {/* Navigation row: Back on left, Next on right (or nothing on last card) */}
+      <div className="flex items-center gap-3 pt-1">
+        {activeCard > 0 && (
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex items-center gap-1 px-3.5 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </button>
+        )}
+        {!isLastCard && (
+          <>
+            <div className="flex-1" />
             <button
               type="button"
-              onClick={() => setActiveCard((prev) => prev - 1)}
-              className="flex items-center gap-1 px-3.5 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Back
-            </button>
-          )}
-          <div className="flex-1" />
-          {activeCard < TOTAL_CARDS - 1 && (
-            <button
-              type="button"
-              onClick={() => setActiveCard((prev) => prev + 1)}
+              onClick={handleNext}
               className="flex items-center gap-1 px-3.5 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
             >
               Next
               <ChevronRight className="h-4 w-4" />
             </button>
-          )}
-        </div>
-
-        {/* Update search button (visible on every card except the last which has its own submit) */}
-        {activeCard < TOTAL_CARDS - 1 && (
-          <button
-            type="button"
-            onClick={handleUpdateSearch}
-            disabled={isLoading}
-            className={cn(
-              "w-full py-3 rounded-xl font-medium text-sm transition-all",
-              isLoading
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-foreground text-background hover:opacity-90 shadow-md hover:shadow-lg"
-            )}
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="h-4 w-4 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-                Exploring...
-              </span>
-            ) : (
-              <span className="flex items-center justify-center gap-2">
-                <Compass className="h-4 w-4" />
-                Update search
-              </span>
-            )}
-          </button>
+          </>
         )}
-      </form>
-    );
-  }
+      </div>
 
-  // Mode 3: Progressive disclosure (initial fill, first-time use)
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-      {/* Progress indicator — hidden once expanded */}
-      {!isExpanded && (
-        <div className="flex gap-1.5">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                "h-1.5 rounded-full flex-1 transition-all duration-500",
-                i <= currentStep ? "bg-primary" : "bg-border"
-              )}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Step 0: Home City — always visible */}
-      {homeCityField}
-
-      {/* Step 1: Travel Range */}
-      <StepSection visible={isStepVisible(1)}>
-        {travelRangeField}
-      </StepSection>
-
-      {/* Step 2: Dates */}
-      <StepSection visible={isStepVisible(2)}>
-        {datesField}
-      </StepSection>
-
-      {/* Step 3: Interests */}
-      <StepSection visible={isStepVisible(3)}>
-        {interestsField}
-      </StepSection>
-
-      {/* Step 4: Weather + Trip Style + Budget */}
-      <StepSection visible={isStepVisible(4)}>
-        {preferencesField}
-      </StepSection>
-
-      {/* Step 5: Location */}
-      <StepSection visible={isStepVisible(5)}>
-        {locationField}
-      </StepSection>
-
-      {/* Step 6: Advanced + Submit */}
-      <StepSection visible={isStepVisible(6)}>
-        {advancedAndSubmitField}
-      </StepSection>
+      {/* Search button: primary on last card, ghost on earlier cards */}
+      {searchButton(isLastCard)}
     </form>
   );
 }
