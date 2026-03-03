@@ -205,6 +205,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           : { startDate, endDate }
         ),
       },
+      travelers: 1,
       interests,
       weatherPreference: weatherPreference === "any" ? undefined : weatherPreference,
       budgetLevel,
@@ -753,10 +754,10 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   // --- Render: card mode (initial fill + post-submit editing) ---
   const cardContent = [
-    <div key={0} className="space-y-5">{homeCityField}{travelRangeField}</div>,
-    <div key={1} className="space-y-5">{datesField}</div>,
-    <div key={2} className="space-y-5">{interestsField}{tripStyleField}</div>,
-    <div key={3} className="space-y-5">{weatherBudgetField}{locationField}</div>,
+    <div className="space-y-5">{homeCityField}{travelRangeField}</div>,
+    <div className="space-y-5">{datesField}</div>,
+    <div className="space-y-5">{interestsField}{tripStyleField}</div>,
+    <div className="space-y-5">{weatherBudgetField}{locationField}</div>,
   ];
 
   const isLastCard = activeCard === TOTAL_CARDS - 1;
@@ -807,7 +808,11 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             onClick={() => goToCard(i)}
             className={cn(
               "h-1.5 rounded-full flex-1 transition-all duration-300",
-              i <= activeCard ? "bg-primary" : "bg-border"
+              i === activeCard
+                ? "bg-primary"
+                : i < activeCard
+                ? "bg-primary/40"
+                : "bg-border"
             )}
             title={CARD_LABELS[i]}
           />
