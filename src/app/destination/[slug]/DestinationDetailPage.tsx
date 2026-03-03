@@ -342,6 +342,9 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
             isFavorited={!!favoriteId}
             favoriteId={favoriteId}
             onToggle={setFavoriteId}
+            onAuthRequired={() => {
+              window.location.href = `/auth/signin?callbackUrl=${encodeURIComponent(window.location.href)}`;
+            }}
             size="md"
           />
           <ShareButton destination={destination} size="md" />
