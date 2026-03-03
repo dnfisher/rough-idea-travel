@@ -270,7 +270,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           }}
           placeholder='e.g. "London", "Berlin", "New York"'
           className={inputClass}
-          autoFocus={!isExpanded}
+          autoFocus
           autoComplete="off"
         />
         {showCitySuggestions && filteredCities.length > 0 && (
@@ -704,60 +704,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         </div>
       )}
     </fieldset>
-  );
-
-  const advancedAndSubmitField = (
-    <div className="space-y-4">
-      {/* Advanced toggle */}
-      <button
-        type="button"
-        onClick={() => setShowAdvanced(!showAdvanced)}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        {showAdvanced ? "Less options" : "More options"}
-      </button>
-
-      {showAdvanced && (
-        <div className="space-y-4">
-          <fieldset>
-            <legend className="flex items-center gap-2 text-sm font-medium mb-2">
-              <Users className="h-4 w-4 text-primary" />
-              How many travelers?
-            </legend>
-            <input type="number" min={1} max={20} value={travelers} onChange={(e) => setTravelers(Number(e.target.value))} className="w-20 px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          </fieldset>
-          <fieldset>
-            <legend className="text-sm font-medium mb-2">Anything else we should know?</legend>
-            <textarea value={additionalNotes} onChange={(e) => setAdditionalNotes(e.target.value)} placeholder="Any special requirements, interests, or constraints..." rows={3} className={cn(inputClass, "resize-none")} />
-          </fieldset>
-        </div>
-      )}
-
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={isLoading}
-        className={cn(
-          "w-full py-3.5 rounded-xl font-medium text-sm transition-all",
-          isLoading
-            ? "bg-muted text-muted-foreground cursor-not-allowed"
-            : "bg-foreground text-background hover:opacity-90 shadow-md hover:shadow-lg"
-        )}
-      >
-        {isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="h-4 w-4 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-            Exploring destinations...
-          </span>
-        ) : (
-          <span className="flex items-center justify-center gap-2">
-            <Compass className="h-4 w-4" />
-            Explore Destinations
-          </span>
-        )}
-      </button>
-    </div>
   );
 
   // --- Summary pills for collapsed view ---
