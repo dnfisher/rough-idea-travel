@@ -754,10 +754,10 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   // --- Render: card mode (initial fill + post-submit editing) ---
   const cardContent = [
-    <div className="space-y-5">{homeCityField}{travelRangeField}</div>,
-    <div className="space-y-5">{datesField}</div>,
-    <div className="space-y-5">{interestsField}{tripStyleField}</div>,
-    <div className="space-y-5">{weatherBudgetField}{locationField}</div>,
+    <div key="origin" className="space-y-5">{homeCityField}{travelRangeField}</div>,
+    <div key="when" className="space-y-5">{datesField}</div>,
+    <div key="vibe" className="space-y-5">{interestsField}{tripStyleField}</div>,
+    <div key="details" className="space-y-5">{weatherBudgetField}{locationField}</div>,
   ];
 
   const isLastCard = activeCard === TOTAL_CARDS - 1;
