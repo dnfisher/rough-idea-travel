@@ -537,9 +537,29 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     </fieldset>
   );
 
-  const preferencesField = (
+  const tripStyleField = (
+    <fieldset>
+      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+        <Compass className="h-4 w-4 text-primary" />
+        Trip style
+      </legend>
+      <div className="grid grid-cols-3 gap-2">
+        {TRIP_STYLES.map((style) => (
+          <button
+            key={style.value}
+            type="button"
+            onClick={() => setTripStyle(style.value)}
+            className={cn(chipClass(tripStyle === style.value), "flex items-center justify-center py-2.5")}
+          >
+            {style.label}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+
+  const weatherBudgetField = (
     <div className="space-y-5">
-      {/* Weather */}
       <fieldset>
         <legend className="flex items-center gap-2 text-sm font-medium mb-3">
           <Sun className="h-4 w-4 text-primary" />
@@ -550,10 +570,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             <button
               key={opt.value}
               type="button"
-              onClick={() => {
-                setWeatherPreference(opt.value);
-                setPreferencesSectionTouched(true);
-              }}
+              onClick={() => setWeatherPreference(opt.value)}
               className={chipClass(weatherPreference === opt.value)}
             >
               {opt.label}
@@ -562,30 +579,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         </div>
       </fieldset>
 
-      {/* Trip Style */}
-      <fieldset>
-        <legend className="flex items-center gap-2 text-sm font-medium mb-3">
-          <Compass className="h-4 w-4 text-primary" />
-          Trip style
-        </legend>
-        <div className="grid grid-cols-3 gap-2">
-          {TRIP_STYLES.map((style) => (
-            <button
-              key={style.value}
-              type="button"
-              onClick={() => {
-                setTripStyle(style.value);
-                setPreferencesSectionTouched(true);
-              }}
-              className={cn(chipClass(tripStyle === style.value), "flex items-center justify-center py-2.5")}
-            >
-              {style.label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      {/* Budget */}
       <fieldset>
         <legend className="flex items-center gap-2 text-sm font-medium mb-3">
           <DollarSign className="h-4 w-4 text-primary" />
@@ -596,10 +589,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             <button
               key={level.value}
               type="button"
-              onClick={() => {
-                setBudgetLevel(level.value);
-                setPreferencesSectionTouched(true);
-              }}
+              onClick={() => setBudgetLevel(level.value)}
               className={cn(chipClass(budgetLevel === level.value), "flex flex-col items-start text-left")}
             >
               <span className="font-medium text-foreground">{level.label}</span>
@@ -621,15 +611,11 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         {[
           { value: "open" as const, label: "Surprise me" },
           { value: "region" as const, label: "Region" },
-          { value: "specific" as const, label: "Compare places" },
         ].map((opt) => (
           <button
             key={opt.value}
             type="button"
-            onClick={() => {
-              setLocationType(opt.value);
-              setLocationTouched(true);
-            }}
+            onClick={() => setLocationType(opt.value)}
             className={pillClass(locationType === opt.value)}
           >
             {opt.label}
@@ -671,35 +657,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           )}
         </div>
       )}
-      {locationType === "specific" && (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newPlace}
-              onChange={(e) => setNewPlace(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addPlace(); } }}
-              placeholder="Add a destination..."
-              className={cn(inputClass, "flex-1")}
-            />
-            <button type="button" onClick={addPlace} className="px-3.5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors">
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-          {comparePlaces.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {comparePlaces.map((place) => (
-                <span key={place} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent text-accent-foreground text-sm">
-                  {place}
-                  <button type="button" onClick={() => removePlace(place)} className="hover:text-destructive transition-colors">
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </fieldset>
   );
 
@@ -723,7 +680,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     summaryPills.push({ label: interests.length <= 2 ? interests.join(", ") : `${interests.length} interests`, card: 2 });
   }
   const styleLabel = TRIP_STYLES.find((s) => s.value === tripStyle)?.label;
-  if (styleLabel && tripStyle !== "mixed") summaryPills.push({ label: styleLabel, card: 3 });
+  if (styleLabel && tripStyle !== "mixed") summaryPills.push({ label: styleLabel, card: 2 });
   const budgetLabel = BUDGET_LEVELS.find((b) => b.value === budgetLevel)?.label;
   if (budgetLabel) summaryPills.push({ label: budgetLabel, card: 3 });
 
