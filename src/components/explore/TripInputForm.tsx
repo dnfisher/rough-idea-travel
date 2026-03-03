@@ -7,13 +7,10 @@ import {
   Compass,
   Sun,
   DollarSign,
-  Users,
   Sparkles,
   Plus,
   X,
   Check,
-  ChevronDown,
-  ChevronUp,
   ChevronLeft,
   ChevronRight,
   Home,
@@ -80,10 +77,8 @@ const COMMON_CITIES = [
   "Mexico City", "Buenos Aires",
 ];
 
-const TOTAL_STEPS = 7;
-const TOTAL_CARDS = 5;
-
-const CARD_LABELS = ["Origin", "Dates", "Interests", "Preferences", "Finish"];
+const TOTAL_CARDS = 4;
+const CARD_LABELS = ["Origin", "When", "Vibe", "Details"];
 
 interface TripInputFormProps {
   onSubmit: (input: TripInput) => void;
@@ -110,26 +105,8 @@ const pillClass = (active: boolean) =>
       : "border-border hover:border-primary/40 text-muted-foreground"
   );
 
-// Step section wrapper — defined outside TripInputForm so React sees a stable
-// component identity across renders (prevents input focus loss on re-render).
-function StepSection({ visible, children }: { visible: boolean; children: React.ReactNode }) {
-  return (
-    <div
-      className={cn(
-        "transition-all duration-500 ease-out",
-        visible
-          ? "max-h-[800px] opacity-100 translate-y-0 overflow-visible"
-          : "max-h-0 opacity-0 -translate-y-2 pointer-events-none overflow-hidden"
-      )}
-    >
-      {children}
-    </div>
-  );
-}
 
 export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputFormProps) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
   const [homeCity, setHomeCity] = useState("");
   const [travelRange, setTravelRange] = useState<TripInput["travelRange"]>("any");
 
@@ -148,28 +125,17 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const [locationType, setLocationType] = useState<"open" | "region" | "specific">("open");
   const [regionValue, setRegionValue] = useState("");
-  const [comparePlaces, setComparePlaces] = useState<string[]>([]);
-  const [newPlace, setNewPlace] = useState("");
   const [flexibleDatesConfirmed, setFlexibleDatesConfirmed] = useState(false);
   const [regionConfirmed, setRegionConfirmed] = useState(false);
 
-  const [travelers, setTravelers] = useState(1);
   const [startingPoint, setStartingPoint] = useState("");
-  const [additionalNotes, setAdditionalNotes] = useState("");
 
-  // Progressive disclosure state (initial fill)
-  const [currentStep, setCurrentStep] = useState(0);
   const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
 
   // Card mode state (post-submit editing)
   const [activeCard, setActiveCard] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Track if travel range was explicitly changed (since it has a default)
-  const [travelRangeTouched, setTravelRangeTouched] = useState(false);
-
-  // Debounce timer for home city
-  const homeCityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const customInterestInputRef = useRef<HTMLInputElement>(null);
 
   // City autocomplete state
@@ -188,14 +154,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     ? COMMON_CITIES.filter((c) => c.toLowerCase().includes(startingPoint.toLowerCase())).slice(0, 8)
     : [];
 
-  const isExpanded = hasSubmittedOnce || !!hasResults;
-
-  // In card-edit mode or initial progressive fill?
-  const showCardMode = isExpanded && isEditing;
-  const showSummary = isExpanded && !isEditing;
-
-  // Step visibility (progressive disclosure only)
-  const isStepVisible = (step: number) => isExpanded || step <= currentStep;
+  const showSummary = (hasSubmittedOnce || !!hasResults) && !isEditing;
 
   // Click-outside to close city suggestion dropdowns
   useEffect(() => {
@@ -210,89 +169,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Auto-advance: home city (debounced 500ms)
-  useEffect(() => {
-    if (isExpanded) return;
-    if (homeCityTimerRef.current) clearTimeout(homeCityTimerRef.current);
-
-    if (homeCity.trim().length >= 2 && currentStep === 0) {
-      homeCityTimerRef.current = setTimeout(() => {
-        setCurrentStep((prev) => Math.max(prev, 1));
-      }, 500);
-    }
-
-    return () => {
-      if (homeCityTimerRef.current) clearTimeout(homeCityTimerRef.current);
-    };
-  }, [homeCity, currentStep, isExpanded]);
-
-  // Auto-advance: travel range clicked
-  useEffect(() => {
-    if (isExpanded) return;
-    if (travelRangeTouched && currentStep === 1) {
-      setCurrentStep((prev) => Math.max(prev, 2));
-    }
-  }, [travelRangeTouched, currentStep, isExpanded]);
-
-  // Auto-advance: dates filled
-  useEffect(() => {
-    if (isExpanded) return;
-    if (currentStep !== 2) return;
-
-    const datesFilled =
-      (dateType === "flexible" && flexibleDatesConfirmed) ||
-      (dateType === "specific" && startDate && endDate);
-
-    if (datesFilled) {
-      const timer = setTimeout(() => {
-        setCurrentStep((prev) => Math.max(prev, 3));
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [dateType, flexibleDatesConfirmed, startDate, endDate, currentStep, isExpanded]);
-
-  // Auto-advance: at least 1 interest selected
-  useEffect(() => {
-    if (isExpanded) return;
-    if (interests.length >= 1 && currentStep === 3) {
-      const timer = setTimeout(() => {
-        setCurrentStep((prev) => Math.max(prev, 4));
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [interests.length, currentStep, isExpanded]);
-
-  // Auto-advance: weather/style/budget section
-  const [preferencesSectionTouched, setPreferencesSectionTouched] = useState(false);
-  useEffect(() => {
-    if (isExpanded) return;
-    if (preferencesSectionTouched && currentStep === 4) {
-      const timer = setTimeout(() => {
-        setCurrentStep((prev) => Math.max(prev, 5));
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [preferencesSectionTouched, currentStep, isExpanded]);
-
-  // Auto-advance: location preference
-  const [locationTouched, setLocationTouched] = useState(false);
-  useEffect(() => {
-    if (isExpanded) return;
-    if (currentStep !== 5) return;
-
-    const shouldAdvance =
-      (locationType === "open" && locationTouched) ||
-      (locationType === "region" && regionConfirmed) ||
-      (locationType === "specific" && comparePlaces.length >= 1);
-
-    if (shouldAdvance) {
-      const timer = setTimeout(() => {
-        setCurrentStep((prev) => Math.max(prev, 6));
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [locationType, locationTouched, regionConfirmed, comparePlaces.length, currentStep, isExpanded]);
 
   // Auto-focus custom interest input when revealed
   useEffect(() => {
@@ -316,18 +192,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   }
 
   const customInterests = interests.filter((i) => !INTEREST_OPTIONS.includes(i));
-
-  function addPlace() {
-    const trimmed = newPlace.trim();
-    if (trimmed && !comparePlaces.includes(trimmed)) {
-      setComparePlaces((prev) => [...prev, trimmed]);
-      setNewPlace("");
-    }
-  }
-
-  function removePlace(place: string) {
-    setComparePlaces((prev) => prev.filter((p) => p !== place));
-  }
 
   function buildTripInput(): TripInput {
     return {
@@ -450,7 +314,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             type="button"
             onClick={() => {
               setTravelRange(range.value);
-              setTravelRangeTouched(true);
               if (range.value === "driving_distance") {
                 setTripStyle("road_trip");
                 if (!startingPoint.trim() && homeCity.trim()) {
