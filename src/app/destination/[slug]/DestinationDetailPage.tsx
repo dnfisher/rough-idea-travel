@@ -34,6 +34,7 @@ import { ShareButton } from "@/components/share/ShareButton";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { formatPrice } from "@/lib/currency";
 import type { MapMarker } from "@/components/results/ExploreMapInner";
+import { useDetailStream } from "@/lib/hooks/useDetailStream";
 
 // ── Constants ──────────────────────────────────────────────────
 
@@ -130,11 +131,6 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   const [ctx, setCtx] = useState<DestinationPageContext | null>(null);
   const [noContext, setNoContext] = useState(false);
 
-  // Phase 2 detail data
-  const [detail, setDetail] = useState<DeepPartial<DestinationSuggestion> | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<Error | null>(null);
-
   // Favorites
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
 
@@ -151,56 +147,25 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
     }
   }, [slug]);
 
-  // Fetch Phase 2 detail once we have context (skipped if pre-loaded)
-  useEffect(() => {
-    if (!ctx) return;
+  // Stream Phase 2 detail (skipped when pre-loaded detail is available)
+  const shouldStream = ctx != null && !(ctx.detail && usePreloaded) && !!ctx.tripInput;
+  const {
+    detail: streamedDetail,
+    isStreaming,
+    error: streamError,
+  } = useDetailStream(
+    shouldStream ? ctx?.summary.name : undefined,
+    shouldStream ? (ctx?.summary.country ?? "") : undefined,
+    shouldStream ? ctx?.tripInput : undefined
+  );
 
-    // Use pre-loaded Phase 2 data if available (e.g. opened from favorites)
-    if (ctx.detail && usePreloaded) {
-      setDetail(ctx.detail);
-      return;
-    }
-
-    // Need both name and tripInput to fetch Phase 2
-    const name = ctx.summary.name;
-    const country = ctx.summary.country ?? "";
-    if (!name || !ctx.tripInput) return;
-
-    const controller = new AbortController();
-    setDetailLoading(true);
-    setDetailError(null);
-
-    fetch("/api/explore/detail", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        destinationName: name,
-        country,
-        tripInput: ctx.tripInput,
-      }),
-      signal: controller.signal,
-    })
-      .then((res) => {
-        if (!res.ok) {
-          return res.json().then(
-            (body) => { throw new Error(body.error || `Request failed (${res.status})`); },
-            () => { throw new Error(`Request failed (${res.status})`); }
-          );
-        }
-        return res.json();
-      })
-      .then((data: DeepPartial<DestinationSuggestion>) => {
-        setDetail(data);
-        setDetailLoading(false);
-      })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        setDetailError(err instanceof Error ? err : new Error(String(err)));
-        setDetailLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [ctx, usePreloaded]);
+  // Use pre-loaded detail (sessionStorage / prefetch cache) if available; else use stream
+  const detail: DeepPartial<DestinationSuggestion> | null =
+    ctx?.detail && usePreloaded
+      ? (ctx.detail as DeepPartial<DestinationSuggestion>)
+      : streamedDetail;
+  const detailLoading = isStreaming;
+  const detailError = streamError;
 
   // Merged data: Phase 2 detail overrides Phase 1 summary fields
   const destination: DeepPartial<DestinationSuggestion> | null = useMemo(() => {
@@ -237,7 +202,10 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
       }));
   }, [destination]);
 
-  const hasPhase2 = !!detail;
+  const hasQuick = !!(detail?.pros?.length);
+  const hasItinerary = !!(detail?.itinerary?.days?.length);
+  const hasInsights = !!(detail?.localInsights?.length);
+  const hasBooking = !!(detail?.accommodation);
   const showRefresh = usePreloaded && !!ctx?.detail && !!ctx?.tripInput;
   const goBack = useCallback(() => window.close(), []);
 
@@ -418,7 +386,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         )}
 
         {/* Pros & Cons — show skeleton if Phase 2 not loaded yet */}
-        {hasPhase2 ? (
+        {hasQuick ? (
           (destination.pros?.length || destination.cons?.length) ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {destination.pros && destination.pros.length > 0 && (
@@ -522,7 +490,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         )}
 
         {/* Local Insights — skeleton or content */}
-        {hasPhase2 ? (
+        {hasInsights ? (
           destination.localInsights && destination.localInsights.length > 0 ? (
             <div>
               <h2 className="font-display font-semibold text-base mb-3 flex items-center gap-1.5">
@@ -551,7 +519,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         ) : null}
 
         {/* Local Events */}
-        {hasPhase2 && destination.localEvents && destination.localEvents.length > 0 && (
+        {hasInsights && destination.localEvents && destination.localEvents.length > 0 && (
           <div>
             <h2 className="font-display font-semibold text-base mb-3 flex items-center gap-1.5">
               <Calendar className="h-4 w-4 text-primary" />
@@ -588,7 +556,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         )}
 
         {/* Route map — skeleton or content */}
-        {hasPhase2 ? (
+        {hasItinerary ? (
           mapMarkers.length > 0 ? (
             <div>
               <h2 className="font-display font-semibold text-base mb-2">Route</h2>
@@ -603,7 +571,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         ) : null}
 
         {/* Itinerary — skeleton or content */}
-        {hasPhase2 ? (
+        {hasItinerary ? (
           destination.itinerary?.days?.length ? (
             <ItineraryTimeline itinerary={destination.itinerary} />
           ) : null
@@ -612,7 +580,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         ) : null}
 
         {/* Booking CTAs */}
-        {hasPhase2 && <BookingLinks destination={destination} />}
+        {hasBooking && <BookingLinks destination={destination} />}
 
         {/* Bottom padding */}
         <div className="h-8" />
