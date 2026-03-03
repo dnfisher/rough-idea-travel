@@ -60,23 +60,6 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       .finally(() => onAutoFavoriteComplete?.());
   }, [pendingAutoFavorite, result?.destinations, onAutoFavoriteComplete]);
 
-  // Reset selection when new search starts; auto-prefetch top result when Phase 1 finishes
-  const prevIsLoading = useRef(isLoading);
-  useEffect(() => {
-    if (isLoading && !prevIsLoading.current) {
-      // New search starting — reset and clear prefetch cache
-      setSelectedDestination(null);
-      clearCache();
-    } else if (!isLoading && prevIsLoading.current && tripInput && sortedDestinations.length > 0) {
-      // Phase 1 just finished — prefetch the top-ranked result
-      const top = sortedDestinations[0];
-      if (top?.name && top?.country) {
-        fetchDetail(top.name, top.country, tripInput);
-      }
-    }
-    prevIsLoading.current = isLoading;
-  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Sort destinations
   const sortedDestinations = useMemo(() => {
     const dests = result?.destinations?.filter(Boolean) ?? [];
@@ -105,6 +88,23 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
       }
     });
   }, [result?.destinations, sortBy, isLoading]);
+
+  // Reset selection when new search starts; auto-prefetch top result when Phase 1 finishes
+  const prevIsLoading = useRef(isLoading);
+  useEffect(() => {
+    if (isLoading && !prevIsLoading.current) {
+      // New search starting — reset and clear prefetch cache
+      setSelectedDestination(null);
+      clearCache();
+    } else if (!isLoading && prevIsLoading.current && tripInput && sortedDestinations.length > 0) {
+      // Phase 1 just finished — prefetch the top-ranked result
+      const top = sortedDestinations[0];
+      if (top?.name && top?.country) {
+        fetchDetail(top.name, top.country, tripInput);
+      }
+    }
+    prevIsLoading.current = isLoading;
+  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Selected destination for map (summary data)
   const selectedDest = useMemo(() => {
