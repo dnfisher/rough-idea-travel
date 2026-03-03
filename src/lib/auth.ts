@@ -13,17 +13,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     verificationTokensTable: schema.verificationTokens,
   }),
   session: { strategy: "jwt" },
-  logger: {
-    error(error) {
-      console.error("[NextAuth Error]", error)
-    },
-    warn(code) {
-      console.warn("[NextAuth Warn]", code)
-    },
-    debug(message, metadata) {
-      console.log("[NextAuth Debug]", message, metadata)
-    },
-  },
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
