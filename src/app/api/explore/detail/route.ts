@@ -1,8 +1,8 @@
-import { generateText } from "ai";
+import { streamText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { TripInputSchema } from "@/lib/ai/schemas";
 import {
-  DESTINATION_DETAIL_SYSTEM_PROMPT,
+  DESTINATION_DETAIL_NDJSON_SYSTEM_PROMPT,
   buildDetailPrompt,
 } from "@/lib/ai/prompts";
 import { z } from "zod";
@@ -33,32 +33,16 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { destinationName, country, tripInput } = DetailRequestSchema.parse(body);
 
-    // Use plain generateText — no schema sent to the API.
-    // The schema is described in the system prompt as a JSON shape,
-    // and we parse the response ourselves. This avoids the
-    // "compiled grammar is too large" error from Anthropic's
-    // structured output engine.
-    const { text } = await generateText({
+    // Use streamText with no schema (avoids "compiled grammar is too large").
+    // The system prompt instructs the model to output exactly 4 NDJSON lines.
+    const result = streamText({
       model: anthropic("claude-sonnet-4-5-20250929"),
-      system: DESTINATION_DETAIL_SYSTEM_PROMPT,
+      system: DESTINATION_DETAIL_NDJSON_SYSTEM_PROMPT,
       prompt: buildDetailPrompt(destinationName, country, tripInput),
       maxOutputTokens: 16384,
     });
 
-    // Extract JSON from the response — handle possible markdown fences
-    let jsonText = text.trim();
-    const fenceMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (fenceMatch) {
-      jsonText = fenceMatch[1].trim();
-    }
-    // Also handle case where model prefixes with text before the JSON
-    const braceStart = jsonText.indexOf("{");
-    if (braceStart > 0) {
-      jsonText = jsonText.slice(braceStart);
-    }
-
-    const data = JSON.parse(jsonText);
-    return Response.json(data);
+    return result.toTextStreamResponse();
   } catch (error) {
     console.error("[explore/detail] Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
