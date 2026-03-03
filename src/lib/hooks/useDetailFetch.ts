@@ -47,39 +47,70 @@ export function useDetailFetch(): UseDetailFetchReturn {
       setLoadingName(name);
       setError(null);
 
-      fetch("/api/explore/detail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          destinationName: name,
-          country,
-          tripInput,
-        }),
-        signal: controller.signal,
-      })
-        .then((res) => {
-          if (!res.ok) {
-            return res.json().then(
-              (body) => {
-                throw new Error(body.error || `Request failed (${res.status})`);
-              },
-              () => {
-                throw new Error(`Request failed (${res.status})`);
-              }
+      (async () => {
+        try {
+          const res = await fetch("/api/explore/detail", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ destinationName: name, country, tripInput }),
+            signal: controller.signal,
+          });
+
+          if (!res.ok || !res.body) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(
+              (body as { error?: string }).error || `Request failed (${res.status})`
             );
           }
-          return res.json();
-        })
-        .then((data: DeepPartial<DestinationSuggestion>) => {
-          setCache((prev) => ({ ...prev, [name]: data }));
+
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          const assembled: Record<string, unknown> = {};
+
+          const processLine = (line: string) => {
+            const trimmed = line.trim();
+            if (!trimmed) return;
+            try {
+              const section = JSON.parse(trimmed) as Record<string, unknown>;
+              const { type, ...data } = section;
+              if (type === "quick") {
+                Object.assign(assembled, data);
+              } else if (type === "itinerary") {
+                assembled.itinerary = { destinationName: name, ...data };
+              } else if (type === "insights" || type === "booking") {
+                Object.assign(assembled, data);
+              }
+            } catch { /* skip malformed lines */ }
+          };
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            for (const line of lines) {
+              processLine(line);
+            }
+          }
+
+          if (buffer.trim()) {
+            processLine(buffer);
+          }
+
+          setCache((prev) => ({
+            ...prev,
+            [name]: assembled as DeepPartial<DestinationSuggestion>,
+          }));
           setLoadingName(null);
-        })
-        .catch((err) => {
-          if (err.name === "AbortError") return; // Silently ignore aborted requests
+        } catch (err) {
+          if ((err as Error).name === "AbortError") return;
           console.error("[useDetailFetch] Error:", err);
           setError(err instanceof Error ? err : new Error(String(err)));
           setLoadingName(null);
-        });
+        }
+      })();
     },
     [cache]
   );
