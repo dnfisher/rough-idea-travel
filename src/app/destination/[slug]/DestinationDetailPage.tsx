@@ -262,8 +262,8 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
 
-        {/* Top bar: back + actions */}
-        <div className="absolute top-0 inset-x-0 p-4 sm:p-6 flex items-start justify-between">
+        {/* Top bar: back */}
+        <div className="absolute top-0 inset-x-0 p-4 sm:p-6 flex items-start">
           <button
             onClick={goBack}
             className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/40 backdrop-blur-md text-white text-sm hover:bg-black/60 transition-colors"
@@ -271,17 +271,6 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Back</span>
           </button>
-
-          <div className="flex items-center gap-2">
-            <FavoriteButton
-              destination={destination}
-              isFavorited={!!favoriteId}
-              favoriteId={favoriteId}
-              onToggle={setFavoriteId}
-              size="md"
-            />
-            <ShareButton destination={destination} size="md" />
-          </div>
         </div>
 
         {/* Bottom: name + score */}
@@ -345,6 +334,18 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
             </button>
           </div>
         )}
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-3">
+          <FavoriteButton
+            destination={destination}
+            isFavorited={!!favoriteId}
+            favoriteId={favoriteId}
+            onToggle={setFavoriteId}
+            size="md"
+          />
+          <ShareButton destination={destination} size="md" />
+        </div>
 
         {/* Quick stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

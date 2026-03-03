@@ -40,7 +40,7 @@ Schemas for both phases live in `src/lib/ai/schemas.ts` (Zod). System prompts ar
 
 - **Detail page**: Destinations open in a new browser tab at `/destination/[slug]`. Phase 1 summary data is passed via `sessionStorage` (see `src/lib/destination-url.ts`) so the detail page can render immediately while Phase 2 loads.
 - **Road trip vs standard**: The explore API detects road trips from user input and switches prompts, token limits, and response schemas accordingly. Road trips support multi-stop routing (max 4–5 hrs driving/day).
-- **Currency**: All AI responses return EUR values in JSON; `src/lib/currency.ts` handles display conversion. Global state via `CurrencyProvider` context (`src/components/CurrencyProvider.tsx`). Authenticated users have currency saved server-side via `/api/user/preferences`.
+- **Currency**: All AI responses return EUR values in JSON; `src/lib/currency.ts` handles display conversion. Global state via `CurrencyProvider` context (`src/components/CurrencyProvider.tsx`). Default display currency is **USD**. Authenticated users have currency saved server-side via `/api/user/preferences`.
 - **Auth gating**: `src/lib/hooks/useSearchGate.ts` gates search behind auth. Session state is preserved across OAuth redirects via `src/lib/auth-persistence.ts` (sessionStorage).
 - **Favorites & wishlists**: Authenticated users can save destinations to named lists. See `src/app/api/favorites/` and `src/app/api/wishlists/`.
 - **Share**: Any destination detail can be shared via a public URL at `/trip/[id]`. See `src/app/api/share/route.ts`.

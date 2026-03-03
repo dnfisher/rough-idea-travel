@@ -11,14 +11,14 @@ interface CurrencyContextType {
 }
 
 const CurrencyContext = createContext<CurrencyContextType>({
-  currency: "EUR",
+  currency: "USD",
   setCurrency: () => {},
   isLoading: true,
 });
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
-  const [currency, setCurrencyState] = useState<CurrencyCode>("EUR");
+  const [currency, setCurrencyState] = useState<CurrencyCode>("USD");
   const [isLoading, setIsLoading] = useState(true);
 
   // Load currency preference on mount
