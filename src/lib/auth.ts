@@ -14,14 +14,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   }),
   session: { strategy: "jwt" },
   logger: {
-    error(code, metadata) {
-      console.error("[NextAuth]", code, metadata)
+    error(error) {
+      console.error("[NextAuth Error]", error)
     },
     warn(code) {
-      console.warn("[NextAuth]", code)
+      console.warn("[NextAuth Warn]", code)
     },
-    debug(code, metadata) {
-      console.log("[NextAuth Debug]", code, metadata)
+    debug(message, metadata) {
+      console.log("[NextAuth Debug]", message, metadata)
     },
   },
   providers: [
