@@ -13,15 +13,22 @@ export function DestinationGallery({ name, country, searchName }: DestinationGal
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
     const query = searchName ?? name;
     const params = new URLSearchParams({ name: query });
     if (country) params.set("country", country);
 
-    fetch(`/api/destination-gallery?${params}`)
+    fetch(`/api/destination-gallery?${params}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data: { photos?: string[] }) => setPhotos(data.photos ?? []))
-      .catch(() => {})
+      .catch((err: unknown) => {
+        if ((err as Error).name !== "AbortError") {
+          // gallery is best-effort — silently ignore other errors
+        }
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, [name, country, searchName]);
 
   if (!loading && photos.length === 0) return null;
