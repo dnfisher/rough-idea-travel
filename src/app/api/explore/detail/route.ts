@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       : DESTINATION_DETAIL_NDJSON_NO_ITINERARY_SYSTEM_PROMPT;
 
     // Use streamText with no schema (avoids "compiled grammar is too large").
-    // The system prompt instructs the model to output exactly 4 NDJSON lines.
+    // The system prompt is selected based on `mode` and instructs the model to output 1, 3, or 4 NDJSON lines accordingly.
     const result = streamText({
       model: anthropic("claude-sonnet-4-5-20250929"),
       system: systemPrompt,
