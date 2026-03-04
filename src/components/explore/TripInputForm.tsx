@@ -99,6 +99,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [additionalNotes, setAdditionalNotes] = useState('');
 
   const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
+  const [homeCityError, setHomeCityError] = useState<string | null>(null);
+  const [endDateError, setEndDateError] = useState<string | null>(null);
 
   // Card mode state (post-submit editing)
   const [activeCard, setActiveCard] = useState(0);
@@ -201,6 +203,11 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   }
 
   function handleNext() {
+    if (activeCard === 0) {
+      const cityError = validateHomeCity(homeCity);
+      setHomeCityError(cityError);
+      if (cityError) return;
+    }
     if (activeCard < TOTAL_CARDS - 1) goToCard(activeCard + 1);
   }
 
@@ -224,7 +231,9 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             setHomeCity(e.target.value);
             setShowCitySuggestions(true);
             setCitySuggestionIndex(-1);
+            if (homeCityError) setHomeCityError(null);
           }}
+          onBlur={() => setHomeCityError(validateHomeCity(homeCity))}
           onFocus={() => {
             if (homeCity.trim().length >= 1) setShowCitySuggestions(true);
           }}
@@ -275,6 +284,11 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           </div>
         )}
       </div>
+      {homeCityError && (
+        <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+          <span>⚠</span> {homeCityError}
+        </p>
+      )}
     </fieldset>
   );
 
@@ -451,10 +465,19 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           <input
             type="date"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              if (endDateError) setEndDateError(validateDateRange(startDate, e.target.value));
+            }}
+            onBlur={() => setEndDateError(validateDateRange(startDate, endDate))}
             className={cn(inputClass, 'flex-1')}
           />
         </div>
+        {endDateError && (
+          <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+            <span>⚠</span> {endDateError}
+          </p>
+        )}
       )}
       {dateType === "flexible" && (
         <div className="mt-3 flex items-center gap-3">
