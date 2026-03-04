@@ -1,6 +1,6 @@
 "use client";
 
-import { Plane, Hotel, Calculator, ExternalLink, Car } from "lucide-react";
+import { Plane, Hotel, ExternalLink, Car } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
 import { useCurrency } from "@/components/CurrencyProvider";
@@ -15,9 +15,7 @@ export function BookingLinks({ destination }: BookingLinksProps) {
   const accommodation = destination.accommodation;
   const flight = destination.flightEstimate;
   const driving = destination.drivingEstimate;
-  const totalCost = destination.estimatedTotalTripCostEur;
-
-  if (!accommodation && !flight && !driving && totalCost == null) return null;
+  if (!accommodation && !flight && !driving) return null;
 
   const destName = destination.name ?? "";
   const country = destination.country ?? "";
@@ -69,23 +67,6 @@ export function BookingLinks({ destination }: BookingLinksProps) {
   return (
     <div className="space-y-4 border-t border-border pt-6">
       <h3 className="font-display font-semibold text-sm">Book Your Trip</h3>
-
-      {/* Total cost estimate */}
-      {totalCost != null && (
-        <div className="rounded-xl bg-accent/50 border border-border p-4 flex items-center gap-3">
-          <Calculator className="h-5 w-5 text-primary flex-shrink-0" />
-          <div>
-            <p className="font-medium text-sm">Estimated Total: ~{formatPrice(totalCost, currency)}</p>
-            <p className="text-xs text-muted-foreground">
-              {isFlyAndDrive
-                ? "Flights + car hire fuel + accommodation + daily expenses"
-                : isRoadTrip
-                ? "Gas + accommodation + daily expenses"
-                : "Flights + accommodation + daily expenses"}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Accommodation */}
       {accommodation && (
