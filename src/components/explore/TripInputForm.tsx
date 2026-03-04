@@ -26,17 +26,10 @@ import {
   TRAVEL_RANGES,
   BUDGET_LEVELS,
   COMMON_CITIES,
-  TOTAL_CARDS,
-  CARD_LABELS,
 } from './TripInputForm.constants'
-import {
-  GROUP_TYPES,
-  buildTripInput as buildTripInputHelper,
-  buildSummaryPills as buildSummaryPillsHelper,
-  validateHomeCity,
-  validateDateRange,
-} from '@/lib/form/trip-input-builder'
-import type { GroupType } from '@/lib/form/trip-input-builder'
+
+const TOTAL_CARDS = 4
+const CARD_LABELS = ['Origin', 'When', 'Vibe', 'Details']
 
 interface TripInputFormProps {
   onSubmit: (input: TripInput) => void;
