@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion, TripInput } from "@/lib/ai/schemas";
 
@@ -27,10 +27,14 @@ export function useItineraryStream(
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const fetchedRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const trigger = useCallback(() => {
     if (!name || !country || !tripInput || fetchedRef.current) return;
     fetchedRef.current = true;
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setIsStreaming(true);
     setError(null);
@@ -46,6 +50,7 @@ export function useItineraryStream(
             tripInput,
             mode: "itinerary_only",
           }),
+          signal: controller.signal,
         });
 
         if (!res.ok || !res.body) {
@@ -89,6 +94,10 @@ export function useItineraryStream(
         // Parse any remaining buffered content (last line may lack trailing newline)
         if (buffer.trim()) processLine(buffer);
       } catch (err) {
+        if ((err as Error).name === "AbortError") {
+          fetchedRef.current = false;
+          return;
+        }
         setError(err instanceof Error ? err : new Error(String(err)));
         fetchedRef.current = false; // allow retry
       } finally {
@@ -96,6 +105,10 @@ export function useItineraryStream(
       }
     })();
   }, [name, country, tripInput]);
+
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   return { itinerary, isStreaming, error, trigger };
 }
