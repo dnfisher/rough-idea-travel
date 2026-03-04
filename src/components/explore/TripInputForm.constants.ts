@@ -14,11 +14,11 @@ export const INTEREST_OPTIONS = [
 ]
 
 export const WEATHER_OPTIONS = [
-  { value: 'warm', label: 'Warm & Sunny' },
-  { value: 'mild', label: 'Mild & Pleasant' },
-  { value: 'hot', label: 'Hot' },
-  { value: 'cool', label: 'Cool & Crisp' },
-  { value: 'any', label: "Don't Mind" },
+  { value: 'warm' as const, label: 'Warm & Sunny' },
+  { value: 'mild' as const, label: 'Mild & Pleasant' },
+  { value: 'hot' as const, label: 'Hot' },
+  { value: 'cool' as const, label: 'Cool & Crisp' },
+  { value: 'any' as const, label: "Don't Mind" },
 ]
 
 export const TRIP_STYLES = [

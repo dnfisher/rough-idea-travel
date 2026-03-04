@@ -11,6 +11,8 @@ export const GROUP_TYPES = [
 ]
 
 export function groupTypeTravelers(groupType: GroupType): number {
+  // These values feed AI cost/accommodation estimates.
+  // small_group uses midpoint of 3–5; large_group uses conservative 8 for 6+.
   switch (groupType) {
     case 'solo': return 1
     case 'couple': return 2
@@ -24,6 +26,7 @@ export function validateHomeCity(city: string): string | null {
   return city.trim().length > 0 ? null : 'Please enter your home city so we can find flights and distances.'
 }
 
+// Returns null (no error) when either date is absent — presence check is caller's responsibility
 export function validateDateRange(startDate: string, endDate: string): string | null {
   if (!startDate || !endDate) return null
   return endDate > startDate ? null : 'End date must be after start date.'
@@ -42,7 +45,7 @@ export interface BuildTripInputState {
   weatherPreference: string
   budgetLevel: TripInput['budgetLevel']
   tripStyle: TripInput['tripStyle']
-  locationType: 'open' | 'region'
+  locationType: 'open' | 'region' | 'specific'
   regionValue: string
   startingPoint: string
   additionalNotes: string
@@ -65,7 +68,7 @@ export function buildTripInput(state: BuildTripInputState): TripInput {
     budgetLevel: state.budgetLevel,
     tripStyle: state.tripStyle,
     locationPreference: {
-      type: state.locationType as 'open' | 'region',
+      type: state.locationType,
       ...(state.locationType === 'region' ? { value: state.regionValue } : {}),
     },
     ...(state.startingPoint ? { startingPoint: state.startingPoint } : {}),
@@ -84,7 +87,7 @@ export interface SummaryPillState {
   interests: string[]
   tripStyle: TripInput['tripStyle']
   budgetLevel: TripInput['budgetLevel']
-  locationType: 'open' | 'region'
+  locationType: 'open' | 'region' | 'specific'
   regionValue: string
 }
 
@@ -103,8 +106,10 @@ export function buildSummaryPills(state: SummaryPillState): { label: string; car
   // Card 1: When & Weather
   if (state.dateType === 'specific' && state.startDate && state.endDate) {
     const fmt = (d: string) => {
-      try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }
-      catch { return d }
+      try {
+        const [year, month, day] = d.split('-').map(Number)
+        return new Date(year, month - 1, day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      } catch { return d }
     }
     pills.push({ label: `${fmt(state.startDate)} – ${fmt(state.endDate)}`, card: 1 })
   } else if (state.dateType === 'flexible' && state.dateDescription) {
@@ -119,6 +124,7 @@ export function buildSummaryPills(state: SummaryPillState): { label: string; car
     })
   }
   const styleLabel = TRIP_STYLES.find(s => s.value === state.tripStyle)?.label
+  // 'mixed' is the default non-choice — omit from summary as it adds no information
   if (styleLabel && state.tripStyle !== 'mixed') pills.push({ label: styleLabel, card: 2 })
   const budgetLabel = BUDGET_LEVELS.find(b => b.value === state.budgetLevel)?.label
   if (budgetLabel) pills.push({ label: budgetLabel, card: 2 })
