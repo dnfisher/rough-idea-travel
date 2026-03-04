@@ -755,7 +755,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           ) : (
             <span className="flex items-center justify-center gap-2">
               <Compass className="h-4 w-4" />
-              Search again
+              Find my trip
             </span>
           )}
         </button>
@@ -788,25 +788,15 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const isLastCard = activeCard === TOTAL_CARDS - 1;
 
-  const searchButton = (primary: boolean) => (
+  const searchButton = (
     <button
       type="submit"
       disabled={isLoading}
       className={cn(
-        "w-full rounded-xl font-medium text-sm transition-all",
-        primary
-          ? cn(
-              "py-3",
-              isLoading
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-foreground text-background hover:opacity-90 shadow-md hover:shadow-lg"
-            )
-          : cn(
-              "py-2.5 border",
-              isLoading
-                ? "border-border text-muted-foreground cursor-not-allowed"
-                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-            )
+        'w-full py-3 rounded-xl font-medium text-sm transition-all',
+        isLoading
+          ? 'bg-muted text-muted-foreground cursor-not-allowed'
+          : 'bg-foreground text-background hover:opacity-90 shadow-md hover:shadow-lg'
       )}
     >
       {isLoading ? (
@@ -817,7 +807,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       ) : (
         <span className="flex items-center justify-center gap-2">
           <Compass className="h-4 w-4" />
-          {primary ? "Search" : "Search now"}
+          Find my trip
         </span>
       )}
     </button>
@@ -885,8 +875,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         )}
       </div>
 
-      {/* Search button: primary on last card, ghost on earlier cards */}
-      {searchButton(isLastCard)}
+      {/* Search button: only shown on last card */}
+      {isLastCard && searchButton}
     </form>
   );
 }
