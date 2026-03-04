@@ -16,6 +16,7 @@ import {
   Home,
   Globe,
   Pencil,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TripInput } from "@/lib/ai/schemas";
@@ -365,6 +366,27 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     </fieldset>
   );
 
+  const groupTypeField = (
+    <fieldset>
+      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+        <Users className="h-4 w-4 text-primary" />
+        Who&apos;s travelling?
+      </legend>
+      <div className="grid grid-cols-2 gap-2">
+        {GROUP_TYPES.map((gt) => (
+          <button
+            key={gt.value}
+            type="button"
+            onClick={() => setGroupType(gt.value)}
+            className={chipClass(groupType === gt.value)}
+          >
+            {gt.label}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+
   const datesField = (
     <fieldset>
       <legend className="flex items-center gap-2 text-sm font-medium mb-3">
@@ -704,7 +726,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   // --- Render: card mode (initial fill + post-submit editing) ---
   const cardContent = [
-    <div key="origin" className="space-y-5">{homeCityField}{travelRangeField}</div>,
+    <div key="origin" className="space-y-5">{homeCityField}{travelRangeField}{groupTypeField}</div>,
     <div key="when" className="space-y-5">{datesField}</div>,
     <div key="vibe" className="space-y-5">{interestsField}{tripStyleField}</div>,
     <div key="details" className="space-y-5">{weatherBudgetField}{locationField}</div>,
