@@ -23,9 +23,14 @@ export async function POST(req: Request) {
       });
     }
 
-    // Optionally associate with logged-in user
     const session = await auth();
-    const userId = session?.user?.id ?? null;
+    if (!session?.user?.id) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const userId = session.user.id;
 
     const [inserted] = await db
       .insert(sharedTrips)

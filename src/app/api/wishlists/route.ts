@@ -78,6 +78,13 @@ export async function POST(req: Request) {
       });
     }
 
+    if (name.trim().length > 200) {
+      return new Response(JSON.stringify({ error: "List name is too long (max 200 characters)" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const [inserted] = await db
       .insert(wishlists)
       .values({

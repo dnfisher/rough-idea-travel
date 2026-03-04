@@ -74,6 +74,13 @@ export async function PATCH(
       });
     }
 
+    if (name !== undefined && name.trim().length > 200) {
+      return new Response(JSON.stringify({ error: "List name is too long (max 200 characters)" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (name !== undefined) updates.name = name.trim();
 

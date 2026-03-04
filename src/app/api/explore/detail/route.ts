@@ -6,6 +6,9 @@ import {
   buildDetailPrompt,
 } from "@/lib/ai/prompts";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { readSearchCount, isSearchAllowed, COOKIE_NAME } from "@/lib/search-gate";
 
 export const maxDuration = 120;
 
@@ -29,6 +32,18 @@ export async function POST(req: Request) {
       baseURL: "https://api.anthropic.com/v1",
       apiKey,
     });
+
+    const session = await auth();
+    if (!session?.user?.id) {
+      const cookieStore = await cookies();
+      const count = readSearchCount(cookieStore.get(COOKIE_NAME)?.value);
+      if (!isSearchAllowed(count)) {
+        return new Response(
+          JSON.stringify({ error: "search_limit_reached" }),
+          { status: 429, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const body = await req.json();
     const { destinationName, country, tripInput } = DetailRequestSchema.parse(body);

@@ -7,6 +7,15 @@ import {
   isRoadTripInput,
   buildExplorationPrompt,
 } from "@/lib/ai/prompts";
+import { auth } from "@/lib/auth";
+import { cookies } from "next/headers";
+import {
+  readSearchCount,
+  isSearchAllowed,
+  makeSearchCookie,
+  COOKIE_NAME,
+  COOKIE_OPTIONS,
+} from "@/lib/search-gate";
 
 export const maxDuration = 60;
 
@@ -31,6 +40,19 @@ export async function POST(req: Request) {
       baseURL: "https://api.anthropic.com/v1",
       apiKey,
     });
+
+    const session = await auth();
+    const cookieStore = await cookies();
+    if (!session?.user?.id) {
+      const count = readSearchCount(cookieStore.get(COOKIE_NAME)?.value);
+      if (!isSearchAllowed(count)) {
+        return new Response(
+          JSON.stringify({ error: "search_limit_reached" }),
+          { status: 429, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      cookieStore.set(COOKIE_NAME, makeSearchCookie(count + 1), COOKIE_OPTIONS);
+    }
 
     const body = await req.json();
     const input = TripInputSchema.parse(body);
