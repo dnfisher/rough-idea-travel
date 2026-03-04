@@ -26,6 +26,7 @@ import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
 import { getDestinationContext, type DestinationPageContext } from "@/lib/destination-url";
 import { DestinationImage } from "@/components/results/DestinationImage";
+import { DestinationGallery } from "@/components/results/DestinationGallery";
 import { ItineraryTimeline } from "@/components/results/ItineraryTimeline";
 import { ExploreMap } from "@/components/results/ExploreMap";
 import { BookingLinks } from "@/components/results/BookingLinks";
@@ -35,6 +36,8 @@ import { useCurrency } from "@/components/CurrencyProvider";
 import { formatPrice } from "@/lib/currency";
 import type { MapMarker } from "@/components/results/ExploreMapInner";
 import { useDetailStream } from "@/lib/hooks/useDetailStream";
+import { useItineraryStream } from "@/lib/hooks/useItineraryStream";
+import { useSession } from "next-auth/react";
 
 // ── Constants ──────────────────────────────────────────────────
 
@@ -185,11 +188,28 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
     return destination.name ?? undefined;
   }, [ctx, destination]);
 
+  const { data: session } = useSession();
+  const isAuthenticated = !!session?.user?.id;
+
+  const {
+    itinerary: streamedItinerary,
+    isStreaming: itineraryStreaming,
+    error: itineraryError,
+    trigger: triggerItinerary,
+  } = useItineraryStream(
+    ctx?.summary.name,
+    ctx?.summary.country ?? "",
+    ctx?.tripInput
+  );
+
+  // Use on-demand itinerary if generated, otherwise fall back to preloaded itinerary in detail
+  const itineraryData = streamedItinerary ?? detail?.itinerary;
+
   const stableCountry = ctx?.stableCountry ?? destination?.country ?? undefined;
 
   // Map markers from itinerary
   const mapMarkers: MapMarker[] = useMemo(() => {
-    return (destination?.itinerary?.days ?? [])
+    return (itineraryData?.days ?? [])
       .filter((d) => d?.coordinates?.lat != null && d?.coordinates?.lng != null)
       .map((d, i) => ({
         id: `day-${d!.dayNumber ?? i + 1}`,
@@ -200,10 +220,27 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         subtitle: d!.location,
         isItinerary: true,
       }));
-  }, [destination]);
+  }, [itineraryData]);
+
+  // Format the trip dates from the user's original search input for display in stats
+  const tripDateLabel = useMemo(() => {
+    const dates = ctx?.tripInput?.dates;
+    if (!dates) return null;
+    if (!dates.flexible && dates.startDate && dates.endDate) {
+      const fmt = (d: string) => {
+        try {
+          const [year, month, day] = d.split("-").map(Number);
+          return new Date(year, month - 1, day).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+        } catch { return d; }
+      };
+      return `${fmt(dates.startDate)} – ${fmt(dates.endDate)}`;
+    }
+    if (dates.flexible && dates.description) return dates.description;
+    return null;
+  }, [ctx]);
 
   const hasQuick = !!(detail?.pros?.length);
-  const hasItinerary = !!(detail?.itinerary?.days?.length);
+  const hasItinerary = !!(itineraryData?.days?.length);
   const hasInsights = !!(detail?.localInsights?.length);
   const hasBooking = !!(detail?.accommodation || detail?.flightEstimate || detail?.drivingEstimate || detail?.estimatedTotalTripCostEur);
   const showRefresh = usePreloaded && !!ctx?.detail && !!ctx?.tripInput;
@@ -355,14 +392,29 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           {destination.estimatedDailyCostEur != null && (
             <div className="rounded-xl border border-border p-3 text-center">
               <p className="text-sm font-medium">~{formatPrice(destination.estimatedDailyCostEur, currency)}/day</p>
-              <p className="text-xs text-muted-foreground">Estimated cost</p>
+              <p className="text-xs text-muted-foreground">Daily cost</p>
+            </div>
+          )}
+          {destination.estimatedTotalTripCostEur != null ? (
+            <div className="rounded-xl border border-border p-3 text-center">
+              <p className="text-sm font-medium">~{formatPrice(destination.estimatedTotalTripCostEur, currency)}</p>
+              <p className="text-xs text-muted-foreground">Est. trip total</p>
+            </div>
+          ) : detailLoading ? (
+            <div className="rounded-xl border border-border p-3 h-16 animate-shimmer" />
+          ) : null}
+          {tripDateLabel && (
+            <div className="rounded-xl border border-border p-3 text-center">
+              <CalendarDays className="h-4 w-4 mx-auto mb-1 text-primary" />
+              <p className="text-sm font-medium truncate">{tripDateLabel}</p>
+              <p className="text-xs text-muted-foreground">Your dates</p>
             </div>
           )}
           {destination.suggestedDuration && (
             <div className="rounded-xl border border-border p-3 text-center">
               <Clock className="h-4 w-4 mx-auto mb-1 text-primary" />
               <p className="text-sm font-medium">{destination.suggestedDuration}</p>
-              <p className="text-xs text-muted-foreground">Duration</p>
+              <p className="text-xs text-muted-foreground">Suggested</p>
             </div>
           )}
           {destination.bestTimeToVisit && (
@@ -381,55 +433,52 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           )}
         </div>
 
-        {/* Reasoning */}
+        {/* Why — editorial lead section */}
         {destination.reasoning && (
-          <div>
-            <h2 className="font-display font-semibold text-base mb-2">Why this destination?</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">{destination.reasoning}</p>
+          <div className="py-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Why we picked this</p>
+            <p className="text-lg sm:text-xl leading-relaxed text-foreground font-light">
+              {destination.reasoning}
+            </p>
           </div>
         )}
 
-        {/* Pros & Cons — show skeleton if Phase 2 not loaded yet */}
-        {hasQuick ? (
-          (destination.pros?.length || destination.cons?.length) ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {destination.pros && destination.pros.length > 0 && (
-                <div className="rounded-xl border border-border p-4">
-                  <div className="flex items-center gap-1.5 font-medium text-green-600 dark:text-green-400 mb-2 text-sm">
-                    <ThumbsUp className="h-4 w-4" />
-                    Pros
+        {/* Local Events */}
+        {hasInsights && destination.localEvents && destination.localEvents.length > 0 && (
+          <div>
+            <h2 className="font-display font-semibold text-base mb-3 flex items-center gap-1.5">
+              <Calendar className="h-4 w-4 text-primary" />
+              What&apos;s Happening
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {destination.localEvents.map((event, i) => {
+                if (!event?.name) return null;
+                const typeStyle = EVENT_TYPE_STYLES[event.type ?? "cultural"] ?? EVENT_TYPE_STYLES.cultural;
+                return (
+                  <div key={i} className="rounded-xl border border-border p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-medium text-sm">{event.name}</h4>
+                      {event.type && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${typeStyle.bg} ${typeStyle.text} capitalize flex-shrink-0`}>
+                          {event.type}
+                        </span>
+                      )}
+                    </div>
+                    {event.date && (
+                      <p className="text-xs text-primary font-medium flex items-center gap-1">
+                        <CalendarDays className="h-3 w-3" />
+                        {event.date}
+                      </p>
+                    )}
+                    {event.description && (
+                      <p className="text-xs text-muted-foreground">{event.description}</p>
+                    )}
                   </div>
-                  <ul className="space-y-1.5">
-                    {destination.pros.map((pro) => (
-                      <li key={pro} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-green-500 mt-0.5">+</span>
-                        {pro}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {destination.cons && destination.cons.length > 0 && (
-                <div className="rounded-xl border border-border p-4">
-                  <div className="flex items-center gap-1.5 font-medium text-red-500 dark:text-red-400 mb-2 text-sm">
-                    <ThumbsDown className="h-4 w-4" />
-                    Cons
-                  </div>
-                  <ul className="space-y-1.5">
-                    {destination.cons.map((con) => (
-                      <li key={con} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-red-400 mt-0.5">-</span>
-                        {con}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                );
+              })}
             </div>
-          ) : null
-        ) : detailLoading ? (
-          <ProsConsSkeleton />
-        ) : null}
+          </div>
+        )}
 
         {/* Top Activities */}
         {destination.topActivities && destination.topActivities.length > 0 && (
@@ -522,66 +571,102 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           <InsightsSkeleton />
         ) : null}
 
-        {/* Local Events */}
-        {hasInsights && destination.localEvents && destination.localEvents.length > 0 && (
-          <div>
-            <h2 className="font-display font-semibold text-base mb-3 flex items-center gap-1.5">
-              <Calendar className="h-4 w-4 text-primary" />
-              What&apos;s Happening
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {destination.localEvents.map((event, i) => {
-                if (!event?.name) return null;
-                const typeStyle = EVENT_TYPE_STYLES[event.type ?? "cultural"] ?? EVENT_TYPE_STYLES.cultural;
-                return (
-                  <div key={i} className="rounded-xl border border-border p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-medium text-sm">{event.name}</h4>
-                      {event.type && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${typeStyle.bg} ${typeStyle.text} capitalize flex-shrink-0`}>
-                          {event.type}
-                        </span>
-                      )}
-                    </div>
-                    {event.date && (
-                      <p className="text-xs text-primary font-medium flex items-center gap-1">
-                        <CalendarDays className="h-3 w-3" />
-                        {event.date}
-                      </p>
-                    )}
-                    {event.description && (
-                      <p className="text-xs text-muted-foreground">{event.description}</p>
-                    )}
+        {/* Pros & Cons — show skeleton if Phase 2 not loaded yet */}
+        {hasQuick ? (
+          (destination.pros?.length || destination.cons?.length) ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {destination.pros && destination.pros.length > 0 && (
+                <div className="rounded-xl border border-border p-4">
+                  <div className="flex items-center gap-1.5 font-medium text-green-600 dark:text-green-400 mb-2 text-sm">
+                    <ThumbsUp className="h-4 w-4" />
+                    Pros
                   </div>
-                );
-              })}
+                  <ul className="space-y-1.5">
+                    {destination.pros.map((pro) => (
+                      <li key={pro} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <span className="text-green-500 mt-0.5">+</span>
+                        {pro}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {destination.cons && destination.cons.length > 0 && (
+                <div className="rounded-xl border border-border p-4">
+                  <div className="flex items-center gap-1.5 font-medium text-red-500 dark:text-red-400 mb-2 text-sm">
+                    <ThumbsDown className="h-4 w-4" />
+                    Cons
+                  </div>
+                  <ul className="space-y-1.5">
+                    {destination.cons.map((con) => (
+                      <li key={con} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <span className="text-red-400 mt-0.5">-</span>
+                        {con}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-          </div>
+          ) : null
+        ) : detailLoading ? (
+          <ProsConsSkeleton />
+        ) : null}
+
+        {/* Gallery */}
+        {destination.name && (
+          <DestinationGallery
+            name={destination.name}
+            country={stableCountry}
+            searchName={imageSearchName ?? undefined}
+          />
         )}
 
-        {/* Route map — skeleton or content */}
+        {/* Itinerary — generated on demand */}
         {hasItinerary ? (
-          mapMarkers.length > 0 ? (
-            <div>
-              <h2 className="font-display font-semibold text-base mb-2">Route</h2>
-              <ExploreMap markers={mapMarkers} selectedId={null} showRoute={true} height={350} />
-            </div>
-          ) : null
-        ) : detailLoading ? (
-          <div className="space-y-2">
-            <div className="h-5 w-20 animate-shimmer rounded-lg" />
-            <div className="h-[350px] animate-shimmer rounded-xl" />
+          <>
+            {mapMarkers.length > 0 && (
+              <div>
+                <h2 className="font-display font-semibold text-base mb-2">Route</h2>
+                <ExploreMap markers={mapMarkers} selectedId={null} showRoute={true} height={350} />
+              </div>
+            )}
+            <ItineraryTimeline itinerary={itineraryData!} />
+          </>
+        ) : (
+          <div className="rounded-2xl border border-border bg-accent/30 p-6 text-center space-y-3">
+            <h3 className="font-display font-semibold text-base">Want a day-by-day itinerary?</h3>
+            <p className="text-sm text-muted-foreground">
+              Generate a personalised sample itinerary for this trip, including route map, accommodation areas, and meal suggestions.
+            </p>
+            {isAuthenticated ? (
+              <button
+                onClick={triggerItinerary}
+                disabled={itineraryStreaming}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition-colors"
+              >
+                {itineraryStreaming ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating itinerary…
+                  </>
+                ) : (
+                  "Generate my itinerary"
+                )}
+              </button>
+            ) : (
+              <a
+                href={`/auth/signin?callbackUrl=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                Sign in to generate itinerary
+              </a>
+            )}
+            {itineraryError && (
+              <p className="text-xs text-destructive">Failed to generate itinerary. Please try again.</p>
+            )}
           </div>
-        ) : null}
-
-        {/* Itinerary — skeleton or content */}
-        {hasItinerary ? (
-          destination.itinerary?.days?.length ? (
-            <ItineraryTimeline itinerary={destination.itinerary} />
-          ) : null
-        ) : detailLoading ? (
-          <ItinerarySkeleton />
-        ) : null}
+        )}
 
         {/* Booking CTAs */}
         {hasBooking ? (
