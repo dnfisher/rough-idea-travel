@@ -65,6 +65,12 @@ const pillClass = (active: boolean) =>
       : "border-border hover:border-primary/40 text-muted-foreground"
   );
 
+const ADDITIONAL_NOTES_EXAMPLES = [
+  'celebrating an anniversary',
+  'need wheelchair access',
+  'my partner hates flying',
+  'travelling with a toddler',
+]
 
 export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputFormProps) {
   const [homeCity, setHomeCity] = useState("");
@@ -595,13 +601,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       </div>
     </fieldset>
   )
-
-  const ADDITIONAL_NOTES_EXAMPLES = [
-    'celebrating an anniversary',
-    'need wheelchair access',
-    'my partner hates flying',
-    'travelling with a toddler',
-  ]
 
   const additionalNotesField = (
     <fieldset>
