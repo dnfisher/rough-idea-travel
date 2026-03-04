@@ -27,6 +27,8 @@ import {
   TRAVEL_RANGES,
   BUDGET_LEVELS,
   COMMON_CITIES,
+  TOTAL_CARDS,
+  CARD_LABELS,
 } from './TripInputForm.constants'
 import {
   GROUP_TYPES,
@@ -37,8 +39,6 @@ import {
 } from '@/lib/form/trip-input-builder'
 import type { GroupType } from '@/lib/form/trip-input-builder'
 
-const TOTAL_CARDS = 4
-const CARD_LABELS = ['Origin', 'When', 'Vibe', 'Details']
 
 interface TripInputFormProps {
   onSubmit: (input: TripInput) => void;
@@ -90,6 +90,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [regionConfirmed, setRegionConfirmed] = useState(false);
 
   const [startingPoint, setStartingPoint] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState('');
 
   const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
 
@@ -172,7 +173,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       locationType,
       regionValue,
       startingPoint,
-      additionalNotes: '',  // placeholder — will be replaced in Task 7
+      additionalNotes,
     })
   }
 
@@ -552,48 +553,87 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     </fieldset>
   );
 
-  const weatherBudgetField = (
-    <div className="space-y-5">
-      <fieldset>
-        <legend className="flex items-center gap-2 text-sm font-medium mb-3">
-          <Sun className="h-4 w-4 text-primary" />
-          Weather preference
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {WEATHER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setWeatherPreference(opt.value)}
-              className={chipClass(weatherPreference === opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
+  const weatherField = (
+    <fieldset>
+      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+        <Sun className="h-4 w-4 text-primary" />
+        Weather preference
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        {WEATHER_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setWeatherPreference(opt.value)}
+            className={chipClass(weatherPreference === opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  )
 
-      <fieldset>
-        <legend className="flex items-center gap-2 text-sm font-medium mb-3">
-          <DollarSign className="h-4 w-4 text-primary" />
-          Budget
-        </legend>
-        <div className="grid grid-cols-2 gap-2">
-          {BUDGET_LEVELS.map((level) => (
+  const budgetField = (
+    <fieldset>
+      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+        <DollarSign className="h-4 w-4 text-primary" />
+        Budget
+      </legend>
+      <div className="grid grid-cols-2 gap-2">
+        {BUDGET_LEVELS.map((level) => (
+          <button
+            key={level.value}
+            type="button"
+            onClick={() => setBudgetLevel(level.value)}
+            className={cn(chipClass(budgetLevel === level.value), 'flex flex-col items-start text-left')}
+          >
+            <span className="font-medium text-foreground">{level.label}</span>
+            <span className="text-xs text-muted-foreground">{level.desc}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  )
+
+  const ADDITIONAL_NOTES_EXAMPLES = [
+    'celebrating an anniversary',
+    'need wheelchair access',
+    'my partner hates flying',
+    'travelling with a toddler',
+  ]
+
+  const additionalNotesField = (
+    <fieldset>
+      <legend className="flex items-center gap-2 text-sm font-medium mb-1">
+        <Pencil className="h-4 w-4 text-primary" />
+        Anything else?
+        <span className="text-xs font-normal text-muted-foreground ml-1">optional</span>
+      </legend>
+      <p className="text-xs text-muted-foreground mb-2">
+        e.g.{' '}
+        {ADDITIONAL_NOTES_EXAMPLES.map((ex, i) => (
+          <span key={ex}>
             <button
-              key={level.value}
               type="button"
-              onClick={() => setBudgetLevel(level.value)}
-              className={cn(chipClass(budgetLevel === level.value), "flex flex-col items-start text-left")}
+              className="italic hover:text-foreground transition-colors"
+              onClick={() => setAdditionalNotes(ex)}
             >
-              <span className="font-medium text-foreground">{level.label}</span>
-              <span className="text-xs text-muted-foreground">{level.desc}</span>
+              &ldquo;{ex}&rdquo;
             </button>
-          ))}
-        </div>
-      </fieldset>
-    </div>
-  );
+            {i < ADDITIONAL_NOTES_EXAMPLES.length - 1 ? ' · ' : ''}
+          </span>
+        ))}
+      </p>
+      <textarea
+        value={additionalNotes}
+        onChange={(e) => setAdditionalNotes(e.target.value)}
+        placeholder="Any extra context for your trip..."
+        rows={2}
+        className={cn(inputClass, 'resize-none')}
+      />
+    </fieldset>
+  )
 
   const locationField = (
     <fieldset>
@@ -726,11 +766,26 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   // --- Render: card mode (initial fill + post-submit editing) ---
   const cardContent = [
-    <div key="origin" className="space-y-5">{homeCityField}{travelRangeField}{groupTypeField}</div>,
-    <div key="when" className="space-y-5">{datesField}</div>,
-    <div key="vibe" className="space-y-5">{interestsField}{tripStyleField}</div>,
-    <div key="details" className="space-y-5">{weatherBudgetField}{locationField}</div>,
-  ];
+    // Step 0: Where & Who
+    <div key="where-who" className="space-y-5">
+      {homeCityField}
+      {travelRangeField}
+      {locationField}
+      {groupTypeField}
+    </div>,
+    // Step 1: When & Weather
+    <div key="when-weather" className="space-y-5">
+      {datesField}
+      {weatherField}
+    </div>,
+    // Step 2: Vibe & Budget
+    <div key="vibe-budget" className="space-y-5">
+      {interestsField}
+      {tripStyleField}
+      {budgetField}
+      {additionalNotesField}
+    </div>,
+  ]
 
   const isLastCard = activeCard === TOTAL_CARDS - 1;
 
