@@ -3,6 +3,8 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { TripInputSchema } from "@/lib/ai/schemas";
 import {
   DESTINATION_DETAIL_NDJSON_SYSTEM_PROMPT,
+  DESTINATION_DETAIL_NDJSON_NO_ITINERARY_SYSTEM_PROMPT,
+  DESTINATION_ITINERARY_ONLY_SYSTEM_PROMPT,
   buildDetailPrompt,
 } from "@/lib/ai/prompts";
 import { z } from "zod";
@@ -16,6 +18,7 @@ const DetailRequestSchema = z.object({
   destinationName: z.string(),
   country: z.string(),
   tripInput: TripInputSchema,
+  mode: z.enum(['overview', 'itinerary_only', 'full']).default('overview'),
 });
 
 export async function POST(req: Request) {
@@ -46,13 +49,18 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { destinationName, country, tripInput } = DetailRequestSchema.parse(body);
+    const { destinationName, country, tripInput, mode } = DetailRequestSchema.parse(body);
+
+    const systemPrompt =
+      mode === 'itinerary_only' ? DESTINATION_ITINERARY_ONLY_SYSTEM_PROMPT
+      : mode === 'full' ? DESTINATION_DETAIL_NDJSON_SYSTEM_PROMPT
+      : DESTINATION_DETAIL_NDJSON_NO_ITINERARY_SYSTEM_PROMPT;
 
     // Use streamText with no schema (avoids "compiled grammar is too large").
     // The system prompt instructs the model to output exactly 4 NDJSON lines.
     const result = streamText({
       model: anthropic("claude-sonnet-4-5-20250929"),
-      system: DESTINATION_DETAIL_NDJSON_SYSTEM_PROMPT,
+      system: systemPrompt,
       prompt: buildDetailPrompt(destinationName, country, tripInput),
       maxOutputTokens: 16384,
     });
