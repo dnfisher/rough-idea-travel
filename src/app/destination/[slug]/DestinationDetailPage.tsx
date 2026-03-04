@@ -137,6 +137,10 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   // Favorites
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
 
+  // Capture current URL client-side only — avoids window access in the JSX render path
+  const [currentHref, setCurrentHref] = useState("");
+  useEffect(() => { setCurrentHref(window.location.href); }, []);
+
   // Track whether we're displaying pre-loaded Phase 2 data (no fetch needed)
   const [usePreloaded, setUsePreloaded] = useState(true);
 
@@ -659,7 +663,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
               </button>
             ) : (
               <a
-                href={`/auth/signin?callbackUrl=${encodeURIComponent(window.location.href)}`}
+                href={`/auth/signin?callbackUrl=${encodeURIComponent(currentHref)}`}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 Sign in to generate itinerary
