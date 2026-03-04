@@ -439,10 +439,21 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           )}
         </div>
       ) : (
-        <div className="flex gap-3">
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={cn(inputClass, "flex-1")} />
-          <span className="self-center text-muted-foreground text-sm">to</span>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={cn(inputClass, "flex-1")} />
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className={cn(inputClass, 'flex-1')}
+          />
+          <span className="hidden sm:block text-muted-foreground text-sm">to</span>
+          <span className="sm:hidden text-xs text-muted-foreground">to</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className={cn(inputClass, 'flex-1')}
+          />
         </div>
       )}
       {dateType === "flexible" && (
