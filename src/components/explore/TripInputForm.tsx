@@ -848,16 +848,18 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             key={i}
             type="button"
             onClick={() => goToCard(i)}
-            className={cn(
-              "h-1.5 rounded-full flex-1 transition-all duration-300",
-              i === activeCard
-                ? "bg-primary"
-                : i < activeCard
-                ? "bg-primary/40"
-                : "bg-border"
-            )}
+            className="flex-1 py-2 -my-2 group"
             title={CARD_LABELS[i]}
-          />
+          >
+            <div className={cn(
+              'h-1.5 rounded-full w-full transition-all duration-300 group-hover:h-2',
+              i === activeCard
+                ? 'bg-primary'
+                : i < activeCard
+                ? 'bg-primary/40'
+                : 'bg-border'
+            )} />
+          </button>
         ))}
       </div>
 
