@@ -150,6 +150,9 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
     }
   }, [slug]);
 
+  // Memoize tripInput so hooks don't get a new reference if ctx ever updates
+  const tripInput = useMemo(() => ctx?.tripInput, [ctx]);
+
   // Stream Phase 2 detail (skipped when pre-loaded detail is available)
   const shouldStream = ctx != null && !(ctx.detail && usePreloaded) && !!ctx.tripInput;
   const {
@@ -159,7 +162,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   } = useDetailStream(
     shouldStream ? ctx?.summary.name : undefined,
     shouldStream ? (ctx?.summary.country ?? "") : undefined,
-    shouldStream ? ctx?.tripInput : undefined
+    shouldStream ? tripInput : undefined
   );
 
   // Use pre-loaded detail (sessionStorage / prefetch cache) if available; else use stream
@@ -199,7 +202,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   } = useItineraryStream(
     ctx?.summary.name,
     ctx?.summary.country ?? "",
-    ctx?.tripInput
+    tripInput
   );
 
   // Use on-demand itinerary if generated, otherwise fall back to preloaded itinerary in detail
@@ -237,7 +240,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
     }
     if (dates.flexible && dates.description) return dates.description;
     return null;
-  }, [ctx]);
+  }, [ctx?.tripInput?.dates]);
 
   const hasQuick = !!(detail?.pros?.length);
   const hasItinerary = !!(itineraryData?.days?.length);
@@ -656,7 +659,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
               </button>
             ) : (
               <a
-                href={`/auth/signin?callbackUrl=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
+                href={`/auth/signin?callbackUrl=${encodeURIComponent(window.location.href)}`}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 Sign in to generate itinerary
