@@ -408,8 +408,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           Flexible dates
         </button>
       </div>
-      {dateType === "flexible" ? (
-        <div className="flex gap-2">
+      {dateType === 'flexible' ? (
+        <div className="space-y-1">
           <input
             type="text"
             value={dateDescription}
@@ -417,29 +417,25 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
               setDateDescription(e.target.value);
               setFlexibleDatesConfirmed(false);
             }}
+            onBlur={() => {
+              if (dateDescription.trim().length > 0) setFlexibleDatesConfirmed(true);
+            }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && dateDescription.trim().length > 0) {
+              if (e.key === 'Enter' && dateDescription.trim().length > 0) {
                 e.preventDefault();
                 setFlexibleDatesConfirmed(true);
               }
             }}
             placeholder='e.g. "mid-April", "sometime in summer"'
-            className={cn(inputClass, "flex-1")}
+            className={inputClass}
           />
-          {dateDescription.trim().length > 0 && !flexibleDatesConfirmed && (
-            <button
-              type="button"
-              onClick={() => setFlexibleDatesConfirmed(true)}
-              className="px-3 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex-shrink-0"
-              aria-label="Confirm dates"
-            >
-              <Check className="h-4 w-4" />
-            </button>
+          {!flexibleDatesConfirmed && dateDescription.trim().length === 0 && (
+            <p className="text-xs text-muted-foreground">Press Enter or tab away to confirm</p>
           )}
           {flexibleDatesConfirmed && (
-            <span className="flex items-center px-3 text-primary">
-              <Check className="h-4 w-4" />
-            </span>
+            <p className="text-xs text-primary flex items-center gap-1">
+              <Check className="h-3 w-3" /> Got it
+            </p>
           )}
         </div>
       ) : (
@@ -655,8 +651,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           </button>
         ))}
       </div>
-      {locationType === "region" && (
-        <div className="flex gap-2">
+      {locationType === 'region' && (
+        <div className="space-y-1">
           <input
             type="text"
             value={regionValue}
@@ -664,29 +660,25 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
               setRegionValue(e.target.value);
               setRegionConfirmed(false);
             }}
+            onBlur={() => {
+              if (regionValue.trim().length > 0) setRegionConfirmed(true);
+            }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && regionValue.trim().length > 0) {
+              if (e.key === 'Enter' && regionValue.trim().length > 0) {
                 e.preventDefault();
                 setRegionConfirmed(true);
               }
             }}
             placeholder='e.g. "Southern Europe", "Southeast Asia"'
-            className={cn(inputClass, "flex-1")}
+            className={inputClass}
           />
-          {regionValue.trim().length > 0 && !regionConfirmed && (
-            <button
-              type="button"
-              onClick={() => setRegionConfirmed(true)}
-              className="px-3 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex-shrink-0"
-              aria-label="Confirm region"
-            >
-              <Check className="h-4 w-4" />
-            </button>
+          {!regionConfirmed && regionValue.trim().length === 0 && (
+            <p className="text-xs text-muted-foreground">Press Enter or tab away to confirm</p>
           )}
           {regionConfirmed && (
-            <span className="flex items-center px-3 text-primary">
-              <Check className="h-4 w-4" />
-            </span>
+            <p className="text-xs text-primary flex items-center gap-1">
+              <Check className="h-3 w-3" /> Got it
+            </p>
           )}
         </div>
       )}
