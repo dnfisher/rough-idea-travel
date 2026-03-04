@@ -64,6 +64,7 @@ export function buildTripInput(state: BuildTripInputState): TripInput {
     },
     travelers: groupTypeTravelers(state.groupType),
     interests: state.interests,
+    // 'any' means no preference — omit so the AI prompt receives no weather constraint
     weatherPreference: state.weatherPreference === 'any' ? undefined : state.weatherPreference,
     budgetLevel: state.budgetLevel,
     tripStyle: state.tripStyle,
