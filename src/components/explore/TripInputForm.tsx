@@ -27,6 +27,14 @@ import {
   BUDGET_LEVELS,
   COMMON_CITIES,
 } from './TripInputForm.constants'
+import {
+  GROUP_TYPES,
+  buildTripInput as buildTripInputHelper,
+  buildSummaryPills as buildSummaryPillsHelper,
+  validateHomeCity,
+  validateDateRange,
+} from '@/lib/form/trip-input-builder'
+import type { GroupType } from '@/lib/form/trip-input-builder'
 
 const TOTAL_CARDS = 4
 const CARD_LABELS = ['Origin', 'When', 'Vibe', 'Details']
@@ -73,6 +81,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [weatherPreference, setWeatherPreference] = useState("warm");
   const [budgetLevel, setBudgetLevel] = useState<TripInput["budgetLevel"]>("moderate");
   const [tripStyle, setTripStyle] = useState<TripInput["tripStyle"]>("mixed");
+  const [groupType, setGroupType] = useState<GroupType>(undefined)
 
   const [locationType, setLocationType] = useState<"open" | "region" | "specific">("open");
   const [regionValue, setRegionValue] = useState("");
@@ -146,27 +155,24 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const customInterests = interests.filter((i) => !INTEREST_OPTIONS.includes(i));
 
   function buildTripInput(): TripInput {
-    return {
-      ...(homeCity ? { homeCity } : {}),
-      ...(travelRange && travelRange !== "any" ? { travelRange } : {}),
-      dates: {
-        flexible: dateType === "flexible",
-        ...(dateType === "flexible"
-          ? { description: dateDescription, durationDays: { min: duration, max: duration } }
-          : { startDate, endDate }
-        ),
-      },
-      travelers: 1,
+    return buildTripInputHelper({
+      homeCity,
+      travelRange,
+      dateType,
+      startDate,
+      endDate,
+      dateDescription,
+      duration,
+      groupType,
       interests,
-      weatherPreference: weatherPreference === "any" ? undefined : weatherPreference,
+      weatherPreference,
       budgetLevel,
       tripStyle,
-      locationPreference: {
-        type: locationType as "open" | "region",
-        ...(locationType === "region" ? { value: regionValue } : {}),
-      },
-      ...(startingPoint ? { startingPoint } : {}),
-    };
+      locationType,
+      regionValue,
+      startingPoint,
+      additionalNotes: '',  // placeholder — will be replaced in Task 7
+    })
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -627,27 +633,20 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   );
 
   // --- Summary pills ---
-  const summaryPills: { label: string; card: number }[] = [];
-  if (homeCity) summaryPills.push({ label: homeCity, card: 0 });
-  if (travelRange && travelRange !== "any") {
-    const rangeLabel = TRAVEL_RANGES.find((r) => r.value === travelRange)?.label;
-    if (rangeLabel) summaryPills.push({ label: rangeLabel, card: 0 });
-  }
-  if (dateType === "specific" && startDate && endDate) {
-    const fmt = (d: string) => {
-      try { return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" }); } catch { return d; }
-    };
-    summaryPills.push({ label: `${fmt(startDate)} – ${fmt(endDate)}`, card: 1 });
-  } else if (dateType === "flexible" && dateDescription) {
-    summaryPills.push({ label: dateDescription, card: 1 });
-  }
-  if (interests.length > 0) {
-    summaryPills.push({ label: interests.length <= 2 ? interests.join(", ") : `${interests.length} interests`, card: 2 });
-  }
-  const styleLabel = TRIP_STYLES.find((s) => s.value === tripStyle)?.label;
-  if (styleLabel && tripStyle !== "mixed") summaryPills.push({ label: styleLabel, card: 2 });
-  const budgetLabel = BUDGET_LEVELS.find((b) => b.value === budgetLevel)?.label;
-  if (budgetLabel) summaryPills.push({ label: budgetLabel, card: 3 });
+  const summaryPills = buildSummaryPillsHelper({
+    homeCity,
+    travelRange,
+    dateType,
+    startDate,
+    endDate,
+    dateDescription,
+    groupType,
+    interests,
+    tripStyle,
+    budgetLevel,
+    locationType,
+    regionValue,
+  })
 
   // --- Render: summary mode ---
   if (showSummary) {
