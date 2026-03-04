@@ -32,13 +32,12 @@ async function fetchGooglePlacesPhotos(
       const location = mediaRes.headers.get("location");
       if (location) {
         urls.push(location);
-      } else {
-        // No redirect — use the media URL directly (rare but possible)
-        urls.push(mediaUrl);
       }
+      // If no redirect location, skip this photo to avoid exposing the API key
     }
     return urls;
-  } catch {
+  } catch (err) {
+    console.error("[destination-gallery] Google Places error:", err);
     return [];
   }
 }
