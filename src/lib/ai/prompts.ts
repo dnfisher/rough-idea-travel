@@ -106,35 +106,30 @@ Guidelines:
 - Numeric cost fields always in EUR. Use user's preferred currency in free-text descriptions
 - Be concise throughout — brevity over exhaustiveness`;
 
-// Phase 2: NDJSON streaming prompt — 3-section variant (no itinerary) for browse-only sessions.
-// Outputs quick, insights, and booking sections only.
-export const DESTINATION_DETAIL_NDJSON_NO_ITINERARY_SYSTEM_PROMPT = `You are a travel planning expert. Generate a detailed trip plan for a single destination.
+// Phase 2: NDJSON streaming prompt — 2 sections only (no itinerary).
+// Used for initial page load. The "overview" section merges pros/cons + insights + events
+// into one pass, since Phase 1 already supplies weather/activities/cost/reasoning.
+export const DESTINATION_DETAIL_NDJSON_NO_ITINERARY_SYSTEM_PROMPT = `You are a travel planning expert. Generate a trip overview for a single destination.
 
-CRITICAL: Respond with EXACTLY 3 JSON objects, each on its own line (NDJSON format). No markdown, no code fences, no explanation. Just 3 raw JSON lines in this exact order, completing each line fully before starting the next:
+CRITICAL: Respond with EXACTLY 2 JSON objects, each on its own line (NDJSON format). No markdown, no code fences, no explanation. Just 2 raw JSON lines in this exact order:
 
-LINE 1 — type "quick" (output this first — fastest to generate):
-{"type":"quick","name":"string","country":"string","coordinates":{"lat":number,"lng":number},"reasoning":"string","matchScore":number,"pros":["string"],"cons":["string"],"topActivities":["string"],"weather":{"destination":"string","avgHighC":number,"avgLowC":number,"rainyDays":number,"sunshineHours":number,"description":"string"},"estimatedDailyCostEur":number,"suggestedDuration":"string","bestTimeToVisit":"string"}
+LINE 1 — type "overview" (pros, cons, local insights, events — output this first):
+{"type":"overview","pros":["string"],"cons":["string"],"localInsights":[{"category":"string","insight":"string"}],"localEvents":[{"name":"string","date":"string","description":"string","type":"festival|cultural|music|food|sports|religious|market"}]}
 
-LINE 2 — type "insights":
-{"type":"insights","localInsights":[{"category":"string","insight":"string"}],"localEvents":[{"name":"string","date":"string","description":"string","type":"festival|cultural|music|food|sports|religious|market"}]}
-
-LINE 3 — type "booking" (output this last — slowest to generate):
+LINE 2 — type "booking" (output this last):
 {"type":"booking","accommodation":{"averageNightlyEur":number,"recommendedArea":"string","nearestAirportCode":"string","nearestAirportName":"string"}|null,"flightEstimate":{"roundTripEur":number,"fromAirportCode":"string","toAirportCode":"string"}|null,"drivingEstimate":{"estimatedGasCostEur":number,"estimatedTotalDriveKm":number,"estimatedDriveHours":number,"startingPoint":"string"}|null,"estimatedTotalTripCostEur":number|null}
 
 Guidelines:
-- Complete each JSON line fully before starting the next line
-- matchScore: 0-100, reflecting how well the destination matches ALL user preferences
+- Complete each JSON line fully before starting the next
 - pros/cons: 3-4 each, honest assessment
-- topActivities: top 3-4 most relevant
-- weather: realistic averages for the specified travel dates
+- localInsights: 3-4 items (categories: Food & Drink, Customs, Language, Getting Around, Money, Hidden Gems, Local Tips). 1-2 sentences each
+- localEvents: 2-3 events/festivals that occur WITHIN the user's travel dates or within 2 weeks before/after. Events must be upcoming (after today's date, provided in the prompt). Never generate past events.
 - accommodation.averageNightlyEur: mid-range nightly EUR rate
 - For flying trips: include flightEstimate with nearest IATA airport codes
 - For road trips: include drivingEstimate. If route is 4-5+ hours from home, also include flightEstimate
-- localInsights: 3-4 items (categories: Food & Drink, Customs, Language, Getting Around, Money, Hidden Gems, Local Tips). 1-2 sentences each
-- localEvents: 2-3 events/festivals during or near travel dates
 - estimatedTotalTripCostEur: based on nightly rate, transport, and daily expenses
-- Numeric cost fields always in EUR. Use user's preferred currency in free-text descriptions
-- Be concise throughout — brevity over exhaustiveness`;
+- Numeric cost fields always in EUR
+- Be concise`;
 
 // Phase 2: NDJSON streaming prompt — 1-section itinerary-only variant for on-demand itinerary loading.
 // Outputs exactly 1 JSON line with type "itinerary".

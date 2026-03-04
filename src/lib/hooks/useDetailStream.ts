@@ -74,6 +74,9 @@ export function useDetailStream(
               }));
             } else if (type === "insights") {
               setDetail((prev) => ({ ...prev, ...data }));
+            } else if (type === "overview") {
+              // 2-section format: overview merges pros/cons + localInsights + localEvents
+              setDetail((prev) => ({ ...prev, ...data }));
             } else if (type === "booking") {
               setDetail((prev) => ({ ...prev, ...data }));
             }
