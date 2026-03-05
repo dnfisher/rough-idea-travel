@@ -11,6 +11,16 @@ const CLASH: React.CSSProperties = {
   fontFamily: "'Clash Display', system-ui, sans-serif",
 };
 
+const SECTION_LABEL: React.CSSProperties = {
+  fontFamily: "'DM Sans', sans-serif",
+  fontSize: 11,
+  fontWeight: 600,
+  color: '#6B6258',
+  textTransform: 'uppercase',
+  letterSpacing: '0.09em',
+  textAlign: 'center',
+};
+
 const HEADLINE_GRADIENT: React.CSSProperties = {
   background: 'linear-gradient(90deg, #2ABFBF 0%, #E8833A 55%, #C4A882 100%)',
   WebkitBackgroundClip: 'text',
@@ -62,10 +72,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/showcase')
+    const controller = new AbortController();
+    fetch('/api/showcase', { signal: controller.signal })
       .then(r => r.json())
       .then(data => setShowcase(Array.isArray(data) ? data : []))
       .catch(() => setShowcase([]));
+    return () => controller.abort();
   }, []);
 
   const handleShowcaseCardClick = (dest: ShowcaseDestination) => {
@@ -180,16 +192,7 @@ export default function Home() {
       {/* Section A — How It Works */}
       <section style={{ background: '#0F0E0D', padding: '100px 24px', position: 'relative', zIndex: 1 }}>
         <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-          <p style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 11,
-            fontWeight: 600,
-            color: '#6B6258',
-            textTransform: 'uppercase',
-            letterSpacing: '0.09em',
-            textAlign: 'center',
-            marginBottom: 56,
-          }}>
+          <p style={{ ...SECTION_LABEL, marginBottom: 56 }}>
             HOW IT WORKS
           </p>
           <div className="steps-row">
@@ -228,81 +231,39 @@ export default function Home() {
 
       {/* Section B — Popular Trips (hidden when empty) */}
       {(showcase === null || showcase.length > 0) && (
-        <section style={{ background: '#252219', padding: '80px 0 80px 24px', position: 'relative', zIndex: 1 }}>
-          <div style={{ maxWidth: 1080, margin: '0 auto 32px', paddingRight: 24 }}>
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 11,
-              fontWeight: 600,
-              color: '#6B6258',
-              textTransform: 'uppercase',
-              letterSpacing: '0.09em',
-              marginBottom: 12,
-            }}>
-              POPULAR TRIPS
-            </p>
-            <h2 style={{ ...CLASH, fontSize: 24, fontWeight: 500, color: '#F2EEE8', margin: '0 0 8px' }}>
-              Where will you go?
-            </h2>
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              fontWeight: 400,
-              color: '#A89F94',
-              margin: 0,
-            }}>
-              A few trips people are planning right now.
-            </p>
+        <section className="popular-trips">
+          <div className="popular-trips__header">
+            <p className="popular-trips__eyebrow">POPULAR TRIPS</p>
+            <h2 className="popular-trips__title">Where will you go?</h2>
+            <p className="popular-trips__sub">A few trips people are planning right now.</p>
           </div>
 
-          <div className="destination-teaser-row">
+          <div className="popular-trips__row">
             {showcase === null
               ? Array.from({ length: 8 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="destination-teaser-card animate-shimmer"
-                    style={{ flexShrink: 0 }}
-                  />
+                  <div key={i} className="destination-card animate-shimmer" />
                 ))
               : showcase.map(dest => (
                   <div
                     key={dest.slug}
+                    className="destination-card"
                     onClick={() => handleShowcaseCardClick(dest)}
-                    style={{ cursor: 'pointer' }}
                   >
-                    <div className="destination-teaser-card">
-                      {dest.imageUrl && (
-                        <img
-                          src={dest.imageUrl}
-                          alt={dest.name}
-                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                          loading="lazy"
-                        />
+                    {dest.imageUrl && (
+                      <img
+                        className="destination-card__image"
+                        src={dest.imageUrl}
+                        alt={dest.name}
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="destination-card__overlay" />
+                    <div className="destination-card__content">
+                      {dest.country && (
+                        <p className="destination-card__country">{dest.country}</p>
                       )}
-                      <div className="destination-teaser-card__overlay" />
-                      <span className="destination-teaser-card__explore">Explore →</span>
-                      <div className="destination-teaser-card__info">
-                        {dest.country && (
-                          <p style={{
-                            fontFamily: "'DM Sans', sans-serif",
-                            fontSize: 11,
-                            fontWeight: 400,
-                            color: '#6B6258',
-                            margin: '0 0 2px',
-                          }}>
-                            {dest.country}
-                          </p>
-                        )}
-                        <p style={{
-                          ...CLASH,
-                          fontSize: 16,
-                          fontWeight: 500,
-                          color: '#ffffff',
-                          margin: 0,
-                        }}>
-                          {dest.name}
-                        </p>
-                      </div>
+                      <p className="destination-card__name">{dest.name}</p>
+                      <span className="destination-card__cta">Explore →</span>
                     </div>
                   </div>
                 ))
@@ -311,37 +272,43 @@ export default function Home() {
         </section>
       )}
 
-      {/* Section C — Trust line */}
-      <div className="trust-line">
-        <p style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 15,
-          fontWeight: 400,
-          color: '#6B6258',
-          margin: '0 0 24px',
-        }}>
-          Free to use. No account needed to explore.
+      {/* Section C — Secondary CTA */}
+      <section className="secondary-cta">
+        <p className="secondary-cta__eyebrow">FREE TO USE · NO ACCOUNT NEEDED</p>
+        <h2 className="secondary-cta__headline">Ready to find your next trip?</h2>
+        <p className="secondary-cta__sub">
+          Answer three quick questions and we&apos;ll show you where you should go — matched to your dates, budget, and travel style.
         </p>
-        <Link
-          href="/explore"
-          style={{
-            background: '#2ABFBF',
-            color: '#0F0E0D',
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 15,
-            fontWeight: 600,
-            letterSpacing: '0.02em',
-            borderRadius: 12,
-            padding: '15px 32px',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
+        <Link href="/explore" className="btn-primary-lg">
           Start Exploring →
         </Link>
-      </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer__inner">
+          <div className="footer__top">
+            <div>
+              <p className="footer__logo">ROUGH IDEA<span>.</span></p>
+              <p className="footer__tagline">AI-powered trip planning</p>
+            </div>
+            <nav className="footer__nav">
+              <a href="#">How It Works</a>
+              <a href="#">About</a>
+              <a href="#">Blog</a>
+              <a href="#">Contact</a>
+            </nav>
+          </div>
+          <div className="footer__bottom">
+            <p className="footer__copy">© 2025 Rough Idea Travel. All rights reserved.</p>
+            <div className="footer__legal">
+              <a href="#">Privacy Policy</a>
+              <a href="#">Terms of Service</a>
+              <a href="#">Cookie Policy</a>
+            </div>
+          </div>
+        </div>
+      </footer>
 
     </div>
   );
