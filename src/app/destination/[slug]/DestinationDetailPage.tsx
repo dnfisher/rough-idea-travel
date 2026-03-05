@@ -663,15 +663,17 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
 
             {/* ── 4. Editorial Lede ── */}
             {destination.reasoning && (
-              <div style={{ padding: "48px 0" }}>
+              <div style={{ padding: "52px 0 44px" }}>
                 <p
                   style={{
-                    fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
-                    fontSize: "17px",
+                    fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+                    fontSize: "clamp(20px, 2.2vw, 26px)",
                     fontWeight: 400,
-                    lineHeight: 1.75,
-                    color: "var(--muted-foreground)",
-                    maxWidth: "680px",
+                    fontStyle: "italic",
+                    lineHeight: 1.85,
+                    color: "rgba(242,238,232,0.88)",
+                    maxWidth: "720px",
+                    letterSpacing: "0.01em",
                   }}
                 >
                   {destination.reasoning}
