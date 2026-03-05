@@ -3,6 +3,7 @@ import { Inter, Playfair_Display, Space_Grotesk, DM_Sans } from "next/font/googl
 import { Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { CurrencyProvider } from "@/components/CurrencyProvider";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const inter = Inter({
@@ -39,11 +40,12 @@ export const metadata: Metadata = {
     "Got a rough idea for a trip? Tell us when, where-ish, and what you're into. We'll suggest destinations, compare weather, and build itineraries.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? "";
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -53,6 +55,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               if (window.ethereum) {
