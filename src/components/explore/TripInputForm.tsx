@@ -29,6 +29,7 @@ import {
   COMMON_CITIES,
   TOTAL_CARDS,
   CARD_LABELS,
+  DURATION_CHIPS,
 } from './TripInputForm.constants'
 import {
   GROUP_TYPES,
@@ -75,14 +76,6 @@ const ADDITIONAL_NOTES_EXAMPLES = [
 export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputFormProps) {
   const [homeCity, setHomeCity] = useState("");
   const [travelRange, setTravelRange] = useState<TripInput["travelRange"]>("any");
-
-  const DURATION_CHIPS = [
-    { label: "Weekend", value: "weekend", days: 2 },
-    { label: "7 days",  value: "7",       days: 7 },
-    { label: "10 days", value: "10",      days: 10 },
-    { label: "2 weeks", value: "14",      days: 14 },
-    { label: "Other",   value: "other",   days: null },
-  ] as const
 
   const [selectedDurationChip, setSelectedDurationChip] = useState<string>("7")
   const [otherDurationValue, setOtherDurationValue] = useState("")
@@ -433,6 +426,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           <p className="text-xs mb-2" style={{ color: "var(--muted-foreground, #A89F94)" }}>Duration</p>
           <div className="flex flex-wrap gap-2">
             {DURATION_CHIPS.map((chip) => (
+              // style overrides chipClass intentionally: pill shape (999px) instead of rounded-xl
               <button
                 key={chip.value}
                 type="button"
@@ -457,18 +451,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
               value={otherDurationValue}
               onChange={(e) => setOtherDurationValue(e.target.value)}
               placeholder="e.g. 12 days"
-              className="mt-2"
-              style={{
-                background: "var(--surface, #252219)",
-                border: "1px solid var(--primary, #2ABFBF)",
-                borderRadius: "10px",
-                padding: "10px 14px",
-                width: "200px",
-                fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
-                fontSize: "14px",
-                color: "var(--foreground, #F2EEE8)",
-                outline: "none",
-              }}
+              className={cn(inputClass, "mt-2")}
+              style={{ width: "200px" }}
             />
           </div>
         </div>

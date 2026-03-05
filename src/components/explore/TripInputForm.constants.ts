@@ -57,3 +57,11 @@ export const COMMON_CITIES = [
 
 export const TOTAL_CARDS = 3
 export const CARD_LABELS = ['Where & Who', 'When & Weather', 'Vibe & Budget']
+
+export const DURATION_CHIPS = [
+  { label: "Weekend", value: "weekend", days: 2 },
+  { label: "7 days",  value: "7",       days: 7 },
+  { label: "10 days", value: "10",      days: 10 },
+  { label: "2 weeks", value: "14",      days: 14 },
+  { label: "Other",   value: "other",   days: null },
+] as const
