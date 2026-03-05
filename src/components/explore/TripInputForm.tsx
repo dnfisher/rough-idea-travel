@@ -76,11 +76,31 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [homeCity, setHomeCity] = useState("");
   const [travelRange, setTravelRange] = useState<TripInput["travelRange"]>("any");
 
+  const DURATION_CHIPS = [
+    { label: "Weekend", value: "weekend", days: 2 },
+    { label: "7 days",  value: "7",       days: 7 },
+    { label: "10 days", value: "10",      days: 10 },
+    { label: "2 weeks", value: "14",      days: 14 },
+    { label: "Other",   value: "other",   days: null },
+  ] as const
+
+  const [selectedDurationChip, setSelectedDurationChip] = useState<string>("7")
+  const [otherDurationValue, setOtherDurationValue] = useState("")
+  const otherDurationRef = useRef<HTMLInputElement>(null)
+
+  const duration = (() => {
+    const chip = DURATION_CHIPS.find(c => c.value === selectedDurationChip)
+    if (!chip || chip.value === "other") {
+      const parsed = parseInt(otherDurationValue)
+      return Number.isFinite(parsed) ? Math.min(30, Math.max(1, parsed)) : 7
+    }
+    return chip.days
+  })()
+
   const [dateType, setDateType] = useState<"flexible" | "specific">("specific");
   const [dateDescription, setDateDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [duration, setDuration] = useState(7);
 
   const [interests, setInterests] = useState<string[]>([]);
   const [customInterest, setCustomInterest] = useState("");
@@ -136,6 +156,12 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       customInterestInputRef.current.focus();
     }
   }, [showCustomInterestInput]);
+
+  useEffect(() => {
+    if (selectedDurationChip === "other" && otherDurationRef.current) {
+      otherDurationRef.current.focus()
+    }
+  }, [selectedDurationChip])
 
   function toggleInterest(interest: string) {
     setInterests((prev) =>
@@ -403,17 +429,48 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         </>
       )}
       {dateType === "flexible" && (
-        <div className="mt-3 flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">Duration:</span>
-          <input
-            type="number"
-            min={1}
-            max={30}
-            value={duration}
-            onChange={(e) => setDuration(Math.min(30, Math.max(1, Number(e.target.value))))}
-            className="w-16 px-2 py-2 rounded-xl border border-[#2E2B25] bg-[#252219] text-[#F2EEE8] text-sm text-center focus:outline-none focus:ring-2 focus:ring-[rgba(42,191,191,0.12)] focus:border-[#2ABFBF] transition-colors"
-          />
-          <span className="text-sm text-muted-foreground">days</span>
+        <div className="mt-3">
+          <p className="text-xs mb-2" style={{ color: "var(--muted-foreground, #A89F94)" }}>Duration</p>
+          <div className="flex flex-wrap gap-2">
+            {DURATION_CHIPS.map((chip) => (
+              <button
+                key={chip.value}
+                type="button"
+                onClick={() => setSelectedDurationChip(chip.value)}
+                className={chipClass(selectedDurationChip === chip.value)}
+                style={{ borderRadius: "999px", padding: "8px 16px", fontSize: "13px" }}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+          <div
+            style={{
+              overflow: "hidden",
+              maxHeight: selectedDurationChip === "other" ? "60px" : "0",
+              transition: "max-height 0.2s ease",
+            }}
+          >
+            <input
+              ref={otherDurationRef}
+              type="text"
+              value={otherDurationValue}
+              onChange={(e) => setOtherDurationValue(e.target.value)}
+              placeholder="e.g. 12 days"
+              className="mt-2"
+              style={{
+                background: "var(--surface, #252219)",
+                border: "1px solid var(--primary, #2ABFBF)",
+                borderRadius: "10px",
+                padding: "10px 14px",
+                width: "200px",
+                fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                fontSize: "14px",
+                color: "var(--foreground, #F2EEE8)",
+                outline: "none",
+              }}
+            />
+          </div>
         </div>
       )}
     </fieldset>
