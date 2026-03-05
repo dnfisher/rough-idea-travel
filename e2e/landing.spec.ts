@@ -16,8 +16,8 @@ test.describe('Landing page', () => {
 
   test('hero headline is present', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByText('Got a rough idea?')).toBeVisible()
-    await expect(page.getByText("We'll plan the rest.")).toBeVisible()
+    await expect(page.getByText('Your next trip,')).toBeVisible()
+    await expect(page.getByText('planned in three questions.')).toBeVisible()
   })
 
   test('nav becomes scrolled after scrolling past 80px', async ({ page }) => {
