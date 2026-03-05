@@ -39,6 +39,7 @@ import {
   validateDateRange,
 } from '@/lib/form/trip-input-builder'
 import type { GroupType } from '@/lib/form/trip-input-builder'
+import { DateRangePicker } from "./DateRangePicker";
 
 
 interface TripInputFormProps {
@@ -401,26 +402,19 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         </div>
       ) : (
         <>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className={cn(inputClass, 'flex-1')}
-            />
-            <span className="hidden sm:block text-muted-foreground text-sm">to</span>
-            <span className="sm:hidden text-xs text-muted-foreground">to</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                if (endDateError) setEndDateError(validateDateRange(startDate, e.target.value));
-              }}
-              onBlur={() => setEndDateError(validateDateRange(startDate, endDate))}
-              className={cn(inputClass, 'flex-1')}
-            />
-          </div>
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(start, end) => {
+              setStartDate(start);
+              setEndDate(end);
+              if (start && end) {
+                setEndDateError(validateDateRange(start, end));
+              } else {
+                setEndDateError(null);
+              }
+            }}
+          />
           {endDateError && (
             <p className="text-xs text-destructive mt-1 flex items-center gap-1">
               <span>⚠</span> {endDateError}
