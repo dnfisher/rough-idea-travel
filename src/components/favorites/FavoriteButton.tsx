@@ -28,6 +28,7 @@ export function FavoriteButton({
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [showListModal, setShowListModal] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
 
   async function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -65,6 +66,8 @@ export function FavoriteButton({
     setShowListModal(false);
     setLoading(true);
     onToggle("optimistic"); // optimistic
+    setIsPulsing(true);
+    setTimeout(() => setIsPulsing(false), 200);
 
     try {
       const res = await fetch("/api/favorites", {
@@ -93,18 +96,24 @@ export function FavoriteButton({
       <button
         onClick={handleClick}
         disabled={loading}
+        style={{
+          background: isFavorited ? "rgba(232,131,58,0.15)" : "transparent",
+          borderColor: isFavorited ? "#E8833A" : undefined,
+          transition: "all 0.15s ease",
+        }}
         className={cn(
           btnSize,
           "rounded-full border transition-all",
           isFavorited
-            ? "bg-red-50 border-red-200 text-red-500 dark:bg-red-950 dark:border-red-800"
-            : "border-border text-muted-foreground hover:text-red-500 hover:border-red-200",
+            ? "border-[#E8833A] text-[#E8833A]"
+            : "border-border text-[#F2EEE8] hover:border-[#E8833A] hover:bg-[rgba(232,131,58,0.08)] hover:text-[#E8833A]",
           loading && "opacity-50"
         )}
         title={isFavorited ? "Remove from favorites" : "Save to favorites"}
       >
         <Heart
-          className={cn(iconSize, isFavorited && "fill-current")}
+          className={cn(iconSize, isFavorited && "fill-current", isPulsing && "heart-pulse")}
+          style={isFavorited ? { color: "#E8833A" } : undefined}
         />
       </button>
 
