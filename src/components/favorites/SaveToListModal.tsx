@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { X, Plus, Check, Loader2 } from "lucide-react";
+import { Plus, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DestinationImage } from "@/components/results/DestinationImage";
 
@@ -30,6 +30,7 @@ export function SaveToListModal({
   const [saving, setSaving] = useState(false);
   const [showCreateInput, setShowCreateInput] = useState(false);
   const [newListName, setNewListName] = useState("");
+  const [selectedListId, setSelectedListId] = useState<string | null | "quick">(null);
   const createInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch wishlists when modal opens
@@ -74,6 +75,7 @@ export function SaveToListModal({
     if (!isOpen) {
       setShowCreateInput(false);
       setNewListName("");
+      setSelectedListId(null);
     }
   }, [isOpen]);
 
@@ -114,128 +116,161 @@ export function SaveToListModal({
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-[60] bg-black/40"
-        onClick={onClose}
-      />
-      {/* Modal */}
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
-        <div className="bg-card border border-border rounded-2xl shadow-xl max-w-sm w-full pointer-events-auto relative max-h-[80vh] flex flex-col">
-          {/* Header */}
-          <div className="p-6 pb-4 border-b border-border flex-shrink-0">
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 p-1 rounded-full hover:bg-muted transition-colors"
-            >
-              <X className="h-4 w-4 text-muted-foreground" />
-            </button>
+      <div className="save-modal-backdrop" onClick={onClose} />
 
-            <h2 className="font-display font-semibold text-lg">Save to list</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Save {destinationName} to a wishlist
-            </p>
+      {/* Modal */}
+      <div className="save-modal-wrap">
+        <div className="save-modal">
+
+          {/* Header */}
+          <div className="save-modal__header">
+            <h2 className="save-modal__title">
+              Save{" "}
+              <span className="save-modal__title-dest">{destinationName}</span>{" "}
+              to a wishlist
+            </h2>
+            <button className="save-modal__close" onClick={onClose} aria-label="Close">
+              ×
+            </button>
           </div>
 
-          {/* Content */}
-          <div className="overflow-y-auto flex-1 p-4 space-y-2">
+          {/* List */}
+          <div className="save-modal__list">
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <div className="save-modal__loading">
+                <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#6B6258" }} />
               </div>
             ) : (
               <>
-                {/* Quick save (no list) */}
+                {/* Save without list */}
                 <button
-                  onClick={handleQuickSave}
+                  className={cn(
+                    "save-modal__item save-modal__item--no-list",
+                    selectedListId === "quick" && "save-modal__item--selected"
+                  )}
+                  onClick={() => setSelectedListId("quick")}
                   disabled={saving}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 transition-colors text-left"
                 >
-                  <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                    <Check className="h-5 w-5 text-muted-foreground" />
+                  <div className="save-modal__thumb" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Check size={18} style={{ color: "#6B6258" }} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">Quick save</p>
-                    <p className="text-xs text-muted-foreground">Save without adding to a list</p>
+                  <div className="save-modal__item-text">
+                    <span className="save-modal__item-name">Save without adding to a list</span>
                   </div>
+                  {selectedListId === "quick" && (
+                    <div className="save-modal__check">
+                      <Check size={10} />
+                    </div>
+                  )}
                 </button>
 
                 {/* Existing wishlists */}
                 {wishlists.map((wl) => (
                   <button
                     key={wl.id}
-                    onClick={() => handleSelectList(wl.id)}
+                    className={cn(
+                      "save-modal__item",
+                      selectedListId === wl.id && "save-modal__item--selected"
+                    )}
+                    onClick={() => setSelectedListId(wl.id)}
                     disabled={saving}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 transition-colors text-left"
                   >
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    <div className="save-modal__thumb">
                       {wl.coverDestinations[0] ? (
                         <DestinationImage
                           name={wl.coverDestinations[0].destinationName}
                           country={wl.coverDestinations[0].country}
                           className="w-full h-full"
                         />
-                      ) : (
-                        <div className="w-full h-full bg-muted" />
-                      )}
+                      ) : null}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{wl.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="save-modal__item-text">
+                      <span className="save-modal__item-name">{wl.name}</span>
+                      <span className="save-modal__item-count">
                         {wl.itemCount} {wl.itemCount === 1 ? "destination" : "destinations"}
-                      </p>
+                      </span>
                     </div>
+                    {selectedListId === wl.id && (
+                      <div className="save-modal__check">
+                        <Check size={10} />
+                      </div>
+                    )}
                   </button>
                 ))}
 
                 {/* Create new list */}
                 {showCreateInput ? (
-                  <div className="flex items-center gap-2 p-3 rounded-xl border border-primary/30 bg-primary/5">
+                  <div className="save-modal__item save-modal__item--create" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
                     <input
                       ref={createInputRef}
                       type="text"
                       value={newListName}
                       onChange={(e) => setNewListName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleCreateList();
-                      }}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleCreateList(); }}
                       placeholder="e.g. Spring Trip 2026"
-                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                       disabled={saving}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: "1px solid #2E2B25",
+                        paddingBottom: 8,
+                        fontFamily: "DM Sans, sans-serif",
+                        fontSize: 14,
+                        color: "#F2EEE8",
+                        outline: "none",
+                      }}
                     />
-                    <button
-                      onClick={handleCreateList}
-                      disabled={saving || !newListName.trim()}
-                      className={cn(
-                        "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                        newListName.trim()
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {saving ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Create"
-                      )}
-                    </button>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                      <button
+                        className="save-modal__btn-cancel"
+                        onClick={() => setShowCreateInput(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="save-modal__btn-save"
+                        onClick={handleCreateList}
+                        disabled={saving || !newListName.trim()}
+                      >
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create & save"}
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <button
+                    className="save-modal__item save-modal__item--create"
                     onClick={() => setShowCreateInput(true)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-left"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                      <Plus className="h-5 w-5 text-muted-foreground" />
+                    <div className="save-modal__thumb" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(42,191,191,0.08)" }}>
+                      <Plus size={18} style={{ color: "#2ABFBF" }} />
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">Create new list</p>
-                      <p className="text-xs text-muted-foreground">Organize your travel ideas</p>
+                    <div className="save-modal__item-text">
+                      <span className="save-modal__item-name">Create new list</span>
+                      <span className="save-modal__item-sub">Organise your travel ideas</span>
                     </div>
                   </button>
                 )}
               </>
             )}
           </div>
+
+          {/* Footer */}
+          <div className="save-modal__footer">
+            <button className="save-modal__btn-cancel" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              className="save-modal__btn-save"
+              disabled={saving || selectedListId === null}
+              onClick={() => {
+                if (selectedListId === "quick") handleQuickSave();
+                else if (selectedListId) handleSelectList(selectedListId);
+              }}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save to wishlist"}
+            </button>
+          </div>
+
         </div>
       </div>
     </>
