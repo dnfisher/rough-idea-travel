@@ -1,7 +1,6 @@
 "use client";
 
 import { Trophy, DollarSign, Sun, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export type SortOption = "match" | "cost" | "weather" | "duration";
 
@@ -19,22 +18,44 @@ interface DestinationSortBarProps {
 
 export function DestinationSortBar({ value, onChange }: DestinationSortBarProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => (
-        <button
-          key={opt.id}
-          onClick={() => onChange(opt.id)}
-          className={cn(
-            "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-all border",
-            value === opt.id
-              ? "bg-accent text-accent-foreground border-primary/30 shadow-sm"
-              : "border-border text-muted-foreground hover:border-primary/40"
-          )}
-        >
-          {opt.icon}
-          {opt.label}
-        </button>
-      ))}
+    <div
+      style={{
+        background: "var(--dp-bg-subtle, #252219)",
+        borderRadius: "12px",
+        padding: "6px",
+        display: "flex",
+        gap: "4px",
+        flexWrap: "wrap",
+      }}
+    >
+      {options.map((opt) => {
+        const isActive = value === opt.id;
+        return (
+          <button
+            key={opt.id}
+            onClick={() => onChange(opt.id)}
+            style={{
+              height: "36px",
+              padding: "0 14px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 500,
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.15s",
+              background: isActive ? "rgba(42,191,191,0.15)" : "transparent",
+              color: isActive ? "#2ABFBF" : "var(--dp-text-muted, #6B6258)",
+              fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+            }}
+          >
+            {opt.icon}
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

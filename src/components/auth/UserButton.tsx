@@ -24,7 +24,7 @@ export function UserButton() {
 
   if (status === "loading") {
     return (
-      <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+      <div className="h-8 w-8 rounded-full bg-[#252219] animate-pulse" />
     );
   }
 
@@ -34,7 +34,7 @@ export function UserButton() {
         <CurrencySelector />
         <a
           href="/auth/signin"
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border text-sm font-medium hover:bg-muted transition-colors"
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#2E2B25] text-[#A89F94] text-sm font-medium hover:border-[#2ABFBF] hover:text-[#F2EEE8] transition-colors"
         >
           <User className="h-4 w-4" />
           Sign in
@@ -50,7 +50,7 @@ export function UserButton() {
       <CurrencySelector />
       <a
         href="/favorites"
-        className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border text-sm font-medium hover:bg-muted transition-colors"
+        className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#2E2B25] text-[#A89F94] text-sm font-medium hover:border-[#2ABFBF] hover:text-[#F2EEE8] transition-colors"
       >
         <Heart className="h-4 w-4" />
         My Favorites
@@ -58,7 +58,7 @@ export function UserButton() {
       <div ref={menuRef} className="relative">
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 rounded-full hover:ring-2 hover:ring-primary/20 transition-all"
+          className="flex items-center gap-2 rounded-full hover:ring-2 hover:ring-[rgba(42,191,191,0.3)] transition-all"
         >
           {user.image ? (
             <img
@@ -74,8 +74,8 @@ export function UserButton() {
         </button>
 
         {open && (
-          <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border bg-card shadow-lg overflow-hidden z-50">
-            <div className="px-4 py-3 border-b border-border">
+          <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#2E2B25] bg-[#1C1A17] shadow-lg overflow-hidden z-50">
+            <div className="px-4 py-3 border-b border-[#2E2B25]">
               <p className="text-sm font-medium truncate">{user.name}</p>
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
@@ -85,7 +85,7 @@ export function UserButton() {
                 href="/favorites"
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                  "flex items-center gap-2 px-4 py-2.5 text-sm text-[#A89F94] hover:bg-[#252219] hover:text-[#F2EEE8] transition-colors"
                 )}
               >
                 <Heart className="h-4 w-4" />
@@ -96,7 +96,7 @@ export function UserButton() {
                   setOpen(false);
                   signOut({ callbackUrl: "/" });
                 }}
-                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[#A89F94] hover:bg-[#252219] hover:text-[#F2EEE8] transition-colors"
               >
                 <LogOut className="h-4 w-4" />
                 Sign out

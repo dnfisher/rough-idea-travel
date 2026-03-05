@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display, Space_Grotesk } from "next/font/google";
+import { Inter, Playfair_Display, Space_Grotesk, DM_Sans } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { CurrencyProvider } from "@/components/CurrencyProvider";
@@ -27,6 +27,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
 export const metadata: Metadata = {
   title: "Rough Idea — Travel Planning",
   description:
@@ -41,6 +47,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap"
+          rel="stylesheet"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -57,7 +68,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${playfair.variable} ${spaceGrotesk.variable} ${geistMono.variable} antialiased font-sans`}
+        className={`${inter.variable} ${playfair.variable} ${spaceGrotesk.variable} ${geistMono.variable} ${dmSans.variable} antialiased font-sans`}
       >
         <SessionProvider>
           <CurrencyProvider>{children}</CurrencyProvider>

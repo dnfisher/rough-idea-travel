@@ -74,7 +74,7 @@ export function useDetailFetch(): UseDetailFetchReturn {
             try {
               const section = JSON.parse(trimmed) as Record<string, unknown>;
               const { type, ...data } = section;
-              if (type === "quick") {
+              if (type === "quick" || type === "overview") {
                 Object.assign(assembled, data);
               } else if (type === "itinerary") {
                 assembled.itinerary = { destinationName: name, ...data };

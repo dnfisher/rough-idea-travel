@@ -3,8 +3,6 @@
 import { useEffect, useState, useMemo, useCallback, type ElementType } from "react";
 import {
   ArrowLeft,
-  ThumbsUp,
-  ThumbsDown,
   Clock,
   Star,
   Sun,
@@ -21,15 +19,19 @@ import {
   Calendar,
   AlertTriangle,
   Loader2,
+  Plane,
+  Car,
+  ExternalLink,
+  ChevronRight,
+  CheckCircle2,
+  Images,
 } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
 import { getDestinationContext, type DestinationPageContext } from "@/lib/destination-url";
 import { DestinationImage } from "@/components/results/DestinationImage";
-import { DestinationGallery } from "@/components/results/DestinationGallery";
 import { ItineraryTimeline } from "@/components/results/ItineraryTimeline";
 import { ExploreMap } from "@/components/results/ExploreMap";
-import { BookingLinks } from "@/components/results/BookingLinks";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { ShareButton } from "@/components/share/ShareButton";
 import { useCurrency } from "@/components/CurrencyProvider";
@@ -38,6 +40,7 @@ import type { MapMarker } from "@/components/results/ExploreMapInner";
 import { useDetailStream } from "@/lib/hooks/useDetailStream";
 import { useItineraryStream } from "@/lib/hooks/useItineraryStream";
 import { useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
 
 // ── Constants ──────────────────────────────────────────────────
 
@@ -51,15 +54,77 @@ const INSIGHT_ICONS: Record<string, ElementType> = {
   "Local Tips": Lightbulb,
 };
 
-const EVENT_TYPE_STYLES: Record<string, { bg: string; text: string }> = {
-  festival: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-300" },
-  cultural: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-300" },
-  music: { bg: "bg-pink-100 dark:bg-pink-900/30", text: "text-pink-700 dark:text-pink-300" },
-  food: { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-300" },
-  sports: { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-700 dark:text-green-300" },
-  religious: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-300" },
-  market: { bg: "bg-teal-100 dark:bg-teal-900/30", text: "text-teal-700 dark:text-teal-300" },
-};
+// Activity card tints: semi-transparent overlays over dark base
+const ACTIVITY_TINTS = [
+  "rgba(42,191,191,0.55)",
+  "rgba(232,131,58,0.55)",
+  "rgba(196,168,130,0.45)",
+  "rgba(42,191,191,0.42)",
+  "rgba(232,131,58,0.42)",
+];
+
+// ── Month bar ──────────────────────────────────────────────────
+
+const MONTH_LABELS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+const MONTH_FULL = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+const MONTH_SHORT = [
+  "jan", "feb", "mar", "apr", "may", "jun",
+  "jul", "aug", "sep", "oct", "nov", "dec",
+];
+
+function parseMonthsFromText(text: string): { active: number[]; shoulder: number[] } {
+  const lower = text.toLowerCase();
+  let activeMonths: number[] = [];
+
+  const rangeRegex = /\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b[\s\S]{0,6}(?:to|through|[-–—])\s*\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b/i;
+  const m = lower.match(rangeRegex);
+
+  if (m) {
+    let si = MONTH_FULL.indexOf(m[1]);
+    if (si === -1) si = MONTH_SHORT.indexOf(m[1]);
+    let ei = MONTH_FULL.indexOf(m[2]);
+    if (ei === -1) ei = MONTH_SHORT.indexOf(m[2]);
+
+    if (si !== -1 && ei !== -1) {
+      if (si <= ei) {
+        activeMonths = Array.from({ length: ei - si + 1 }, (_, i) => si + i);
+      } else {
+        activeMonths = [
+          ...Array.from({ length: 12 - si }, (_, i) => si + i),
+          ...Array.from({ length: ei + 1 }, (_, i) => i),
+        ];
+      }
+    }
+  }
+
+  const shoulder: number[] = [];
+  if (activeMonths.length > 0) {
+    const min = Math.min(...activeMonths);
+    const max = Math.max(...activeMonths);
+    const prev = (min - 1 + 12) % 12;
+    const next = (max + 1) % 12;
+    if (!activeMonths.includes(prev)) shoulder.push(prev);
+    if (!activeMonths.includes(next)) shoulder.push(next);
+  }
+
+  return { active: activeMonths, shoulder };
+}
+
+// ── Typography helpers ─────────────────────────────────────────
+
+const CLASH: React.CSSProperties = { fontFamily: "'Clash Display', system-ui, sans-serif" };
+const DM: React.CSSProperties = { fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif" };
+
+function label(extra?: React.CSSProperties): React.CSSProperties {
+  return { ...DM, fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--dp-text-muted, #6B6258)", marginBottom: "8px", ...extra };
+}
+
+function body(extra?: React.CSSProperties): React.CSSProperties {
+  return { ...DM, fontSize: "15px", fontWeight: 400, lineHeight: 1.65, ...extra };
+}
 
 // ── Skeleton components ────────────────────────────────────────
 
@@ -76,13 +141,11 @@ function SectionSkeleton({ rows = 3 }: { rows?: number }) {
 
 function ProsConsSkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {[1, 2].map((i) => (
-        <div key={i} className="rounded-xl border border-border p-4 space-y-3">
-          <div className="h-5 w-16 animate-shimmer rounded-lg" />
-          <div className="h-4 w-full animate-shimmer rounded-lg" />
-          <div className="h-4 w-5/6 animate-shimmer rounded-lg" />
-          <div className="h-4 w-4/6 animate-shimmer rounded-lg" />
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-start gap-3">
+          <div className="h-4 w-4 animate-shimmer rounded-full flex-shrink-0 mt-0.5" />
+          <div className="h-4 animate-shimmer rounded-lg flex-1" style={{ width: `${80 - i * 8}%` }} />
         </div>
       ))}
     </div>
@@ -106,17 +169,28 @@ function ItinerarySkeleton() {
 
 function InsightsSkeleton() {
   return (
-    <div className="space-y-3">
-      <div className="h-5 w-32 animate-shimmer rounded-lg" />
+    <div className="space-y-0">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="flex items-start gap-3 rounded-xl border border-border p-3">
-          <div className="h-4 w-4 animate-shimmer rounded-full flex-shrink-0" />
-          <div className="flex-1 space-y-1.5">
+        <div key={i} className="flex items-start gap-4 py-5 border-l-2 border-border pl-5 border-b border-b-border">
+          <div className="h-5 w-5 animate-shimmer rounded-full flex-shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-2">
             <div className="h-3 w-20 animate-shimmer rounded-lg" />
             <div className="h-4 w-full animate-shimmer rounded-lg" />
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function GalleryShimmer() {
+  return (
+    <div className="grid grid-cols-[2fr_1fr_1fr] grid-rows-2 gap-2 rounded-2xl overflow-hidden h-[55vh] max-h-[500px]">
+      <div className="row-span-2 animate-shimmer" />
+      <div className="animate-shimmer" />
+      <div className="animate-shimmer" />
+      <div className="animate-shimmer" />
+      <div className="animate-shimmer" />
     </div>
   );
 }
@@ -134,7 +208,6 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   const [ctx, setCtx] = useState<DestinationPageContext | null>(null);
   const [noContext, setNoContext] = useState(false);
 
-  // Favorites
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
 
   // Capture current URL client-side only — avoids window access in the JSX render path
@@ -143,6 +216,9 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
 
   // Track whether we're displaying pre-loaded Phase 2 data (no fetch needed)
   const [usePreloaded, setUsePreloaded] = useState(true);
+
+  // Gallery photos from API
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
 
   // Read context from sessionStorage on mount
   useEffect(() => {
@@ -177,11 +253,12 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   const detailLoading = isStreaming;
   const detailError = streamError;
 
-  // Merged data: Phase 2 detail overrides Phase 1 summary fields
+  // Merged data: Phase 1 summary is the base; Phase 2 detail fields layer on top.
   const destination: DeepPartial<DestinationSuggestion> | null = useMemo(() => {
-    if (detail) return detail;
     if (!ctx) return null;
-    return ctx.summary as DeepPartial<DestinationSuggestion>;
+    const base = ctx.summary as DeepPartial<DestinationSuggestion>;
+    if (!detail) return base;
+    return { ...base, ...detail };
   }, [detail, ctx]);
 
   // Image search name resolution (same logic as ResultsPanel)
@@ -253,18 +330,57 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   const showRefresh = usePreloaded && !!ctx?.detail && !!ctx?.tripInput;
   const goBack = useCallback(() => window.close(), []);
 
+  // Booking URL generation
+  const bookingUrls = useMemo(() => {
+    if (!destination) return null;
+    const destName = destination.name ?? "";
+    const country = destination.country ?? "";
+    const firstStop = destination.itinerary?.days?.[0]?.location;
+    const searchDestName = firstStop && destName.length > 40 ? firstStop : destName;
+    const searchLocation = detail?.accommodation?.recommendedArea ?? `${searchDestName}, ${country}`;
+    return {
+      booking: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(searchLocation)}`,
+      airbnb: `https://www.airbnb.com/s/${encodeURIComponent(`${searchDestName}, ${country}`)}/homes`,
+      googleFlights: detail?.flightEstimate?.fromAirportCode && detail?.flightEstimate?.toAirportCode
+        ? `https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(detail.flightEstimate.fromAirportCode)}+to+${encodeURIComponent(detail.flightEstimate.toAirportCode)}`
+        : null,
+      googleMaps: `https://www.google.com/maps/search/${encodeURIComponent(`${searchDestName}, ${country}`)}`,
+    };
+  }, [destination, detail]);
+
+  // Fetch gallery photos
+  useEffect(() => {
+    if (!destination?.name) return;
+    const params = new URLSearchParams({
+      name: destination.name,
+      country: stableCountry ?? destination.country ?? "",
+      ...(imageSearchName ? { searchName: imageSearchName } : {}),
+    });
+    fetch(`/api/destination-gallery?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.photos)) {
+          setGalleryPhotos(data.photos);
+        }
+      })
+      .catch(() => {
+        // silently ignore gallery errors
+      });
+  }, [destination?.name, stableCountry, imageSearchName]);
+
   // ── No context fallback ──
   if (noContext) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <div className="destination-page min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-4 max-w-md">
-          <h1 className="font-display text-2xl font-semibold">Destination not found</h1>
-          <p className="text-muted-foreground text-sm">
+          <h1 className="font-display text-2xl font-semibold text-foreground" style={CLASH}>Destination not found</h1>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
             This page needs to be opened from search results. Head back and click on a destination to view its details.
           </p>
           <a
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+            className="inline-flex items-center gap-2 text-sm hover:underline"
+            style={{ color: "var(--primary)" }}
           >
             <ArrowLeft className="h-4 w-4" />
             Back to search
@@ -277,26 +393,49 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   // ── Loading state before context is ready ──
   if (!destination) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="h-[50vh] sm:h-[55vh] animate-shimmer" />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="rounded-xl border border-border p-3 h-20 animate-shimmer" />
-            ))}
+      <div className="destination-page min-h-screen bg-background">
+        <div className="h-[70vh] animate-shimmer" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+          <GalleryShimmer />
+          <div className="grid lg:grid-cols-[1fr_380px] lg:gap-16">
+            <div className="space-y-8">
+              <SectionSkeleton />
+              <ProsConsSkeleton />
+              <ItinerarySkeleton />
+            </div>
           </div>
-          <SectionSkeleton />
-          <ProsConsSkeleton />
-          <ItinerarySkeleton />
         </div>
       </div>
     );
   }
 
+  // ── Estimated total cost ──
+  const totalCostEur = destination.estimatedTotalTripCostEur ?? null;
+  const dailyCostEur = destination.estimatedDailyCostEur ?? null;
+
+  // Shared button style for primary CTAs
+  const primaryBtnStyle: React.CSSProperties = {
+    background: "var(--primary)",
+    color: "var(--primary-foreground)",
+    fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+    fontSize: "14px",
+    fontWeight: 600,
+    borderRadius: "10px",
+    padding: "14px 24px",
+    border: "none",
+    cursor: "pointer",
+    transition: "background 0.15s ease, transform 0.1s ease",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* ── Hero ── */}
-      <div className="relative h-[50vh] sm:h-[55vh] max-h-[600px]">
+    <div className="destination-page min-h-screen bg-background">
+
+      {/* ── 1. Hero ── */}
+      <div className="relative" style={{ height: "70vh", minHeight: "500px" }}>
         <DestinationImage
           name={destination.name}
           country={stableCountry}
@@ -304,372 +443,1151 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           fallbackName={imageSearchName ?? destination.name ?? undefined}
           className="w-full h-full"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+        {/* Gradient overlay — bleeds seamlessly into page background */}
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(to bottom, rgba(15,14,13,0.1) 0%, rgba(15,14,13,0.85) 80%, #0F0E0D 100%)" }}
+        />
 
-        {/* Top bar: back */}
-        <div className="absolute top-0 inset-x-0 p-4 sm:p-6 flex items-start">
+        {/* Back button — top left */}
+        <div className="absolute top-0 inset-x-0 p-5 sm:p-7">
           <button
             onClick={goBack}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/40 backdrop-blur-md text-white text-sm hover:bg-black/60 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/30 backdrop-blur-md transition-colors hover:bg-black/50"
+            style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 500, color: "var(--muted-foreground)" }}
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Back</span>
           </button>
         </div>
 
-        {/* Bottom: name + score */}
-        <div className="absolute bottom-0 inset-x-0 p-6 sm:p-8">
-          <div className="max-w-4xl mx-auto flex items-end justify-between gap-4">
-            <div>
-              {ctx?.rank != null && (
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-lg mb-2">
-                  {ctx.rank}
-                </span>
-              )}
-              <h1 className="font-display font-semibold text-3xl sm:text-4xl text-white drop-shadow-md">
-                {destination.name || "Loading..."}
-                {ctx?.isRecommended && (
-                  <span className="inline-flex items-center ml-3 text-xs bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full align-middle">
-                    <Star className="h-3 w-3 mr-1 fill-current" />
-                    Top Pick
-                  </span>
-                )}
-              </h1>
-              {destination.country && (
-                <p className="text-lg text-white/80 mt-1">{destination.country}</p>
-              )}
-            </div>
-            {destination.matchScore != null && (
-              <span className="px-4 py-2 rounded-full bg-white/90 backdrop-blur-sm text-base font-bold text-primary shadow-sm flex-shrink-0">
-                {destination.matchScore} match
+        {/* Match score — top right, subtle pill */}
+        {destination.matchScore != null && (
+          <div className="absolute top-5 right-5 sm:top-7 sm:right-7">
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-foreground"
+              style={{
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                fontSize: "12px",
+                fontWeight: 500,
+              }}
+            >
+              <Star className="h-3 w-3" />
+              {destination.matchScore}% match
+            </span>
+          </div>
+        )}
+
+        {/* Bottom: name + country */}
+        <div className="absolute bottom-0 inset-x-0 px-6 pb-10 sm:px-10 sm:pb-12">
+          <div className="max-w-7xl mx-auto">
+            {ctx?.rank != null && (
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white/20 backdrop-blur text-white text-xs font-bold mb-3">
+                {ctx.rank}
               </span>
             )}
+            <h1
+              className="font-display text-foreground leading-tight"
+              style={{ ...CLASH, fontSize: "clamp(36px, 5vw, 56px)", fontWeight: 700 }}
+            >
+              {destination.name || "Loading..."}
+              {ctx?.isRecommended && (
+                <span
+                  className="inline-flex items-center ml-3 align-middle px-2.5 py-1 rounded-full"
+                  style={{
+                    fontSize: "11px",
+                    fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                    fontWeight: 600,
+                    background: "var(--dp-orange, #E8833A)",
+                    color: "#0F0E0D",
+                    verticalAlign: "middle",
+                  }}
+                >
+                  <Star className="h-3 w-3 mr-1 fill-current" />
+                  Top Pick
+                </span>
+              )}
+            </h1>
+            {destination.country && (
+              <p
+                className="mt-2"
+                style={{
+                  fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "var(--dp-text-muted, #6B6258)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                {destination.country}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── Content ── */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-        {/* Loading indicator */}
-        {detailLoading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading full trip details...
-          </div>
-        )}
+      {/* ── Outer container ── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Error */}
-        {detailError && !detailLoading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 px-3 rounded-lg bg-destructive/5 border border-destructive/20">
-            <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
-            <span>Failed to load full details. Some information may be missing.</span>
-          </div>
-        )}
-
-        {/* Refresh banner — shown when displaying pre-loaded saved data */}
-        {showRefresh && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Showing saved data.</span>
-            <button
-              onClick={() => setUsePreloaded(false)}
-              className="text-primary hover:underline"
+        {/* ── 2. Photo Mosaic ── */}
+        <div className="mt-6">
+          {galleryPhotos.length === 0 ? (
+            <GalleryShimmer />
+          ) : (
+            <div
+              className="relative grid grid-cols-[2fr_1fr_1fr] grid-rows-2 overflow-hidden h-[55vh] max-h-[500px]"
+              style={{ gap: "8px", borderRadius: "10px" }}
             >
-              Refresh
-            </button>
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-3">
-          <FavoriteButton
-            destination={destination}
-            isFavorited={!!favoriteId}
-            favoriteId={favoriteId}
-            onToggle={setFavoriteId}
-            onAuthRequired={() => {
-              window.location.href = `/auth/signin?callbackUrl=${encodeURIComponent(window.location.href)}`;
-            }}
-            size="md"
-          />
-          <ShareButton destination={destination} size="md" />
-        </div>
-
-        {/* Quick stats — 4 cards max, single row on desktop */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {destination.estimatedDailyCostEur != null && (
-            <div className="rounded-xl border border-border p-3 text-center">
-              <p className="text-sm font-medium">~{formatPrice(destination.estimatedDailyCostEur, currency)}/day</p>
-              <p className="text-xs text-muted-foreground">Daily cost</p>
-            </div>
-          )}
-          {tripDateLabel && (
-            <div className="rounded-xl border border-border p-3 text-center">
-              <CalendarDays className="h-4 w-4 mx-auto mb-1 text-primary" />
-              <p className="text-sm font-medium truncate">{tripDateLabel}</p>
-              <p className="text-xs text-muted-foreground">Your dates</p>
-            </div>
-          )}
-          {destination.suggestedDuration && (
-            <div className="rounded-xl border border-border p-3 text-center">
-              <Clock className="h-4 w-4 mx-auto mb-1 text-primary" />
-              <p className="text-sm font-medium">{destination.suggestedDuration}</p>
-              <p className="text-xs text-muted-foreground">Suggested</p>
-            </div>
-          )}
-          {destination.bestTimeToVisit && (
-            <div className="rounded-xl border border-border p-3 text-center">
-              <CalendarDays className="h-4 w-4 mx-auto mb-1 text-primary" />
-              <p className="text-sm font-medium">{destination.bestTimeToVisit}</p>
-              <p className="text-xs text-muted-foreground">Best time</p>
-            </div>
-          )}
-        </div>
-
-        {/* Why — editorial lead section */}
-        {destination.reasoning && (
-          <div className="py-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Why we picked this</p>
-            <p className="text-lg sm:text-xl leading-relaxed text-foreground font-light">
-              {destination.reasoning}
-            </p>
-          </div>
-        )}
-
-        {/* Gallery */}
-        {destination.name && (
-          <DestinationGallery
-            name={destination.name}
-            country={stableCountry}
-            searchName={imageSearchName ?? undefined}
-          />
-        )}
-
-        {/* Local Events */}
-        {hasOverview && destination.localEvents && destination.localEvents.length > 0 && (
-          <div>
-            <h2 className="font-display font-semibold text-base mb-3 flex items-center gap-1.5">
-              <Calendar className="h-4 w-4 text-primary" />
-              What&apos;s Happening
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {destination.localEvents.map((event, i) => {
-                if (!event?.name) return null;
-                const typeStyle = EVENT_TYPE_STYLES[event.type ?? "cultural"] ?? EVENT_TYPE_STYLES.cultural;
-                return (
-                  <div key={i} className="rounded-xl border border-border p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-medium text-sm">{event.name}</h4>
-                      {event.type && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${typeStyle.bg} ${typeStyle.text} capitalize flex-shrink-0`}>
-                          {event.type}
-                        </span>
-                      )}
-                    </div>
-                    {event.date && (
-                      <p className="text-xs text-primary font-medium flex items-center gap-1">
-                        <CalendarDays className="h-3 w-3" />
-                        {event.date}
-                      </p>
-                    )}
-                    {event.description && (
-                      <p className="text-xs text-muted-foreground">{event.description}</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Top Activities */}
-        {destination.topActivities && destination.topActivities.length > 0 && (
-          <div>
-            <h2 className="font-display font-semibold text-base mb-2">Top Activities</h2>
-            <div className="flex flex-wrap gap-2">
-              {destination.topActivities.map((activity) => (
-                <span
-                  key={activity}
-                  className="px-3 py-1.5 rounded-xl bg-accent text-sm text-accent-foreground"
+              {/* Large left image */}
+              <div className="row-span-2 relative overflow-hidden" style={{ borderRadius: "10px" }}>
+                <DestinationImage
+                  name={destination.name}
+                  country={stableCountry}
+                  searchName={imageSearchName ?? undefined}
+                  fallbackName={imageSearchName ?? destination.name ?? undefined}
+                  className="w-full h-full transition-opacity duration-200 hover:opacity-85"
+                />
+              </div>
+              {/* 4 smaller cells */}
+              {[0, 1, 2, 3].map((idx) => (
+                <div
+                  key={idx}
+                  className="relative overflow-hidden bg-border"
+                  style={{ borderRadius: "10px" }}
                 >
-                  {activity}
-                </span>
+                  {galleryPhotos[idx] ? (
+                    <img
+                      src={galleryPhotos[idx]}
+                      alt={`${destination.name ?? "Destination"} photo ${idx + 1}`}
+                      className="w-full h-full object-cover transition-opacity duration-200 hover:opacity-85"
+                    />
+                  ) : (
+                    <div className="w-full h-full animate-shimmer" />
+                  )}
+                  {/* "Show all photos" overlay on last cell */}
+                  {idx === 3 && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span
+                        className="flex items-center gap-2"
+                        style={{
+                          background: "var(--card)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "8px",
+                          padding: "6px 14px",
+                          fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          color: "var(--foreground)",
+                        }}
+                      >
+                        <Images className="h-4 w-4" />
+                        Show all photos
+                      </span>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Weather */}
-        {destination.weather && (
-          <div className="rounded-xl border border-border p-4">
-            <h2 className="font-display font-semibold text-base mb-3 flex items-center gap-1.5">
-              <Thermometer className="h-4 w-4 text-primary" />
-              Weather
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-sm">
-              {destination.weather.avgHighC != null && (
-                <div>
-                  <p className="font-medium text-primary">{destination.weather.avgHighC}°C</p>
-                  <p className="text-xs text-muted-foreground">High</p>
-                </div>
+        {/* ── Main layout grid ── */}
+        <div className="mt-8 pb-24 lg:pb-12 lg:grid lg:grid-cols-[1fr_380px] lg:gap-16">
+
+          {/* ── Left / Main column ── */}
+          <div className="space-y-10 min-w-0">
+
+            {/* ── 3. Action row ── */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <FavoriteButton
+                destination={destination}
+                isFavorited={!!favoriteId}
+                favoriteId={favoriteId}
+                onToggle={setFavoriteId}
+                onAuthRequired={() => {
+                  window.location.href = `/auth/signin?callbackUrl=${encodeURIComponent(window.location.href)}`;
+                }}
+                size="md"
+              />
+              <ShareButton destination={destination} size="md" />
+              {detailLoading && (
+                <span
+                  className="flex items-center gap-1.5 ml-1"
+                  style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "12px", color: "var(--muted-foreground)" }}
+                >
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Personalising your trip...
+                </span>
               )}
-              {destination.weather.avgLowC != null && (
-                <div>
-                  <p className="font-medium text-blue-500">{destination.weather.avgLowC}°C</p>
-                  <p className="text-xs text-muted-foreground">Low</p>
-                </div>
+              {detailError && !detailLoading && (
+                <span
+                  className="flex items-center gap-1.5"
+                  style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "12px", color: "var(--muted-foreground)" }}
+                >
+                  <AlertTriangle className="h-3.5 w-3.5" style={{ color: "var(--dp-orange, #E8833A)" }} />
+                  Some details unavailable
+                </span>
               )}
-              {destination.weather.rainyDays != null && (
-                <div>
-                  <p className="font-medium flex items-center justify-center gap-1">
-                    <CloudRain className="h-3.5 w-3.5" />
-                    {destination.weather.rainyDays}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Rainy days</p>
-                </div>
-              )}
-              {destination.weather.sunshineHours != null && (
-                <div>
-                  <p className="font-medium flex items-center justify-center gap-1">
-                    <Sun className="h-3.5 w-3.5" />
-                    {destination.weather.sunshineHours}h
-                  </p>
-                  <p className="text-xs text-muted-foreground">Sunshine</p>
-                </div>
+              {showRefresh && (
+                <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "12px", color: "var(--muted-foreground)" }}>
+                  Showing saved data.{" "}
+                  <button
+                    onClick={() => setUsePreloaded(false)}
+                    className="hover:underline"
+                    style={{ color: "var(--primary)" }}
+                  >
+                    Refresh
+                  </button>
+                </span>
               )}
             </div>
-            {destination.weather.description && (
-              <p className="mt-3 text-xs text-muted-foreground">{destination.weather.description}</p>
-            )}
-          </div>
-        )}
 
-        {/* Local Insights — skeleton or content */}
-        {hasOverview ? (
-          destination.localInsights && destination.localInsights.length > 0 ? (
-            <div>
-              <h2 className="font-display font-semibold text-base mb-3 flex items-center gap-1.5">
-                <Globe className="h-4 w-4 text-primary" />
-                Local Insights
-              </h2>
-              <div className="space-y-2">
-                {destination.localInsights.map((insight, i) => {
-                  if (!insight?.category || !insight?.insight) return null;
-                  const Icon = INSIGHT_ICONS[insight.category] ?? Lightbulb;
-                  return (
-                    <div key={i} className="flex items-start gap-3 rounded-xl border border-border p-3">
-                      <Icon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="text-xs font-medium text-primary">{insight.category}</span>
-                        <p className="text-sm text-muted-foreground">{insight.insight}</p>
+            {/* ── 4. Editorial Lede ── */}
+            {destination.reasoning && (
+              <div style={{ padding: "48px 0" }}>
+                <p
+                  style={{
+                    fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                    fontSize: "17px",
+                    fontWeight: 400,
+                    lineHeight: 1.75,
+                    color: "var(--muted-foreground)",
+                    maxWidth: "680px",
+                  }}
+                >
+                  {destination.reasoning}
+                </p>
+              </div>
+            )}
+
+            {/* ── 5. Top Activities ── */}
+            {destination.topActivities && destination.topActivities.length > 0 && (
+              <div>
+                <p style={label()}>Experiences</p>
+                <p className="font-display text-foreground mb-4" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                  Top Activities
+                </p>
+                <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide">
+                  {destination.topActivities.map((activity, idx) => (
+                    <div
+                      key={activity}
+                      className="relative flex-shrink-0 w-44 overflow-hidden group"
+                      style={{
+                        borderRadius: "14px",
+                        minHeight: "160px",
+                        background: "var(--card)",
+                        border: "1px solid var(--border)",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+                      }}
+                    >
+                      {/* Color tint overlay */}
+                      <div
+                        className="absolute inset-0"
+                        style={{ background: ACTIVITY_TINTS[idx % ACTIVITY_TINTS.length], zIndex: 1 }}
+                      />
+                      {/* Bottom gradient for text legibility */}
+                      <div
+                        className="absolute bottom-0 inset-x-0"
+                        style={{
+                          height: "70%",
+                          background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
+                          zIndex: 2,
+                        }}
+                      />
+                      {/* Hover: add to itinerary button */}
+                      <div
+                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ zIndex: 3 }}
+                      >
+                        <button
+                          style={{
+                            border: "1px solid rgba(255,255,255,0.4)",
+                            borderRadius: "6px",
+                            padding: "4px 10px",
+                            fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: "#F2EEE8",
+                            background: "transparent",
+                            cursor: "pointer",
+                          }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      {/* Activity name pinned bottom-left */}
+                      <div className="absolute bottom-0 inset-x-0 p-4" style={{ zIndex: 3 }}>
+                        <p className="font-display text-foreground" style={{ ...CLASH, fontSize: "16px", fontWeight: 500 }}>
+                          {activity}
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null
-        ) : detailLoading ? (
-          <InsightsSkeleton />
-        ) : null}
-
-        {/* Pros & Cons — show skeleton if Phase 2 not loaded yet */}
-        {hasOverview ? (
-          (destination.pros?.length || destination.cons?.length) ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {destination.pros && destination.pros.length > 0 && (
-                <div className="rounded-xl border border-border p-4">
-                  <div className="flex items-center gap-1.5 font-medium text-green-600 dark:text-green-400 mb-2 text-sm">
-                    <ThumbsUp className="h-4 w-4" />
-                    Pros
-                  </div>
-                  <ul className="space-y-1.5">
-                    {destination.pros.map((pro) => (
-                      <li key={pro} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-green-500 mt-0.5">+</span>
-                        {pro}
-                      </li>
-                    ))}
-                  </ul>
+                  ))}
                 </div>
-              )}
-              {destination.cons && destination.cons.length > 0 && (
-                <div className="rounded-xl border border-border p-4">
-                  <div className="flex items-center gap-1.5 font-medium text-red-500 dark:text-red-400 mb-2 text-sm">
-                    <ThumbsDown className="h-4 w-4" />
-                    Cons
-                  </div>
-                  <ul className="space-y-1.5">
-                    {destination.cons.map((con) => (
-                      <li key={con} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-red-400 mt-0.5">-</span>
-                        {con}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          ) : null
-        ) : detailLoading ? (
-          <ProsConsSkeleton />
-        ) : null}
-
-        {/* Itinerary — generated on demand */}
-        {hasItinerary ? (
-          <>
-            {mapMarkers.length > 0 && (
-              <div>
-                <h2 className="font-display font-semibold text-base mb-2">Route</h2>
-                <ExploreMap markers={mapMarkers} selectedId={null} showRoute={true} height={350} />
               </div>
             )}
-            <ItineraryTimeline itinerary={itineraryData!} />
-          </>
-        ) : (
-          <div className="rounded-2xl border border-border bg-accent/30 p-6 text-center space-y-3">
-            <h3 className="font-display font-semibold text-base">Want a day-by-day itinerary?</h3>
-            <p className="text-sm text-muted-foreground">
-              Generate a personalised sample itinerary for this trip, including route map, accommodation areas, and meal suggestions.
-            </p>
-            {isAuthenticated ? (
-              <button
-                onClick={triggerItinerary}
-                disabled={itineraryStreaming}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition-colors"
+
+            {/* ── 6. Plan your trip CTA card ── */}
+            {!hasItinerary && (
+              <div
+                style={{
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "16px",
+                  borderLeft: "4px solid var(--primary)",
+                  padding: "32px",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+                }}
               >
-                {itineraryStreaming ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generating itinerary…
-                  </>
+                <h3
+                  className="font-display text-foreground mb-3"
+                  style={{ ...CLASH, fontSize: "22px", fontWeight: 500 }}
+                >
+                  Build your perfect trip
+                </h3>
+                <p
+                  className="mb-5"
+                  style={body({ color: "var(--muted-foreground)" })}
+                >
+                  Get a personalised day-by-day itinerary including a route map, accommodation areas, and local meal suggestions.
+                </p>
+                {isAuthenticated ? (
+                  <button
+                    onClick={triggerItinerary}
+                    disabled={itineraryStreaming}
+                    className="disabled:opacity-60"
+                    style={primaryBtnStyle}
+                  >
+                    {itineraryStreaming ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating itinerary…
+                      </>
+                    ) : (
+                      <>
+                        Generate My Itinerary
+                        <ChevronRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
                 ) : (
-                  "Generate my itinerary"
+                  <a
+                    href={`/auth/signin?callbackUrl=${encodeURIComponent(currentHref)}`}
+                    style={primaryBtnStyle}
+                  >
+                    Sign in to generate itinerary
+                    <ChevronRight className="h-4 w-4" />
+                  </a>
                 )}
-              </button>
-            ) : (
-              <a
-                href={`/auth/signin?callbackUrl=${encodeURIComponent(currentHref)}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                {itineraryError && (
+                  <p
+                    className="mt-3"
+                    style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "12px", color: "#e05555" }}
+                  >
+                    Failed to generate itinerary. Please try again.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ── 7. Know Before You Go (Local Insights) ── */}
+            {hasOverview ? (
+              destination.localInsights && destination.localInsights.length > 0 ? (
+                <div
+                  className="rounded-2xl p-6 sm:p-8"
+                  style={{ background: "var(--dp-bg-subtle, #252219)" }}
+                >
+                  <p style={label()}>Local Knowledge</p>
+                  <p className="font-display text-foreground mb-6" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                    Know Before You Go
+                  </p>
+                  <div>
+                    {destination.localInsights.map((insight, i) => {
+                      if (!insight?.category || !insight?.insight) return null;
+                      const Icon = INSIGHT_ICONS[insight.category] ?? Lightbulb;
+                      const isLast = i === (destination.localInsights?.length ?? 0) - 1;
+                      return (
+                        <div
+                          key={i}
+                          className={cn("flex items-start gap-4", !isLast && "border-b border-border")}
+                          style={{
+                            padding: "20px 0",
+                            paddingLeft: "20px",
+                            borderLeft: "3px solid var(--primary)",
+                          }}
+                        >
+                          <Icon className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: "var(--primary)" }} />
+                          <div>
+                            <p
+                              style={{
+                                fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                                fontSize: "14px",
+                                fontWeight: 600,
+                                color: "var(--foreground)",
+                                marginBottom: "4px",
+                              }}
+                            >
+                              {insight.category}
+                            </p>
+                            <p
+                              style={{
+                                fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                                fontSize: "14px",
+                                fontWeight: 400,
+                                color: "var(--muted-foreground)",
+                                lineHeight: 1.6,
+                              }}
+                            >
+                              {insight.insight}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null
+            ) : detailLoading ? (
+              <div className="rounded-2xl p-6 sm:p-8" style={{ background: "var(--dp-bg-subtle, #252219)" }}>
+                <p style={label()}>Local Knowledge</p>
+                <p className="font-display text-foreground mb-6" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                  Know Before You Go
+                </p>
+                <InsightsSkeleton />
+              </div>
+            ) : null}
+
+            {/* ── 8. Weather ── */}
+            {destination.weather && (
+              <div>
+                <p style={label()}>Climate</p>
+                <p className="font-display text-foreground mb-4" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                  Weather
+                </p>
+                <div
+                  className="flex items-center divide-x divide-border"
+                  style={{
+                    background: "var(--card)",
+                    borderRadius: "12px",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  {destination.weather.avgHighC != null && (
+                    <div className="flex-1 flex flex-col items-center gap-1 py-4 px-2">
+                      <Sun className="h-5 w-5 text-amber-500" />
+                      <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "22px", fontWeight: 500, color: "var(--foreground)" }}>
+                        {destination.weather.avgHighC}°C
+                      </p>
+                      <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "12px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
+                        High
+                      </p>
+                    </div>
+                  )}
+                  {destination.weather.avgLowC != null && (
+                    <div className="flex-1 flex flex-col items-center gap-1 py-4 px-2">
+                      <Thermometer className="h-5 w-5 text-blue-400" />
+                      <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "22px", fontWeight: 500, color: "var(--foreground)" }}>
+                        {destination.weather.avgLowC}°C
+                      </p>
+                      <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "12px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
+                        Low
+                      </p>
+                    </div>
+                  )}
+                  {destination.weather.rainyDays != null && (
+                    <div className="flex-1 flex flex-col items-center gap-1 py-4 px-2">
+                      <CloudRain className="h-5 w-5 text-sky-500" />
+                      <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "22px", fontWeight: 500, color: "var(--foreground)" }}>
+                        {destination.weather.rainyDays}
+                      </p>
+                      <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "12px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
+                        Rainy days
+                      </p>
+                    </div>
+                  )}
+                  {destination.weather.sunshineHours != null && (
+                    <div className="flex-1 flex flex-col items-center gap-1 py-4 px-2">
+                      <Sun className="h-5 w-5 text-yellow-400" />
+                      <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "22px", fontWeight: 500, color: "var(--foreground)" }}>
+                        {destination.weather.sunshineHours}h
+                      </p>
+                      <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "12px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
+                        Sunshine
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {destination.weather.description && (
+                  <p
+                    className="mt-3"
+                    style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 400, color: "var(--muted-foreground)", lineHeight: 1.6 }}
+                  >
+                    {destination.weather.description}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ── 9. Things to Know (pros + cautionary notes) ── */}
+            {hasOverview ? (
+              (destination.pros?.length || destination.cons?.length) ? (
+                <div>
+                  <p style={label()}>At a glance</p>
+                  <p className="font-display text-foreground mb-4" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                    Things to Know
+                  </p>
+                  <ul>
+                    {[
+                      ...(destination.pros ?? []).map((t) => ({ text: t, positive: true })),
+                      ...(destination.cons ?? []).map((t) => ({ text: t, positive: false })),
+                    ].map((item, i, arr) => (
+                      <li
+                        key={item.text}
+                        className="flex items-start gap-3"
+                        style={{
+                          padding: "10px 0",
+                          borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : undefined,
+                        }}
+                      >
+                        {item.positive ? (
+                          <CheckCircle2
+                            className="h-4 w-4 flex-shrink-0 mt-0.5"
+                            style={{ color: "var(--primary)" }}
+                          />
+                        ) : (
+                          <span
+                            className="h-4 w-4 flex-shrink-0 mt-0.5 flex items-center justify-center font-bold text-base leading-none"
+                            style={{ color: "var(--dp-warm-grey, #C4A882)" }}
+                          >
+                            •
+                          </span>
+                        )}
+                        <p
+                          style={{
+                            fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                            fontSize: "14px",
+                            fontWeight: 400,
+                            color: "var(--muted-foreground)",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          {item.text}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null
+            ) : detailLoading ? (
+              <div>
+                <p style={label()}>At a glance</p>
+                <p className="font-display text-foreground mb-4" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                  Things to Know
+                </p>
+                <ProsConsSkeleton />
+              </div>
+            ) : null}
+
+            {/* ── 10. What's Happening (Events) ── */}
+            {hasOverview && destination.localEvents && destination.localEvents.length > 0 && (
+              <div>
+                <p style={label()}>Events</p>
+                <p className="font-display text-foreground mb-4" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                  What&apos;s Happening
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {destination.localEvents.map((event, i) => {
+                    if (!event?.name) return null;
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          background: "var(--card)",
+                          borderRadius: "12px",
+                          border: "1px solid var(--border)",
+                          padding: "20px",
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h4
+                            className="font-display text-foreground"
+                            style={{ ...CLASH, fontSize: "16px", fontWeight: 500 }}
+                          >
+                            {event.name}
+                          </h4>
+                          {event.type && (
+                            <span
+                              style={{
+                                background: "rgba(232,131,58,0.15)",
+                                color: "var(--dp-orange, #E8833A)",
+                                fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                                borderRadius: "4px",
+                                padding: "2px 8px",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {event.type}
+                            </span>
+                          )}
+                        </div>
+                        {event.date && (
+                          <p
+                            className="flex items-center gap-1 mb-2"
+                            style={{
+                              fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                              fontSize: "12px",
+                              fontWeight: 400,
+                              color: "var(--dp-text-muted, #6B6258)",
+                            }}
+                          >
+                            <CalendarDays className="h-3 w-3" />
+                            {event.date}
+                          </p>
+                        )}
+                        {event.description && (
+                          <p
+                            style={{
+                              fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                              fontSize: "13px",
+                              fontWeight: 400,
+                              color: "var(--muted-foreground)",
+                              lineHeight: 1.55,
+                            }}
+                          >
+                            {event.description}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── 11. When to Go ── */}
+            {destination.bestTimeToVisit && (
+              <div
+                className="rounded-2xl p-6"
+                style={{ background: "var(--card)", border: "1px solid var(--border)" }}
               >
-                Sign in to generate itinerary
-              </a>
+                <div className="flex items-center gap-2 mb-4">
+                  <CalendarDays className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                  <p className="font-display text-foreground" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                    When to Go
+                  </p>
+                </div>
+                {(() => {
+                  const { active, shoulder } = parseMonthsFromText(destination.bestTimeToVisit);
+                  return (
+                    <>
+                      {active.length > 0 && (
+                        <div className="mb-4">
+                          <div className="flex gap-1 mb-2">
+                            {MONTH_LABELS.map((lbl, i) => {
+                              const isActive = active.includes(i);
+                              const isShoulder = shoulder.includes(i);
+                              return (
+                                <div key={i} className="flex flex-col items-center flex-1 gap-1">
+                                  <div
+                                    style={{
+                                      height: "8px",
+                                      borderRadius: "999px",
+                                      width: "100%",
+                                      background: isActive
+                                        ? "var(--primary)"
+                                        : isShoulder
+                                        ? "var(--dp-warm-grey, #C4A882)"
+                                        : "var(--border)",
+                                    }}
+                                  />
+                                  <span
+                                    style={{
+                                      fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                                      fontSize: "10px",
+                                      fontWeight: 400,
+                                      color: "var(--dp-text-muted, #6B6258)",
+                                    }}
+                                  >
+                                    {lbl}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      <p
+                        style={{
+                          fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                          fontSize: "14px",
+                          fontWeight: 400,
+                          color: "var(--muted-foreground)",
+                          lineHeight: 1.65,
+                        }}
+                      >
+                        {destination.bestTimeToVisit}
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
             )}
-            {itineraryError && (
-              <p className="text-xs text-destructive">Failed to generate itinerary. Please try again.</p>
+
+            {/* ── 12. Book Your Trip ── */}
+            {hasBooking ? (
+              <div>
+                <p style={label()}>Plan & Book</p>
+                <p className="font-display text-foreground mb-4" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                  Book Your Trip
+                </p>
+                <div
+                  style={{
+                    background: "var(--card)",
+                    borderRadius: "16px",
+                    border: "1px solid var(--border)",
+                    padding: "28px",
+                  }}
+                >
+                  {/* Cost breakdown */}
+                  {(dailyCostEur != null || totalCostEur != null) && (
+                    <div className="space-y-3 pb-5 mb-5" style={{ borderBottom: "1px solid var(--border)" }}>
+                      {dailyCostEur != null && (
+                        <div className="flex items-center justify-between">
+                          <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 400, color: "var(--muted-foreground)" }}>
+                            Estimated daily cost
+                          </span>
+                          <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 500, color: "var(--foreground)" }}>
+                            ~{formatPrice(dailyCostEur, currency)}
+                          </span>
+                        </div>
+                      )}
+                      {detail?.accommodation?.averageNightlyEur != null && (
+                        <div className="flex items-center justify-between">
+                          <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 400, color: "var(--muted-foreground)" }}>
+                            Accommodation / night
+                          </span>
+                          <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 500, color: "var(--foreground)" }}>
+                            ~{formatPrice(detail.accommodation.averageNightlyEur, currency)}
+                          </span>
+                        </div>
+                      )}
+                      {detail?.flightEstimate?.roundTripEur != null && (
+                        <div className="flex items-center justify-between">
+                          <span
+                            className="flex items-center gap-1"
+                            style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 400, color: "var(--muted-foreground)" }}
+                          >
+                            <Plane className="h-3 w-3" />
+                            Flights (est.)
+                          </span>
+                          <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 500, color: "var(--foreground)" }}>
+                            ~{formatPrice(detail.flightEstimate.roundTripEur, currency)}
+                          </span>
+                        </div>
+                      )}
+                      {detail?.drivingEstimate?.estimatedGasCostEur != null && (
+                        <div className="flex items-center justify-between">
+                          <span
+                            className="flex items-center gap-1"
+                            style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 400, color: "var(--muted-foreground)" }}
+                          >
+                            <Car className="h-3 w-3" />
+                            Driving (est.)
+                          </span>
+                          <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 500, color: "var(--foreground)" }}>
+                            ~{formatPrice(detail.drivingEstimate.estimatedGasCostEur, currency)}
+                          </span>
+                        </div>
+                      )}
+                      {totalCostEur != null && (
+                        <div
+                          className="flex items-center justify-between pt-4"
+                          style={{ borderTop: "1px solid var(--border)" }}
+                        >
+                          <p className="font-display text-foreground" style={{ ...CLASH, fontSize: "32px", fontWeight: 600 }}>
+                            ~{formatPrice(totalCostEur, currency)}
+                          </p>
+                          <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
+                            estimated total
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Booking links */}
+                  {bookingUrls && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <a
+                          href={bookingUrls.booking}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 transition-colors"
+                          style={{
+                            background: "var(--surface, #252219)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "10px",
+                            padding: "14px",
+                            fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            color: "var(--foreground)",
+                            textDecoration: "none",
+                          }}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Booking.com
+                        </a>
+                        <a
+                          href={bookingUrls.airbnb}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 transition-colors"
+                          style={{
+                            background: "var(--surface, #252219)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "10px",
+                            padding: "14px",
+                            fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            color: "var(--foreground)",
+                            textDecoration: "none",
+                          }}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Airbnb
+                        </a>
+                      </div>
+                      {bookingUrls.googleFlights && (
+                        <a
+                          href={bookingUrls.googleFlights}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 w-full transition-colors"
+                          style={{
+                            background: "var(--surface, #252219)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "10px",
+                            padding: "14px",
+                            fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            color: "var(--foreground)",
+                            textDecoration: "none",
+                          }}
+                        >
+                          <Plane className="h-3.5 w-3.5" />
+                          Search Flights on Google
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : detailLoading ? (
+              <SectionSkeleton rows={2} />
+            ) : null}
+
+            {/* ── 13. Generated Itinerary ── */}
+            {hasItinerary && (
+              <div>
+                <p style={label()}>Day by day</p>
+                <p className="font-display text-foreground mb-4" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
+                  Your Itinerary
+                </p>
+                {mapMarkers.length > 0 && (
+                  <div className="mb-6 rounded-2xl overflow-hidden">
+                    <ExploreMap markers={mapMarkers} selectedId={null} showRoute={true} height={350} />
+                  </div>
+                )}
+                <ItineraryTimeline itinerary={itineraryData!} />
+              </div>
             )}
+
           </div>
-        )}
 
-        {/* Booking CTAs */}
-        {hasBooking ? (
-          <BookingLinks destination={destination} />
-        ) : detailLoading ? (
-          <SectionSkeleton rows={2} />
-        ) : null}
+          {/* ── Right column: sticky booking panel (desktop only) ── */}
+          <aside className="hidden lg:block">
+            <div
+              className="sticky overflow-hidden"
+              style={{
+                top: "24px",
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: "16px",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                padding: "24px",
+              }}
+            >
+              {/* Header */}
+              <div className="pb-4 mb-4" style={{ borderBottom: "1px solid var(--border)" }}>
+                <p style={label()}>Estimated trip</p>
+                {totalCostEur != null ? (
+                  <p className="font-display text-foreground" style={{ ...CLASH, fontSize: "32px", fontWeight: 600 }}>
+                    ~{formatPrice(totalCostEur, currency)}
+                  </p>
+                ) : dailyCostEur != null ? (
+                  <p className="font-display text-foreground" style={{ ...CLASH, fontSize: "32px", fontWeight: 600 }}>
+                    ~{formatPrice(dailyCostEur, currency)}
+                    <span
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: 400,
+                        fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                        color: "var(--muted-foreground)",
+                      }}
+                    >
+                      /day
+                    </span>
+                  </p>
+                ) : detailLoading ? (
+                  <div className="h-9 w-40 animate-shimmer rounded-lg mt-1" />
+                ) : (
+                  <p className="font-display" style={{ fontSize: "20px", color: "var(--muted-foreground)" }}>
+                    Cost loading...
+                  </p>
+                )}
+              </div>
 
-        {/* Bottom padding */}
-        <div className="h-8" />
+              {/* Line items */}
+              <div className="space-y-3 pb-4 mb-4" style={{ borderBottom: "1px solid var(--border)" }}>
+                {dailyCostEur != null && (
+                  <div className="flex items-center justify-between">
+                    <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 400, color: "var(--muted-foreground)" }}>
+                      Daily cost
+                    </span>
+                    <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 500, color: "var(--foreground)" }}>
+                      ~{formatPrice(dailyCostEur, currency)}
+                    </span>
+                  </div>
+                )}
+                {tripDateLabel && (
+                  <div className="flex items-center justify-between">
+                    <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 400, color: "var(--muted-foreground)" }}>
+                      Your dates
+                    </span>
+                    <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 500, color: "var(--foreground)" }}>
+                      {tripDateLabel}
+                    </span>
+                  </div>
+                )}
+                {destination.suggestedDuration && (
+                  <div className="flex items-center justify-between">
+                    <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 400, color: "var(--muted-foreground)" }}>
+                      Suggested stay
+                    </span>
+                    <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 500, color: "var(--foreground)" }}>
+                      {destination.suggestedDuration}
+                    </span>
+                  </div>
+                )}
+                {detailLoading && (
+                  <div className="space-y-2 pt-1">
+                    <div className="h-4 w-full animate-shimmer rounded" />
+                    <div className="h-4 w-4/5 animate-shimmer rounded" />
+                  </div>
+                )}
+              </div>
+
+              {/* CTA */}
+              <div className="space-y-3">
+                {isAuthenticated ? (
+                  <button
+                    onClick={triggerItinerary}
+                    disabled={itineraryStreaming || hasItinerary}
+                    className="flex items-center justify-center gap-2 w-full disabled:opacity-60"
+                    style={{
+                      background: "var(--primary)",
+                      color: "var(--primary-foreground)",
+                      fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      borderRadius: "10px",
+                      padding: "14px 24px",
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "background 0.15s ease, transform 0.1s ease",
+                    }}
+                  >
+                    {itineraryStreaming ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating…
+                      </>
+                    ) : hasItinerary ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Itinerary Generated
+                      </>
+                    ) : (
+                      "Generate My Itinerary"
+                    )}
+                  </button>
+                ) : (
+                  <a
+                    href={`/auth/signin?callbackUrl=${encodeURIComponent(currentHref)}`}
+                    className="flex items-center justify-center gap-2 w-full"
+                    style={{
+                      background: "var(--primary)",
+                      color: "var(--primary-foreground)",
+                      fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      borderRadius: "10px",
+                      padding: "14px 24px",
+                      textDecoration: "none",
+                      display: "flex",
+                    }}
+                  >
+                    Sign in to plan trip
+                  </a>
+                )}
+
+                {/* Booking quick links */}
+                {bookingUrls && (
+                  <p
+                    className="text-center"
+                    style={{
+                      fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      color: "var(--dp-text-muted, #6B6258)",
+                    }}
+                  >
+                    <a
+                      href={bookingUrls.booking}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      Booking.com
+                    </a>
+                    {" · "}
+                    <a
+                      href={bookingUrls.airbnb}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      Airbnb
+                    </a>
+                    {bookingUrls.googleFlights && (
+                      <>
+                        {" · "}
+                        <a
+                          href={bookingUrls.googleFlights}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
+                          Flights
+                        </a>
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
+          </aside>
+
+        </div>
       </div>
+
+      {/* ── 14. Mobile sticky bottom bar ── */}
+      <div
+        className="fixed bottom-0 inset-x-0 z-50 lg:hidden flex items-center gap-4"
+        style={{
+          background: "var(--card)",
+          borderTop: "1px solid var(--border)",
+          padding: "12px 20px",
+        }}
+      >
+        <div className="flex-1 min-w-0">
+          {totalCostEur != null ? (
+            <>
+              <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "16px", fontWeight: 600, color: "var(--foreground)", lineHeight: 1.2 }}>
+                ~{formatPrice(totalCostEur, currency)}
+              </p>
+              <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "11px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
+                est. total
+              </p>
+            </>
+          ) : dailyCostEur != null ? (
+            <>
+              <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "16px", fontWeight: 600, color: "var(--foreground)", lineHeight: 1.2 }}>
+                ~{formatPrice(dailyCostEur, currency)}
+                <span style={{ fontSize: "11px", fontWeight: 400, color: "var(--muted-foreground)" }}>/day</span>
+              </p>
+              <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "11px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
+                est. daily cost
+              </p>
+            </>
+          ) : (
+            <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", color: "var(--muted-foreground)" }}>
+              Calculating cost…
+            </p>
+          )}
+        </div>
+        {isAuthenticated ? (
+          <button
+            onClick={triggerItinerary}
+            disabled={itineraryStreaming || hasItinerary}
+            className="flex-shrink-0 flex items-center gap-2 disabled:opacity-50"
+            style={{
+              background: "var(--primary)",
+              color: "var(--primary-foreground)",
+              fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+              fontSize: "14px",
+              fontWeight: 600,
+              borderRadius: "10px",
+              padding: "12px 20px",
+              border: "none",
+              cursor: "pointer",
+              transition: "background 0.15s ease",
+            }}
+          >
+            {itineraryStreaming ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating…
+              </>
+            ) : hasItinerary ? (
+              "View Itinerary"
+            ) : (
+              "Generate Itinerary"
+            )}
+          </button>
+        ) : (
+          <a
+            href={`/auth/signin?callbackUrl=${encodeURIComponent(currentHref)}`}
+            className="flex-shrink-0 flex items-center gap-2"
+            style={{
+              background: "var(--primary)",
+              color: "var(--primary-foreground)",
+              fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+              fontSize: "14px",
+              fontWeight: 600,
+              borderRadius: "10px",
+              padding: "12px 20px",
+              textDecoration: "none",
+            }}
+          >
+            Sign in to plan
+          </a>
+        )}
+      </div>
+
     </div>
   );
 }
