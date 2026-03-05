@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { ChevronDown } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type {
   ExplorationSummaryResult,
@@ -23,12 +24,14 @@ interface ResultsPanelProps {
   onAuthRequired?: (destinationName?: string) => void;
   pendingAutoFavorite?: string | null;
   onAutoFavoriteComplete?: () => void;
+  hideMap?: boolean;
 }
 
-export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired, pendingAutoFavorite, onAutoFavoriteComplete }: ResultsPanelProps) {
+export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired, pendingAutoFavorite, onAutoFavoriteComplete, hideMap }: ResultsPanelProps) {
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("match");
   const [favoritesMap, setFavoritesMap] = useState<Record<string, string>>({});
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
 
   const { fetchDetail, getDetail, clearCache } = useDetailFetch();
 
@@ -213,17 +216,87 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
     return null;
   }
 
+  // Smart summary sentence
+  const finishedCount = sortedDestinations.length;
+  const allRoadTrips =
+    finishedCount > 0 &&
+    sortedDestinations.every(
+      (d) => d != null && "routeStops" in d && Array.isArray((d as DeepPartial<DestinationSummary>).routeStops)
+    );
+  const kind = allRoadTrips ? "road trips" : "destinations";
+  const smartSentence = tripInput
+    ? `${finishedCount} ${kind} from ${tripInput.homeCity} — ranked by how well they match you.`
+    : `${finishedCount} ${kind} — ranked by how well they match you.`;
+
+  const DM: import("react").CSSProperties = { fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif" };
+
   return (
     <div className="space-y-4">
-      {/* Summary */}
-      {result?.summary && (
-        <div className="rounded-2xl bg-card border border-border p-5 shadow-sm">
-          <p className="text-sm leading-relaxed">{result.summary}</p>
+      {/* Smart sentence + AI summary disclosure */}
+      {result && finishedCount > 0 && (
+        <div
+          style={{
+            borderRadius: "12px",
+            background: "var(--dp-bg-subtle, #252219)",
+            border: "1px solid var(--border, #2E2B25)",
+            padding: "14px 16px",
+            ...DM,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+            <p style={{ fontSize: "13px", color: "var(--foreground, #F2EEE8)", fontWeight: 500, margin: 0 }}>
+              {smartSentence}
+            </p>
+            {result.summary && (
+              <button
+                onClick={() => setSummaryExpanded((v) => !v)}
+                style={{
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11px",
+                  color: "var(--dp-text-muted, #6B6258)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "0",
+                  ...DM,
+                }}
+              >
+                More
+                <ChevronDown
+                  style={{
+                    width: "12px",
+                    height: "12px",
+                    transition: "transform 0.2s",
+                    transform: summaryExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
+              </button>
+            )}
+          </div>
+          {summaryExpanded && result.summary && (
+            <p
+              style={{
+                marginTop: "10px",
+                paddingTop: "10px",
+                borderTop: "1px solid var(--border, #2E2B25)",
+                fontSize: "13px",
+                lineHeight: 1.6,
+                color: "var(--muted-foreground, #A89F94)",
+                margin: "10px 0 0",
+                ...DM,
+              }}
+            >
+              {result.summary}
+            </p>
+          )}
         </div>
       )}
 
-      {/* Hero Map */}
-      {result && mapMarkers.length > 0 && (
+      {/* Map — only if not hidden by parent */}
+      {!hideMap && result && mapMarkers.length > 0 && (
         <ExploreMap
           markers={mapMarkers}
           selectedId={selectedDestination}
@@ -259,6 +332,21 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
                       isSelected={selectedDestination === dest.name}
                       onClick={() => handleCardClick(dest.name)}
                       homeCity={tripInput?.homeCity}
+                      isFavorited={!!(dest?.name && favoritesMap[dest.name])}
+                      favoriteId={dest?.name ? (favoritesMap[dest.name] ?? null) : null}
+                      onFavoriteToggle={(newId) => {
+                        if (!dest?.name) return;
+                        setFavoritesMap((prev) => {
+                          const next = { ...prev };
+                          if (newId) {
+                            next[dest.name!] = newId;
+                          } else {
+                            delete next[dest.name!];
+                          }
+                          return next;
+                        });
+                      }}
+                      onAuthRequired={() => onAuthRequired?.(dest?.name ?? undefined)}
                     />
                   </div>
                 );
@@ -269,7 +357,9 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-                    <div className="h-36 animate-shimmer" />
+                    <div style={{ paddingTop: "56.25%", position: "relative" }}>
+                      <div className="animate-shimmer absolute inset-0" />
+                    </div>
                     <div className="p-4 space-y-3">
                       <div className="h-5 w-48 animate-shimmer rounded-lg" />
                       <div className="h-4 w-full animate-shimmer rounded-lg" />

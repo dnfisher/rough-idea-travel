@@ -1,12 +1,15 @@
 "use client";
 
 import { Clock, Star, ChevronRight, Car, Plane } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { DeepPartial } from "ai";
 import type { DestinationSummary, DestinationSuggestion } from "@/lib/ai/schemas";
 import { DestinationImage } from "./DestinationImage";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { formatPrice } from "@/lib/currency";
+import { FavoriteButton } from "@/components/favorites/FavoriteButton";
+
+const CLASH: React.CSSProperties = { fontFamily: "'Clash Display', system-ui, sans-serif" };
+const DM: React.CSSProperties = { fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif" };
 
 interface DestinationCardProps {
   destination: DeepPartial<DestinationSummary> | DeepPartial<DestinationSuggestion>;
@@ -16,6 +19,34 @@ interface DestinationCardProps {
   onClick?: () => void;
   /** Home/departure city — used to filter it out of routeStops for image selection */
   homeCity?: string;
+  // Favourites
+  isFavorited?: boolean;
+  favoriteId?: string | null;
+  onFavoriteToggle?: (newId: string | null) => void;
+  onAuthRequired?: () => void;
+}
+
+function matchBadgeStyle(score: number | null | undefined): React.CSSProperties {
+  if (score == null) return {};
+  if (score >= 90) {
+    return {
+      background: "rgba(42,191,191,0.2)",
+      color: "#2ABFBF",
+      border: "1px solid rgba(42,191,191,0.3)",
+    };
+  }
+  if (score >= 75) {
+    return {
+      background: "rgba(196,168,130,0.2)",
+      color: "#C4A882",
+      border: "1px solid rgba(196,168,130,0.3)",
+    };
+  }
+  return {
+    background: "rgba(107,98,88,0.2)",
+    color: "var(--dp-text-muted, #6B6258)",
+    border: "1px solid rgba(107,98,88,0.3)",
+  };
 }
 
 export function DestinationCard({
@@ -25,6 +56,10 @@ export function DestinationCard({
   isSelected,
   onClick,
   homeCity,
+  isFavorited = false,
+  favoriteId = null,
+  onFavoriteToggle,
+  onAuthRequired,
 }: DestinationCardProps) {
   const { currency } = useCurrency();
   const activities = destination.topActivities ?? [];
@@ -38,7 +73,6 @@ export function DestinationCard({
   const travelMode = "travelMode" in destination ? (destination as DeepPartial<DestinationSummary>).travelMode : undefined;
   const isRoute = routeStops && routeStops.length > 1;
 
-  // For road trips, pick the first route stop that isn't the departure/home city
   const firstDestStop = isRoute
     ? (routeStops.find(
         (stop) =>
@@ -47,124 +81,328 @@ export function DestinationCard({
       ) as string | undefined)
     : undefined;
 
+  const cardBorderColor = isSelected
+    ? "1.5px solid #2ABFBF"
+    : "1px solid var(--border, #2E2B25)";
+  const cardShadow = isSelected
+    ? "0 0 0 2px rgba(42,191,191,0.2), 0 4px 20px rgba(0,0,0,0.4)"
+    : "0 2px 12px rgba(0,0,0,0.3)";
+
   return (
     <div
       onClick={onClick}
-      className={cn(
-        "rounded-2xl border overflow-hidden transition-all bg-card shadow-sm cursor-pointer",
-        isSelected
-          ? "border-primary shadow-lg ring-2 ring-primary/20"
-          : "border-border hover:shadow-md",
-        isRecommended && !isSelected && "ring-1 ring-primary/20"
-      )}
+      style={{
+        borderRadius: "14px",
+        border: cardBorderColor,
+        overflow: "hidden",
+        background: "var(--card, #1C1A17)",
+        boxShadow: cardShadow,
+        cursor: "pointer",
+        transition: "box-shadow 0.2s, border-color 0.2s",
+      }}
     >
-      {/* Hero image */}
-      <div className="relative h-36">
-        <DestinationImage
-          name={destination.name}
-          country={destination.country}
-          searchName={firstDestStop}
-          fallbackName={firstDestStop}
-          className="w-full h-full"
-        />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
+      {/* Hero image — 16:9 */}
+      <div style={{ position: "relative", paddingTop: "56.25%" }}>
+        <div style={{ position: "absolute", inset: 0 }}>
+          <DestinationImage
+            name={destination.name}
+            country={destination.country}
+            searchName={firstDestStop}
+            fallbackName={firstDestStop}
+            className="w-full h-full"
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(to bottom, rgba(15,14,13,0.1) 0%, rgba(15,14,13,0.7) 100%)",
+            }}
+          />
+        </div>
 
-        {/* Rank badge */}
-        <span className="absolute top-3 left-3 flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg">
+        {/* Heart / favourite button — top-left */}
+        {onFavoriteToggle && (
+          <div
+            style={{
+              position: "absolute",
+              top: "12px",
+              left: "12px",
+              zIndex: 2,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <FavoriteButton
+              destination={destination as DeepPartial<import("@/lib/ai/schemas").DestinationSuggestion>}
+              isFavorited={isFavorited}
+              favoriteId={favoriteId}
+              onToggle={onFavoriteToggle}
+              onAuthRequired={onAuthRequired}
+              size="sm"
+            />
+          </div>
+        )}
+
+        {/* Rank badge — bottom-left */}
+        <span
+          style={{
+            position: "absolute",
+            bottom: "10px",
+            left: "10px",
+            width: "28px",
+            height: "28px",
+            borderRadius: "50%",
+            background: "rgba(15,14,13,0.7)",
+            backdropFilter: "blur(4px)",
+            border: "1.5px solid rgba(255,255,255,0.15)",
+            color: "#F2EEE8",
+            fontSize: "12px",
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            ...DM,
+          }}
+        >
           {rank}
         </span>
 
-        {/* Match score */}
+        {/* Match score badge */}
         {destination.matchScore != null && (
-          <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-xs font-bold text-primary shadow-sm">
+          <span
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              padding: "3px 8px",
+              borderRadius: "20px",
+              fontSize: "11px",
+              fontWeight: 700,
+              backdropFilter: "blur(4px)",
+              ...DM,
+              ...matchBadgeStyle(destination.matchScore),
+            }}
+          >
             {destination.matchScore}%
           </span>
         )}
 
-        {/* Name and country */}
-        <div className="absolute bottom-2.5 left-3 right-3">
-          <h3 className="font-display font-semibold text-base text-white drop-shadow-sm leading-tight">
-            {destination.name || "Loading..."}
-            {isRecommended && (
-              <span className="inline-flex items-center ml-1.5 text-[10px] bg-white/20 backdrop-blur-sm text-white px-1.5 py-0.5 rounded-full align-middle">
-                <Star className="h-2.5 w-2.5 mr-0.5 fill-current" />
-                Top Pick
-              </span>
-            )}
-          </h3>
-          {destination.country && (
-            <p className="text-xs text-white/80">{destination.country}</p>
-          )}
-        </div>
+        {/* Top Pick badge */}
+        {isRecommended && (
+          <span
+            style={{
+              position: "absolute",
+              bottom: "10px",
+              right: "10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              padding: "3px 8px",
+              borderRadius: "20px",
+              fontSize: "10px",
+              fontWeight: 600,
+              background: "rgba(232,131,58,0.2)",
+              color: "#E8833A",
+              border: "1px solid rgba(232,131,58,0.3)",
+              backdropFilter: "blur(4px)",
+              ...DM,
+            }}
+          >
+            <Star style={{ width: "9px", height: "9px", fill: "currentColor" }} />
+            Top Pick
+          </span>
+        )}
       </div>
 
-      {/* Content */}
-      <div className="p-4 space-y-2.5">
+      {/* Card body */}
+      <div style={{ padding: "14px 16px 16px", ...DM }}>
+        {/* Name + country */}
+        <div style={{ marginBottom: "8px" }}>
+          <h3
+            style={{
+              ...CLASH,
+              fontSize: "16px",
+              fontWeight: 600,
+              color: "var(--foreground, #F2EEE8)",
+              lineHeight: 1.2,
+              margin: 0,
+            }}
+          >
+            {destination.name || "Loading..."}
+          </h3>
+          {destination.country && (
+            <p
+              style={{
+                ...DM,
+                fontSize: "12px",
+                color: "var(--dp-text-muted, #6B6258)",
+                marginTop: "2px",
+              }}
+            >
+              {destination.country}
+            </p>
+          )}
+        </div>
+
+        {/* Reasoning */}
         {destination.reasoning && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p
+            style={{
+              ...DM,
+              fontSize: "13px",
+              color: "var(--muted-foreground, #A89F94)",
+              lineHeight: 1.5,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              marginBottom: "10px",
+            }}
+          >
             {destination.reasoning}
           </p>
         )}
 
-        {/* Route badges: travel mode, driving pace, total drive hours */}
+        {/* Road trip badges */}
         {isRoute && (travelMode || drivingPace || estimatedTotalDriveHours != null) && (
-          <div className="flex flex-wrap gap-1.5">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
             {travelMode === "fly_and_drive" && (
-              <span className="px-2 py-0.5 rounded-lg bg-primary/10 text-xs text-primary font-medium flex items-center gap-1">
-                <Plane className="h-3 w-3" />
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "3px 10px",
+                  borderRadius: "20px",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  background: "rgba(42,191,191,0.1)",
+                  color: "#2ABFBF",
+                  border: "1px solid rgba(42,191,191,0.2)",
+                  ...DM,
+                }}
+              >
+                <Plane style={{ width: "10px", height: "10px" }} />
                 Fly + Drive
               </span>
             )}
             {drivingPace && (
-              <span className="px-2 py-0.5 rounded-lg bg-accent text-xs text-accent-foreground capitalize flex items-center gap-1">
-                <Car className="h-3 w-3" />
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "3px 10px",
+                  borderRadius: "20px",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  background: "rgba(196,168,130,0.1)",
+                  color: "#C4A882",
+                  border: "1px solid rgba(196,168,130,0.2)",
+                  ...DM,
+                }}
+              >
+                <Car style={{ width: "10px", height: "10px" }} />
                 {drivingPace} pace
               </span>
             )}
             {estimatedTotalDriveHours != null && (
-              <span className="px-2 py-0.5 rounded-lg bg-accent text-xs text-accent-foreground flex items-center gap-1">
-                <Car className="h-3 w-3" />
-                ~{estimatedTotalDriveHours}h total driving
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "3px 10px",
+                  borderRadius: "20px",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  background: "rgba(107,98,88,0.1)",
+                  color: "var(--dp-text-muted, #6B6258)",
+                  border: "1px solid rgba(107,98,88,0.2)",
+                  ...DM,
+                }}
+              >
+                <Car style={{ width: "10px", height: "10px" }} />
+                ~{estimatedTotalDriveHours}h driving
               </span>
             )}
           </div>
         )}
 
-        <div className="flex gap-4 text-sm">
+        {/* Cost + duration */}
+        <div style={{ display: "flex", gap: "16px", marginBottom: "10px" }}>
           {destination.estimatedDailyCostEur != null && (
-            <span className="flex items-center gap-1 text-muted-foreground">
+            <span style={{ ...DM, fontSize: "12px", color: "var(--muted-foreground, #A89F94)" }}>
               ~{formatPrice(destination.estimatedDailyCostEur, currency)}/day
             </span>
           )}
           {destination.suggestedDuration && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                ...DM,
+                fontSize: "12px",
+                color: "var(--muted-foreground, #A89F94)",
+              }}
+            >
+              <Clock style={{ width: "12px", height: "12px" }} />
               {destination.suggestedDuration}
             </span>
           )}
         </div>
 
+        {/* Activity chips */}
         {displayActivities.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "12px" }}>
             {displayActivities.map((activity) => (
               <span
                 key={activity}
-                className="px-2 py-0.5 rounded-lg bg-accent text-xs text-accent-foreground"
+                style={{
+                  padding: "3px 10px",
+                  borderRadius: "20px",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  background: "rgba(42,191,191,0.08)",
+                  color: "#2ABFBF",
+                  border: "1px solid rgba(42,191,191,0.15)",
+                  ...DM,
+                }}
               >
                 {activity}
               </span>
             ))}
             {moreCount > 0 && (
-              <span className="px-2 py-0.5 rounded-lg text-xs text-muted-foreground">
+              <span
+                style={{
+                  padding: "3px 10px",
+                  borderRadius: "20px",
+                  fontSize: "11px",
+                  color: "var(--dp-text-muted, #6B6258)",
+                  ...DM,
+                }}
+              >
                 +{moreCount} more
               </span>
             )}
           </div>
         )}
 
-        <div className="flex items-center justify-end pt-0.5 text-xs text-primary font-medium">
+        {/* View details */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: "2px",
+            ...DM,
+            fontSize: "12px",
+            fontWeight: 500,
+            color: "var(--dp-orange, #E8833A)",
+          }}
+        >
           View details
-          <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+          <ChevronRight style={{ width: "14px", height: "14px" }} />
         </div>
       </div>
     </div>
