@@ -110,3 +110,16 @@ export const sharedTrips = pgTable("shared_trips", {
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   viewCount: integer("view_count").default(0).notNull(),
 });
+
+// ─── Showcase Destinations ─────────────────────────────────────────────
+
+export const showcaseDestinations = pgTable("showcase_destinations", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  name: text("name").notNull(),
+  country: text("country"),
+  slug: text("slug").notNull().unique(),
+  imageUrl: text("image_url"),
+  viewedAt: timestamp("viewed_at", { mode: "date" }).defaultNow().notNull(),
+});
