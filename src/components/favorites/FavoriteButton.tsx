@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Heart } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,13 @@ export function FavoriteButton({
   const [loading, setLoading] = useState(false);
   const [showListModal, setShowListModal] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
+  const pulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pulseTimer.current) clearTimeout(pulseTimer.current);
+    };
+  }, []);
 
   async function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -66,8 +73,9 @@ export function FavoriteButton({
     setShowListModal(false);
     setLoading(true);
     onToggle("optimistic"); // optimistic
+    if (pulseTimer.current) clearTimeout(pulseTimer.current);
     setIsPulsing(true);
-    setTimeout(() => setIsPulsing(false), 200);
+    pulseTimer.current = setTimeout(() => setIsPulsing(false), 200);
 
     try {
       const res = await fetch("/api/favorites", {
@@ -103,7 +111,7 @@ export function FavoriteButton({
         }}
         className={cn(
           btnSize,
-          "rounded-full border transition-all",
+          "rounded-full border",
           isFavorited
             ? "border-[#E8833A] text-[#E8833A]"
             : "border-border text-[#F2EEE8] hover:border-[#E8833A] hover:bg-[rgba(232,131,58,0.08)] hover:text-[#E8833A]",
