@@ -1,12 +1,18 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-const { mockToTextStreamResponse, mockStreamText } = vi.hoisted(() => {
+const { mockToTextStreamResponse, mockStreamText, mockAuth, mockCookies } = vi.hoisted(() => {
   const mockToTextStreamResponse = vi.fn().mockReturnValue(new Response('stream'))
   const mockStreamText = vi.fn().mockReturnValue({
     toTextStreamResponse: mockToTextStreamResponse,
   })
-  return { mockToTextStreamResponse, mockStreamText }
+  const mockAuth = vi.fn().mockResolvedValue({ user: { id: 'test-user' } })
+  const mockCookieStore = {
+    get: vi.fn().mockReturnValue(undefined),
+    set: vi.fn(),
+  }
+  const mockCookies = vi.fn().mockResolvedValue(mockCookieStore)
+  return { mockToTextStreamResponse, mockStreamText, mockAuth, mockCookies }
 })
 
 vi.mock('ai', () => ({
@@ -19,6 +25,10 @@ vi.mock('ai', () => ({
 vi.mock('@ai-sdk/anthropic', () => ({
   createAnthropic: vi.fn().mockReturnValue(vi.fn()),
 }))
+
+vi.mock('@/lib/auth', () => ({ auth: mockAuth }))
+
+vi.mock('next/headers', () => ({ cookies: mockCookies }))
 
 import { POST } from '@/app/api/explore/route'
 
