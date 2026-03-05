@@ -21,12 +21,13 @@ export async function GET() {
       .orderBy(desc(wishlists.updatedAt));
 
     // For each wishlist, get item count and cover data (first 3 favorites)
+    const userId = session.user.id;
     const wishlistsWithPreviews = await Promise.all(
       userWishlists.map(async (wl) => {
         const [countResult] = await db
           .select({ count: count() })
           .from(favorites)
-          .where(and(eq(favorites.listId, wl.id), eq(favorites.userId, session.user.id)));
+          .where(and(eq(favorites.listId, wl.id), eq(favorites.userId, userId)));
 
         const coverItems = await db
           .select({
@@ -34,7 +35,7 @@ export async function GET() {
             country: favorites.country,
           })
           .from(favorites)
-          .where(and(eq(favorites.listId, wl.id), eq(favorites.userId, session.user.id)))
+          .where(and(eq(favorites.listId, wl.id), eq(favorites.userId, userId)))
           .orderBy(desc(favorites.createdAt))
           .limit(3);
 
