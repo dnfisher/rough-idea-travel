@@ -245,6 +245,21 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
     }
   }, [slug]);
 
+  // Fire-and-forget: record this destination in the showcase on first view
+  useEffect(() => {
+    if (!ctx?.summary.name) return;
+    const name = ctx.summary.name;
+    const country = ctx.summary.country ?? "";
+    const params = new URLSearchParams({ name });
+    if (country) params.set("country", country);
+    const imageUrl = `/api/destination-image?${params.toString()}`;
+    fetch("/api/showcase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, country: country || undefined, slug, imageUrl }),
+    }).catch(() => {/* silent — showcase is non-critical */});
+  }, [ctx?.summary.name, slug]);
+
   // Memoize tripInput so hooks don't get a new reference if ctx ever updates
   const tripInput = useMemo(() => ctx?.tripInput, [ctx]);
 
