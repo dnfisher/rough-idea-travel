@@ -220,7 +220,7 @@ export default function ExplorePage() {
         <div
           className={
             showLayout
-              ? "grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 py-4 sm:py-6"
+              ? "grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 py-4 sm:py-6"
               : "flex flex-col items-center pt-[8vh] pb-8"
           }
         >
@@ -283,7 +283,7 @@ export default function ExplorePage() {
                 selectedId={null}
                 showRoute={false}
                 onMarkerClick={() => {}}
-                height={300}
+                height={400}
               />
             )}
           </aside>

@@ -214,14 +214,14 @@ export function DestinationCard({
       </div>
 
       {/* Card body */}
-      <div style={{ padding: "14px 16px 16px", ...DM }}>
+      <div style={{ padding: "16px 20px 20px", ...DM }}>
         {/* Name + country */}
         <div style={{ marginBottom: "8px" }}>
           <h3
             style={{
               ...CLASH,
-              fontSize: "16px",
-              fontWeight: 600,
+              fontSize: "22px",
+              fontWeight: 500,
               color: "var(--foreground, #F2EEE8)",
               lineHeight: 1.2,
               margin: 0,
@@ -248,7 +248,7 @@ export function DestinationCard({
           <p
             style={{
               ...DM,
-              fontSize: "13px",
+              fontSize: "14px",
               color: "var(--muted-foreground, #A89F94)",
               lineHeight: 1.5,
               display: "-webkit-box",
@@ -273,7 +273,7 @@ export function DestinationCard({
                   gap: "4px",
                   padding: "3px 10px",
                   borderRadius: "20px",
-                  fontSize: "11px",
+                  fontSize: "12px",
                   fontWeight: 500,
                   background: "rgba(42,191,191,0.1)",
                   color: "#2ABFBF",
@@ -293,7 +293,7 @@ export function DestinationCard({
                   gap: "4px",
                   padding: "3px 10px",
                   borderRadius: "20px",
-                  fontSize: "11px",
+                  fontSize: "12px",
                   fontWeight: 500,
                   background: "rgba(196,168,130,0.1)",
                   color: "#C4A882",
@@ -313,7 +313,7 @@ export function DestinationCard({
                   gap: "4px",
                   padding: "3px 10px",
                   borderRadius: "20px",
-                  fontSize: "11px",
+                  fontSize: "12px",
                   fontWeight: 500,
                   background: "rgba(107,98,88,0.1)",
                   color: "var(--dp-text-muted, #6B6258)",
@@ -331,7 +331,7 @@ export function DestinationCard({
         {/* Cost + duration */}
         <div style={{ display: "flex", gap: "16px", marginBottom: "10px" }}>
           {destination.estimatedDailyCostEur != null && (
-            <span style={{ ...DM, fontSize: "12px", color: "var(--muted-foreground, #A89F94)" }}>
+            <span style={{ ...DM, fontSize: "14px", fontWeight: 500, color: "var(--muted-foreground, #A89F94)" }}>
               ~{formatPrice(destination.estimatedDailyCostEur, currency)}/day
             </span>
           )}
@@ -342,7 +342,8 @@ export function DestinationCard({
                 alignItems: "center",
                 gap: "4px",
                 ...DM,
-                fontSize: "12px",
+                fontSize: "14px",
+                fontWeight: 500,
                 color: "var(--muted-foreground, #A89F94)",
               }}
             >
@@ -396,7 +397,7 @@ export function DestinationCard({
             justifyContent: "flex-end",
             gap: "2px",
             ...DM,
-            fontSize: "12px",
+            fontSize: "14px",
             fontWeight: 500,
             color: "var(--dp-orange, #E8833A)",
           }}
