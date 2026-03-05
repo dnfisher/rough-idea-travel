@@ -5,6 +5,8 @@ import { Plus, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DestinationImage } from "@/components/results/DestinationImage";
 
+const QUICK_SAVE = "quick" as const;
+
 interface WishlistSummary {
   id: string;
   name: string;
@@ -30,8 +32,7 @@ export function SaveToListModal({
   const [saving, setSaving] = useState(false);
   const [showCreateInput, setShowCreateInput] = useState(false);
   const [newListName, setNewListName] = useState("");
-  const QUICK_SAVE = "quick" as const;
-  const [selectedListId, setSelectedListId] = useState<string | null>(null);
+const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const createInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch wishlists when modal opens
