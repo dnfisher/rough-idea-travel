@@ -259,7 +259,8 @@ body {
 
 /* ── Shared warm dark theme (destination + explore pages) ── */
 .destination-page,
-.explore-page {
+.explore-page,
+.homepage {
   /* Color overrides */
   --background: #0F0E0D;
   --card: #1C1A17;
@@ -396,4 +397,119 @@ body {
 
 .heart-pulse {
   animation: heartPulse 0.2s ease;
+}
+
+/* ── Homepage: Video Background ─────────────────────────── */
+.hero-video-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: opacity 1.2s ease;
+}
+
+.hero-video--active  { opacity: 1; }
+.hero-video--fading  { opacity: 0; }
+.hero-video--hidden  { opacity: 0; pointer-events: none; }
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 14, 13, 0.35) 0%,
+    rgba(15, 14, 13, 0.50) 50%,
+    rgba(15, 14, 13, 0.88) 85%,
+    #0F0E0D 100%
+  );
+}
+
+@media (max-width: 768px) {
+  .hero-video { display: none; }
+  .hero-video-container {
+    background-image: url('/images/hero-poster.jpg');
+    background-size: cover;
+    background-position: center;
+  }
+}
+
+/* ── Homepage: Nav ───────────────────────────────────────── */
+.homepage-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 0 28px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.homepage-nav.scrolled {
+  background: rgba(28, 26, 23, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom-color: #2E2B25;
+}
+
+/* ── Homepage: Scroll Indicator ─────────────────────────── */
+.scroll-indicator {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.4;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.scroll-indicator__icon {
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(5px); }
+}
+
+@media (max-width: 768px) {
+  .scroll-indicator { display: none; }
+}
+
+/* ── Homepage: Feature Cards ─────────────────────────────── */
+.feature-card {
+  background: #1C1A17;
+  border: 1px solid #2E2B25;
+  border-radius: 16px;
+  padding: 28px;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  border-color: rgba(42, 191, 191, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 -1px 0 0 rgba(42, 191, 191, 0.3),
+              0 12px 40px rgba(0, 0, 0, 0.4);
 }
