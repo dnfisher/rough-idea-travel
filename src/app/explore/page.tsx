@@ -285,6 +285,7 @@ export default function ExplorePage() {
                 showRoute={false}
                 onMarkerClick={() => {}}
                 onMarkerHover={(id) => setHoveredDestName(id)}
+                panOnSelect={false}
                 height={400}
               />
             )}

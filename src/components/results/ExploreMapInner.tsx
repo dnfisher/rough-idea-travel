@@ -21,6 +21,7 @@ interface ExploreMapInnerProps {
   showRoute: boolean;
   onMarkerClick?: (id: string) => void;
   onMarkerHover?: (id: string | null) => void;
+  panOnSelect?: boolean; // defaults to true — set false to highlight without panning
 }
 
 function createIcon(label: number, isSelected: boolean, isItinerary: boolean) {
@@ -54,16 +55,17 @@ function FitBounds({ markers }: { markers: MapMarker[] }) {
   return null;
 }
 
-function PanToSelected({ markers, selectedId }: { markers: MapMarker[]; selectedId: string | null }) {
+function PanToSelected({ markers, selectedId, panOnSelect }: { markers: MapMarker[]; selectedId: string | null; panOnSelect: boolean }) {
   const map = useMap();
 
   useEffect(() => {
+    if (!panOnSelect) return; // hover-only mode: skip pan
     if (!selectedId) return;
     const marker = markers.find((m) => m.id === selectedId);
     if (marker) {
       map.panTo([marker.lat, marker.lng], { animate: true });
     }
-  }, [selectedId, markers, map]);
+  }, [selectedId, markers, map, panOnSelect]);
 
   return null;
 }
@@ -74,6 +76,7 @@ export function ExploreMapInner({
   showRoute,
   onMarkerClick,
   onMarkerHover,
+  panOnSelect = true,
 }: ExploreMapInnerProps) {
   const routePositions = useMemo(
     () => markers.map((m): [number, number] => [m.lat, m.lng]),
@@ -104,7 +107,7 @@ export function ExploreMapInner({
       />
 
       <FitBounds markers={markers} />
-      <PanToSelected markers={markers} selectedId={selectedId} />
+      <PanToSelected markers={markers} selectedId={selectedId} panOnSelect={panOnSelect} />
 
       {showRoute && routePositions.length > 1 && (
         <Polyline
