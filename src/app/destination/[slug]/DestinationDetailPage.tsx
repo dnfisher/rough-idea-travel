@@ -219,6 +219,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
 
   // Gallery photos from API
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Read context from sessionStorage on mount
   useEffect(() => {
@@ -367,6 +368,18 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         // silently ignore gallery errors
       });
   }, [destination?.name, stableCountry, imageSearchName]);
+
+  // Lightbox keyboard navigation
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { setLightboxIndex(null); return; }
+      if (e.key === "ArrowRight") setLightboxIndex((i) => i === null ? null : Math.min(i + 1, galleryPhotos.length - 1));
+      if (e.key === "ArrowLeft")  setLightboxIndex((i) => i === null ? null : Math.max(i - 1, 0));
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxIndex, galleryPhotos.length]);
 
   // ── No context fallback ──
   if (noContext) {
@@ -553,10 +566,12 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
               </div>
               {/* 4 smaller cells */}
               {[0, 1, 2, 3].map((idx) => (
-                <div
+                <button
                   key={idx}
-                  className="relative overflow-hidden bg-border"
-                  style={{ borderRadius: "10px" }}
+                  onClick={() => setLightboxIndex(idx)}
+                  className="relative overflow-hidden bg-border w-full h-full"
+                  style={{ borderRadius: "10px", cursor: "pointer", padding: 0, border: "none" }}
+                  aria-label={`View photo ${idx + 1}`}
                 >
                   {galleryPhotos[idx] ? (
                     <img
@@ -568,7 +583,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                     <div className="w-full h-full animate-shimmer" />
                   )}
                   {/* "Show all photos" overlay on last cell */}
-                  {idx === 3 && (
+                  {idx === 3 && galleryPhotos.length > 4 && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                       <span
                         className="flex items-center gap-2"
@@ -581,14 +596,15 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                           fontSize: "13px",
                           fontWeight: 500,
                           color: "var(--foreground)",
+                          pointerEvents: "none",
                         }}
                       >
                         <Images className="h-4 w-4" />
-                        Show all photos
+                        +{galleryPhotos.length - 3} photos
                       </span>
                     </div>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -1587,6 +1603,172 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           </a>
         )}
       </div>
+
+      {/* ── Lightbox ── */}
+      {lightboxIndex !== null && galleryPhotos[lightboxIndex] && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo lightbox"
+          onClick={() => setLightboxIndex(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            background: "rgba(0,0,0,0.92)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {/* Close */}
+          <button
+            onClick={() => setLightboxIndex(null)}
+            aria-label="Close lightbox"
+            style={{
+              position: "absolute",
+              top: "16px",
+              right: "16px",
+              background: "rgba(255,255,255,0.1)",
+              border: "none",
+              borderRadius: "50%",
+              width: "40px",
+              height: "40px",
+              cursor: "pointer",
+              color: "#F2EEE8",
+              fontSize: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            ✕
+          </button>
+
+          {/* Counter */}
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+              fontSize: "13px",
+              color: "rgba(242,238,232,0.6)",
+            }}
+          >
+            {lightboxIndex + 1} / {galleryPhotos.length}
+          </div>
+
+          {/* Prev */}
+          {lightboxIndex > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => Math.max((i ?? 1) - 1, 0)); }}
+              aria-label="Previous photo"
+              style={{
+                position: "absolute",
+                left: "16px",
+                background: "rgba(255,255,255,0.1)",
+                border: "none",
+                borderRadius: "50%",
+                width: "44px",
+                height: "44px",
+                cursor: "pointer",
+                color: "#F2EEE8",
+                fontSize: "20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              ‹
+            </button>
+          )}
+
+          {/* Image */}
+          <img
+            src={galleryPhotos[lightboxIndex]}
+            alt={`${destination?.name ?? "Destination"} photo ${lightboxIndex + 1}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "90vw",
+              maxHeight: "85vh",
+              objectFit: "contain",
+              borderRadius: "8px",
+              boxShadow: "0 8px 48px rgba(0,0,0,0.6)",
+            }}
+          />
+
+          {/* Next */}
+          {lightboxIndex < galleryPhotos.length - 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => Math.min((i ?? 0) + 1, galleryPhotos.length - 1)); }}
+              aria-label="Next photo"
+              style={{
+                position: "absolute",
+                right: "16px",
+                background: "rgba(255,255,255,0.1)",
+                border: "none",
+                borderRadius: "50%",
+                width: "44px",
+                height: "44px",
+                cursor: "pointer",
+                color: "#F2EEE8",
+                fontSize: "20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              ›
+          </button>
+          )}
+
+          {/* Thumbnail strip */}
+          {galleryPhotos.length > 1 && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "absolute",
+                bottom: "16px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                display: "flex",
+                gap: "6px",
+                overflowX: "auto",
+                maxWidth: "90vw",
+                padding: "4px",
+              }}
+            >
+              {galleryPhotos.map((url, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
+                  aria-label={`View photo ${i + 1}`}
+                  style={{
+                    flexShrink: 0,
+                    width: "52px",
+                    height: "36px",
+                    borderRadius: "4px",
+                    overflow: "hidden",
+                    border: i === lightboxIndex ? "2px solid #2ABFBF" : "2px solid transparent",
+                    padding: 0,
+                    cursor: "pointer",
+                    opacity: i === lightboxIndex ? 1 : 0.55,
+                    transition: "opacity 0.15s, border-color 0.15s",
+                  }}
+                >
+                  <img
+                    src={url}
+                    alt=""
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
   );
