@@ -256,3 +256,133 @@ body {
 .animate-slide-from-left {
   animation: slide-from-left 0.22s ease-out both;
 }
+
+/* ── Shared warm dark theme (destination + explore pages) ── */
+.destination-page,
+.explore-page {
+  /* Color overrides */
+  --background: #0F0E0D;
+  --card: #1C1A17;
+  --surface: #252219;
+  --border: #2E2B25;
+  --foreground: #F2EEE8;
+  --muted-foreground: #A89F94;
+  --muted: #252219;
+  --primary: #2ABFBF;
+  --primary-foreground: #0F0E0D;
+  --highlight: #E8833A;
+
+  /* Page-specific tokens */
+  --dp-text-muted: #6B6258;
+  --dp-orange: #E8833A;
+  --dp-warm-grey: #C4A882;
+  --dp-teal: #2ABFBF;
+  --dp-bg-elevated: #1C1A17;
+  --dp-bg-subtle: #252219;
+
+  /* Override body font to DM Sans */
+  font-family: var(--font-dm-sans, 'DM Sans'), 'DM Sans', sans-serif;
+}
+
+/* Override display font to Clash Display within destination page */
+.destination-page .font-display {
+  font-family: 'Clash Display', system-ui, sans-serif;
+}
+
+/* ── react-day-picker dark theme ────────────────────────── */
+.rdp-root {
+  --rdp-accent-color: #2ABFBF;
+  --rdp-accent-background-color: rgba(42, 191, 191, 0.12);
+  --rdp-outside-opacity: 0.3;
+  color: #F2EEE8;
+  font-family: var(--font-dm-sans, 'DM Sans'), sans-serif;
+  font-size: 13px;
+}
+
+.rdp-month_caption {
+  font-size: 13px;
+  font-weight: 600;
+  color: #F2EEE8;
+  padding-bottom: 8px;
+}
+
+.rdp-nav button {
+  color: #A89F94;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.rdp-nav button:hover {
+  color: #F2EEE8;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.rdp-weekday {
+  font-size: 11px;
+  color: #6B6258;
+  font-weight: 500;
+}
+
+.rdp-day_button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #F2EEE8;
+  font-size: 13px;
+  transition: background 0.1s ease, color 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rdp-day_button:hover {
+  background: rgba(42, 191, 191, 0.12);
+  color: #2ABFBF;
+}
+
+.rdp-selected .rdp-day_button,
+.rdp-range_start .rdp-day_button,
+.rdp-range_end .rdp-day_button {
+  background: #2ABFBF;
+  color: #0F0E0D;
+  font-weight: 600;
+}
+
+.rdp-range_middle .rdp-day_button {
+  background: rgba(42, 191, 191, 0.08);
+  border-radius: 0;
+  color: #F2EEE8;
+}
+
+.rdp-range_start .rdp-day_button {
+  border-radius: 50% 0 0 50%;
+}
+
+.rdp-range_end .rdp-day_button {
+  border-radius: 0 50% 50% 0;
+}
+
+.rdp-range_start.rdp-range_end .rdp-day_button {
+  border-radius: 50%;
+}
+
+.rdp-today .rdp-day_button {
+  font-weight: 700;
+  color: #2ABFBF;
+}
+
+.rdp-disabled .rdp-day_button {
+  color: #2E2B25;
+  cursor: not-allowed;
+}
+
+.rdp-months {
+  gap: 16px;
+}
