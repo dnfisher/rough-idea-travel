@@ -7,6 +7,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 //   ffmpeg -i input.mp4 -vcodec libx264 -crf 28 -preset slow -vf "scale=1920:-2" -movflags +faststart -an output_compressed.mp4
 // WebM (30-40% smaller):
 //   ffmpeg -i input.mp4 -c:v libvpx-vp9 -crf 33 -b:v 0 -vf "scale=1920:-2" -an output.webm
+// Consider CDN hosting for production — 83MB total in /public/ will slow Vercel deploys.
 const VIDEO_SOURCES = [
   '/videos/coverr-coast-in-brazil-4147-1080p.mp4',
   '/videos/coverr-grand-teton-national-park-5555-1080p.mp4',
@@ -23,14 +24,32 @@ export function HeroVideoBackground() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [fadingIndex, setFadingIndex] = useState<number | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoplayBlockedRef = useRef(false);
 
   const advance = useCallback(() => {
     setActiveIndex(prev => {
       const next = (prev + 1) % VIDEO_SOURCES.length;
       setFadingIndex(prev);
-      setTimeout(() => setFadingIndex(null), 1200);
+      // Clear any existing fade timer before starting a new one
+      if (fadeTimerRef.current !== null) {
+        clearTimeout(fadeTimerRef.current);
+      }
+      fadeTimerRef.current = setTimeout(() => {
+        setFadingIndex(null);
+        fadeTimerRef.current = null;
+      }, 1200);
       return next;
     });
+  }, []);
+
+  // Clear fade timer on unmount
+  useEffect(() => {
+    return () => {
+      if (fadeTimerRef.current !== null) {
+        clearTimeout(fadeTimerRef.current);
+      }
+    };
   }, []);
 
   // Preload the next video whenever active changes
@@ -44,18 +63,20 @@ export function HeroVideoBackground() {
 
   // Imperatively play active video (handles browser autoplay policy gracefully)
   useEffect(() => {
+    // If autoplay was already blocked, do not keep trying — videos remain paused
+    if (autoplayBlockedRef.current) return;
+
     const active = videoRefs.current[activeIndex];
     if (active) {
       const result = active.play();
-      // play() returns a Promise in modern browsers; jsdom returns undefined
       if (result !== undefined) {
         result.catch(() => {
-          // Autoplay blocked — advance silently
-          advance();
+          // Autoplay blocked — set flag so we stop trying on future advances
+          autoplayBlockedRef.current = true;
         });
       }
     }
-  }, [activeIndex, advance]);
+  }, [activeIndex]);
 
   return (
     <div className="hero-video-container">

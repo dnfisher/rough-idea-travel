@@ -25,7 +25,6 @@ test.describe('Landing page', () => {
     const nav = page.locator('nav.homepage-nav')
     await expect(nav).not.toHaveClass(/scrolled/)
     await page.evaluate(() => window.scrollTo(0, 200))
-    await page.waitForTimeout(100)
     await expect(nav).toHaveClass(/scrolled/)
   })
 })
