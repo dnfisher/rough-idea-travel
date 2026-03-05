@@ -34,7 +34,7 @@ export async function GET(
     const items = await db
       .select()
       .from(favorites)
-      .where(eq(favorites.listId, id))
+      .where(and(eq(favorites.listId, id), eq(favorites.userId, session.user.id)))
       .orderBy(desc(favorites.createdAt));
 
     return new Response(

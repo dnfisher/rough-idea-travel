@@ -1,9 +1,13 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
 export const COOKIE_NAME = "ri_searches";
-export const MAX_FREE_SEARCHES = 5;
+export const MAX_FREE_SEARCHES = 3;
 
-const SECRET = () => process.env.AUTH_SECRET ?? "dev-secret";
+const SECRET = () => {
+  const s = process.env.AUTH_SECRET;
+  if (!s) throw new Error("[search-gate] AUTH_SECRET env var is required");
+  return s;
+};
 
 export function readSearchCount(cookieValue: string | undefined): number {
   if (!cookieValue) return 0;

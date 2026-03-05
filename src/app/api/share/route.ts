@@ -4,6 +4,15 @@ import { sharedTrips } from "@/lib/db/schema";
 
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const userId = session.user.id;
+
     const body = await req.json();
     const { destinationData, tripInputData } = body;
 
@@ -22,15 +31,6 @@ export async function POST(req: Request) {
         headers: { "Content-Type": "application/json" },
       });
     }
-
-    const session = await auth();
-    if (!session?.user?.id) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    const userId = session.user.id;
 
     const [inserted] = await db
       .insert(sharedTrips)

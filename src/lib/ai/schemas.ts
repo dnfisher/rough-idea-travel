@@ -3,11 +3,11 @@ import { z } from "zod";
 // --- Input Schema ---
 
 export const TripInputSchema = z.object({
-  homeCity: z.string().optional(),
+  homeCity: z.string().max(200).optional(),
   travelRange: z.enum(["short_haul", "medium_haul", "long_haul", "driving_distance", "any"]).optional(),
   dates: z.object({
     flexible: z.boolean(),
-    description: z.string().optional(), // e.g. "mid-April"
+    description: z.string().max(200).optional(), // e.g. "mid-April"
     startDate: z.string().optional(), // ISO date
     endDate: z.string().optional(),
     durationDays: z
@@ -17,9 +17,9 @@ export const TripInputSchema = z.object({
       })
       .optional(),
   }),
-  travelers: z.number().min(1).default(1),
-  interests: z.array(z.string()),
-  weatherPreference: z.string().optional(),
+  travelers: z.number().min(1).max(20).default(1),
+  interests: z.array(z.string().max(100)).max(20),
+  weatherPreference: z.string().max(200).optional(),
   budgetLevel: z.enum(["budget", "moderate", "comfortable", "luxury"]),
   tripStyle: z.enum([
     "road_trip",
@@ -31,12 +31,12 @@ export const TripInputSchema = z.object({
   ]),
   locationPreference: z.object({
     type: z.enum(["open", "region", "specific"]),
-    value: z.string().optional(),
-    comparePlaces: z.array(z.string()).optional(),
+    value: z.string().max(200).optional(),
+    comparePlaces: z.array(z.string().max(100)).max(10).optional(),
   }),
-  startingPoint: z.string().optional(),
-  additionalNotes: z.string().optional(),
-  currency: z.string().optional(),
+  startingPoint: z.string().max(200).optional(),
+  additionalNotes: z.string().max(500).optional(),
+  currency: z.string().max(10).optional(),
 });
 
 export type TripInput = z.infer<typeof TripInputSchema>;

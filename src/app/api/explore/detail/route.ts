@@ -10,13 +10,13 @@ import {
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { cookies } from "next/headers";
-import { readSearchCount, isSearchAllowed, COOKIE_NAME } from "@/lib/search-gate";
+import { readSearchCount, isSearchAllowed, makeSearchCookie, COOKIE_NAME, COOKIE_OPTIONS } from "@/lib/search-gate";
 
 export const maxDuration = 120;
 
 const DetailRequestSchema = z.object({
-  destinationName: z.string(),
-  country: z.string(),
+  destinationName: z.string().max(200),
+  country: z.string().max(200),
   tripInput: TripInputSchema,
   mode: z.enum(['overview', 'itinerary_only', 'full']).default('overview'),
 });
@@ -46,6 +46,7 @@ export async function POST(req: Request) {
           { status: 429, headers: { "Content-Type": "application/json" } }
         );
       }
+      cookieStore.set(COOKIE_NAME, makeSearchCookie(count + 1), COOKIE_OPTIONS);
     }
 
     const body = await req.json();

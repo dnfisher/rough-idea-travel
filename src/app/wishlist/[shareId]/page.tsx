@@ -55,9 +55,16 @@ export default async function SharedWishlistPage({
     .then(() => {})
     .catch(() => {});
 
-  // Fetch all favorites in this wishlist
+  // Fetch all favorites in this wishlist — exclude tripInputData (contains user's private trip preferences)
   const items = await db
-    .select()
+    .select({
+      id: favorites.id,
+      destinationName: favorites.destinationName,
+      country: favorites.country,
+      destinationData: favorites.destinationData,
+      listId: favorites.listId,
+      createdAt: favorites.createdAt,
+    })
     .from(favorites)
     .where(eq(favorites.listId, wl.id))
     .orderBy(desc(favorites.createdAt));

@@ -17,13 +17,26 @@ vi.mock('@/lib/db', () => ({ db: dbMock }))
 
 import { POST } from '@/app/api/share/route'
 
+const authedSession = { user: { id: 'user-123' } }
+
 beforeEach(() => {
   vi.clearAllMocks()
   mockAuth.mockResolvedValue(null)
 })
 
 describe('POST /api/share', () => {
+  it('returns 401 when unauthenticated', async () => {
+    const req = new Request('http://localhost/api/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destinationData: { name: 'Lisbon', country: 'Portugal' } }),
+    })
+    const response = await POST(req)
+    expect(response.status).toBe(401)
+  })
+
   it('returns 400 when destinationData is missing', async () => {
+    mockAuth.mockResolvedValue(authedSession)
     const req = new Request('http://localhost/api/share', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -36,6 +49,7 @@ describe('POST /api/share', () => {
   })
 
   it('returns 400 when destinationData.name is missing', async () => {
+    mockAuth.mockResolvedValue(authedSession)
     const req = new Request('http://localhost/api/share', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -48,6 +62,7 @@ describe('POST /api/share', () => {
   })
 
   it('returns 400 when destination data exceeds 50KB', async () => {
+    mockAuth.mockResolvedValue(authedSession)
     const bigData = { name: 'Lisbon', country: 'Portugal', extra: 'x'.repeat(60_000) }
     const req = new Request('http://localhost/api/share', {
       method: 'POST',

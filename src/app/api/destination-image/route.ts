@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const CACHE = new Map<string, { url: string | null; ts: number }>();
 const CACHE_TTL = 1000 * 60 * 60 * 4; // 4 hours (Google photo URLs are long-lived)
+const CACHE_MAX = 500;
 const UA = "RoughIdeaTravel/1.0 (travel planning tool)";
 
 // ── Google Places Photos API (New) ─────────────────────────────
@@ -194,6 +195,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (CACHE.size >= CACHE_MAX) CACHE.delete(CACHE.keys().next().value!);
   CACHE.set(cacheKey, { url: imageUrl, ts: Date.now() });
 
   if (!imageUrl) {
