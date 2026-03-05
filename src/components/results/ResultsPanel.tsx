@@ -25,9 +25,11 @@ interface ResultsPanelProps {
   pendingAutoFavorite?: string | null;
   onAutoFavoriteComplete?: () => void;
   hideMap?: boolean;
+  hoveredDestName?: string | null;
+  onCardHover?: (name: string | null) => void;
 }
 
-export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired, pendingAutoFavorite, onAutoFavoriteComplete, hideMap }: ResultsPanelProps) {
+export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired, pendingAutoFavorite, onAutoFavoriteComplete, hideMap, hoveredDestName, onCardHover }: ResultsPanelProps) {
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("match");
   const [favoritesMap, setFavoritesMap] = useState<Record<string, string>>({});
@@ -319,11 +321,28 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
               {sortedDestinations.map((dest, i) => {
                 if (!dest) return null;
                 return (
+                  // TODO: card-map sync — card hover triggers pin highlight
                   <div
                     key={dest.name || i}
                     data-destination-id={dest.name}
-                    onMouseEnter={() => handleCardMouseEnter(dest)}
-                    onMouseLeave={handleCardMouseLeave}
+                    onMouseEnter={() => {
+                      handleCardMouseEnter(dest);
+                      onCardHover?.(dest.name ?? null);
+                    }}
+                    onMouseLeave={() => {
+                      handleCardMouseLeave();
+                      onCardHover?.(null);
+                    }}
+                    style={{
+                      borderRadius: "14px",
+                      border: hoveredDestName === dest.name
+                        ? "1px solid #2ABFBF"
+                        : "1px solid transparent",
+                      boxShadow: hoveredDestName === dest.name
+                        ? "0 0 0 2px rgba(42,191,191,0.2)"
+                        : "none",
+                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+                    }}
                   >
                     <DestinationCard
                       destination={dest}

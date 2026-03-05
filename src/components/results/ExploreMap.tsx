@@ -15,10 +15,11 @@ interface ExploreMapProps {
   selectedId: string | null;
   showRoute: boolean;
   onMarkerClick?: (id: string) => void;
+  onMarkerHover?: (id: string | null) => void;
   height?: number;
 }
 
-export function ExploreMap({ markers, selectedId, showRoute, onMarkerClick, height = 350 }: ExploreMapProps) {
+export function ExploreMap({ markers, selectedId, showRoute, onMarkerClick, onMarkerHover, height = 350 }: ExploreMapProps) {
   return (
     <div
       className="rounded-xl border border-border overflow-hidden isolate relative"
@@ -29,6 +30,7 @@ export function ExploreMap({ markers, selectedId, showRoute, onMarkerClick, heig
         selectedId={selectedId}
         showRoute={showRoute}
         onMarkerClick={onMarkerClick}
+        onMarkerHover={onMarkerHover}
       />
     </div>
   );

@@ -20,6 +20,7 @@ interface ExploreMapInnerProps {
   selectedId: string | null;
   showRoute: boolean;
   onMarkerClick?: (id: string) => void;
+  onMarkerHover?: (id: string | null) => void;
 }
 
 function createIcon(label: number, isSelected: boolean, isItinerary: boolean) {
@@ -72,6 +73,7 @@ export function ExploreMapInner({
   selectedId,
   showRoute,
   onMarkerClick,
+  onMarkerHover,
 }: ExploreMapInnerProps) {
   const routePositions = useMemo(
     () => markers.map((m): [number, number] => [m.lat, m.lng]),
@@ -116,8 +118,11 @@ export function ExploreMapInner({
           key={marker.id}
           position={[marker.lat, marker.lng]}
           icon={createIcon(marker.label, marker.id === selectedId, !!marker.isItinerary)}
+          // TODO: card-map sync — pin hover triggers card highlight
           eventHandlers={{
             click: () => onMarkerClick?.(marker.id),
+            mouseover: () => onMarkerHover?.(marker.id),
+            mouseout: () => onMarkerHover?.(null),
           }}
         >
           <Popup>

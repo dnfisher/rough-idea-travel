@@ -34,6 +34,7 @@ export default function ExplorePage() {
 
   const [restoredResult, setRestoredResult] = useState<DeepPartial<ExplorationSummaryResult> | null>(null);
   const [pendingAutoFavorite, setPendingAutoFavorite] = useState<string | null>(null);
+  const [hoveredDestName, setHoveredDestName] = useState<string | null>(null);
 
   const {
     showSignInModal,
@@ -280,9 +281,10 @@ export default function ExplorePage() {
             {showLayout && !overlayVisible && mapMarkers.length > 0 && (
               <ExploreMap
                 markers={mapMarkers}
-                selectedId={null}
+                selectedId={hoveredDestName}
                 showRoute={false}
                 onMarkerClick={() => {}}
+                onMarkerHover={(id) => setHoveredDestName(id)}
                 height={400}
               />
             )}
@@ -300,6 +302,8 @@ export default function ExplorePage() {
                 pendingAutoFavorite={pendingAutoFavorite}
                 onAutoFavoriteComplete={handleAutoFavoriteComplete}
                 hideMap={true}
+                hoveredDestName={hoveredDestName}
+                onCardHover={(name) => setHoveredDestName(name)}
               />
             </section>
           )}
