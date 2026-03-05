@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
 import { ExplorationSummaryResultSchema } from "@/lib/ai/schemas";
 import type { TripInput, ExplorationSummaryResult } from "@/lib/ai/schemas";
 import type { DeepPartial } from "ai";
 import { TripInputForm } from "@/components/explore/TripInputForm";
 import { ResultsPanel } from "@/components/results/ResultsPanel";
+import { ExploreMap } from "@/components/results/ExploreMap";
+import type { MapMarker } from "@/components/results/ExploreMapInner";
+import { ExploreLoadingState } from "@/components/results/ExploreLoadingState";
 import { BackgroundMap } from "@/components/explore/BackgroundMap";
 import { UserButton } from "@/components/auth/UserButton";
 import { SignInModal } from "@/components/auth/SignInModal";
@@ -18,6 +21,8 @@ import {
 } from "@/lib/auth-persistence";
 import { useCurrency } from "@/components/CurrencyProvider";
 
+const CLASH: React.CSSProperties = { fontFamily: "'Clash Display', system-ui, sans-serif" };
+
 export default function ExplorePage() {
   const { object, submit, isLoading, error } = useObject({
     api: "/api/explore",
@@ -27,7 +32,6 @@ export default function ExplorePage() {
   const { currency } = useCurrency();
   const [currentTripInput, setCurrentTripInput] = useState<TripInput | null>(null);
 
-  // Restored state from sessionStorage (survives OAuth redirect)
   const [restoredResult, setRestoredResult] = useState<DeepPartial<ExplorationSummaryResult> | null>(null);
   const [pendingAutoFavorite, setPendingAutoFavorite] = useState<string | null>(null);
 
@@ -40,7 +44,10 @@ export default function ExplorePage() {
     closeModal,
   } = useSearchGate();
 
-  // Restore state from sessionStorage on mount (after OAuth redirect)
+  const [overlayVisible, setOverlayVisible] = useState(false);
+  const [overlayFading, setOverlayFading] = useState(false);
+  const overlayFadingRef = useRef(false);
+
   const restoredRef = useRef(false);
   const resultsRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -64,8 +71,30 @@ export default function ExplorePage() {
     }
   }, [error]);
 
-  // The effective result: live useObject data takes priority over restored data
+  useEffect(() => {
+    if (isLoading) {
+      setOverlayVisible(true);
+      setOverlayFading(false);
+      overlayFadingRef.current = false;
+    }
+  }, [isLoading]);
+
   const effectiveResult = object ?? restoredResult;
+
+  const destCount = (effectiveResult?.destinations ?? []).filter(Boolean).length;
+
+  useEffect(() => {
+    if (overlayVisible && destCount >= 2 && !overlayFadingRef.current) {
+      overlayFadingRef.current = true;
+      setOverlayFading(true);
+      const timer = setTimeout(() => {
+        setOverlayVisible(false);
+        setOverlayFading(false);
+        overlayFadingRef.current = false;
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [overlayVisible, destCount]);
 
   function handleSubmit(input: TripInput) {
     if (!checkSearchAllowed()) return;
@@ -75,7 +104,6 @@ export default function ExplorePage() {
     setCurrentTripInput(enrichedInput);
     submit(enrichedInput);
 
-    // Scroll so user sees loading animation and results
     if (window.innerWidth < 1024) {
       requestAnimationFrame(() => {
         resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -85,7 +113,6 @@ export default function ExplorePage() {
     }
   }
 
-  // Save state to sessionStorage before OAuth redirect
   const handleBeforeSignIn = useCallback(() => {
     const resultToSave = object ?? restoredResult;
     if (currentTripInput && resultToSave) {
@@ -102,53 +129,180 @@ export default function ExplorePage() {
   }, []);
 
   const hasResults = !!(effectiveResult?.summary || effectiveResult?.destinations?.length);
+  const showLayout = hasResults || isLoading;
+
+  // Map markers for left-panel map
+  const mapMarkers = useMemo((): MapMarker[] => {
+    const dests = effectiveResult?.destinations ?? [];
+    return dests
+      .filter((d) => d?.coordinates?.lat != null && d?.coordinates?.lng != null)
+      .map((d, i) => ({
+        id: d!.name ?? `dest-${i}`,
+        lat: d!.coordinates!.lat!,
+        lng: d!.coordinates!.lng!,
+        label: i + 1,
+        title: d!.name ?? "Unknown",
+        subtitle: d!.country,
+      }));
+  }, [effectiveResult?.destinations]);
 
   return (
-    <div className="min-h-screen bg-surface relative">
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+    <div className="explore-page min-h-screen" style={{ background: "var(--background, #0F0E0D)" }}>
+      {/* Full-screen loading overlay */}
+      {overlayVisible && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "#0F0E0D",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: overlayFading ? 0 : 1,
+            transition: "opacity 0.4s ease",
+            pointerEvents: overlayFading ? "none" : "auto",
+          }}
+        >
+          <ExploreLoadingState />
+        </div>
+      )}
+
+      {/* Header */}
+      <header
+        style={{
+          borderBottom: "1px solid var(--border, #2E2B25)",
+          background: "rgba(28,26,23,0.85)",
+          backdropFilter: "blur(12px)",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <a href="/" className="font-logo text-3xl uppercase tracking-[-0.02em]">
-            ROUGH IDEA<span className="text-highlight">.</span>
+          <a
+            href="/"
+            style={{
+              ...CLASH,
+              fontSize: "24px",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "var(--foreground, #F2EEE8)",
+              textDecoration: "none",
+            }}
+          >
+            ROUGH IDEA<span style={{ color: "var(--dp-orange, #E8833A)" }}>.</span>
           </a>
           <UserButton />
         </div>
       </header>
 
-      {/* Background map — visible when no results */}
-      {!hasResults && !isLoading && (
-        <div className="absolute inset-0 top-[65px] z-0">
+      {/* Background map overlay — visible when no results */}
+      {!showLayout && (
+        <div className="absolute inset-0 top-[65px] z-0 pointer-events-none">
           <BackgroundMap />
-          <div className="absolute inset-0 bg-gradient-to-b from-surface/60 via-surface/30 to-surface/80 pointer-events-none" />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(to bottom, rgba(15,14,13,0.55) 0%, rgba(15,14,13,0.25) 40%, rgba(15,14,13,0.8) 100%)",
+            }}
+          />
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4 sm:gap-6 lg:gap-8">
-          {/* Input sidebar */}
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-sm">
-              <h2 className="font-display font-semibold text-xl mb-1">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+        {/*
+          Single TripInputForm instance always in <aside> to preserve React state.
+          Layout switches via parent CSS classes: centered column (pre) vs 2-col grid (post).
+        */}
+        <div
+          className={
+            showLayout
+              ? "grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 py-4 sm:py-6"
+              : "flex flex-col items-center pt-[8vh] pb-8"
+          }
+        >
+          {/* Aside: form (+ map when results) */}
+          <aside
+            className={showLayout ? "lg:sticky lg:top-24 lg:self-start space-y-4" : "w-full max-w-[500px]"}
+          >
+            {/* Pre-search heading — hidden (not removed) when results exist to keep form in stable DOM position */}
+            <div
+              className="text-center"
+              style={{ display: showLayout ? "none" : "block", marginBottom: "24px" }}
+            >
+              <h1
+                style={{
+                  ...CLASH,
+                  fontSize: "clamp(26px, 5vw, 40px)",
+                  fontWeight: 700,
+                  color: "var(--foreground, #F2EEE8)",
+                  lineHeight: 1.15,
+                  marginBottom: "10px",
+                }}
+              >
                 Where should you go?
-              </h2>
-              <p className="text-sm text-muted-foreground mb-4 sm:mb-6">
+              </h1>
+              <p
+                style={{
+                  fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                  fontSize: "15px",
+                  color: "var(--muted-foreground, #A89F94)",
+                  lineHeight: 1.5,
+                }}
+              >
                 Tell us roughly what you&apos;re after and we&apos;ll find your perfect trip.
               </p>
-              <TripInputForm onSubmit={handleSubmit} isLoading={isLoading} hasResults={hasResults} />
             </div>
+
+            {/* Form card */}
+            <div
+              style={{
+                borderRadius: showLayout ? "16px" : "20px",
+                border: "1px solid var(--border, #2E2B25)",
+                background: "var(--card, #1C1A17)",
+                padding: showLayout ? "20px" : "28px",
+                boxShadow: showLayout
+                  ? "0 4px 24px rgba(0,0,0,0.3)"
+                  : "0 8px 40px rgba(0,0,0,0.5)",
+              }}
+            >
+              <TripInputForm
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                hasResults={hasResults}
+              />
+            </div>
+
+            {/* Map — shown in left panel once results arrive */}
+            {showLayout && !overlayVisible && mapMarkers.length > 0 && (
+              <ExploreMap
+                markers={mapMarkers}
+                selectedId={null}
+                showRoute={false}
+                onMarkerClick={() => {}}
+                height={300}
+              />
+            )}
           </aside>
 
-          {/* Results */}
-          <section ref={resultsRef} className="min-w-0">
-            <ResultsPanel
-              result={effectiveResult ?? undefined}
-              isLoading={isLoading}
-              error={error ?? undefined}
-              tripInput={currentTripInput}
-              onAuthRequired={checkFavoriteAllowed}
-              pendingAutoFavorite={pendingAutoFavorite}
-              onAutoFavoriteComplete={handleAutoFavoriteComplete}
-            />
-          </section>
+          {/* Results panel — right column (hidden when no results) */}
+          {showLayout && !overlayVisible && (
+            <section ref={resultsRef} className="min-w-0">
+              <ResultsPanel
+                result={effectiveResult ?? undefined}
+                isLoading={isLoading}
+                error={error ?? undefined}
+                tripInput={currentTripInput}
+                onAuthRequired={checkFavoriteAllowed}
+                pendingAutoFavorite={pendingAutoFavorite}
+                onAutoFavoriteComplete={handleAutoFavoriteComplete}
+                hideMap={true}
+              />
+            </section>
+          )}
         </div>
       </main>
 
