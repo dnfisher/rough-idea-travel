@@ -109,6 +109,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [regionConfirmed, setRegionConfirmed] = useState(false);
 
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [additionalNotesConfirmed, setAdditionalNotesConfirmed] = useState(false);
 
   const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
   const [homeCityError, setHomeCityError] = useState<string | null>(null);
@@ -363,33 +364,39 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         </button>
       </div>
       {dateType === 'flexible' ? (
-        <div className="space-y-1">
-          <input
-            type="text"
-            value={dateDescription}
-            onChange={(e) => {
-              setDateDescription(e.target.value);
-              setFlexibleDatesConfirmed(false);
-            }}
-            onBlur={() => {
-              if (dateDescription.trim().length > 0) setFlexibleDatesConfirmed(true);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && dateDescription.trim().length > 0) {
-                e.preventDefault();
-                setFlexibleDatesConfirmed(true);
-              }
-            }}
-            placeholder='e.g. "mid-April", "sometime in summer"'
-            className={inputClass}
-          />
+        <div>
+          <div className="relative">
+            <input
+              type="text"
+              value={dateDescription}
+              onChange={(e) => {
+                setDateDescription(e.target.value);
+                setFlexibleDatesConfirmed(false);
+              }}
+              onBlur={() => {
+                if (dateDescription.trim().length > 0) setFlexibleDatesConfirmed(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && dateDescription.trim().length > 0) {
+                  e.preventDefault();
+                  setFlexibleDatesConfirmed(true);
+                }
+              }}
+              placeholder='e.g. "mid-April", "sometime in summer"'
+              className={inputClass}
+              style={flexibleDatesConfirmed ? { borderColor: "#2ABFBF", paddingRight: "80px" } : undefined}
+            />
+            {flexibleDatesConfirmed && (
+              <span
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+                style={{ color: "#2ABFBF", fontSize: "12px", fontWeight: 500 }}
+              >
+                <Check className="h-3.5 w-3.5" /> Got it
+              </span>
+            )}
+          </div>
           {!flexibleDatesConfirmed && dateDescription.trim().length === 0 && (
-            <p className="text-xs text-muted-foreground">Press Enter or tab away to confirm</p>
-          )}
-          {flexibleDatesConfirmed && (
-            <p className="text-xs text-primary flex items-center gap-1">
-              <Check className="h-3 w-3" /> Got it
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Press Enter or tab away to confirm</p>
           )}
         </div>
       ) : (
@@ -610,7 +617,10 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             <button
               type="button"
               className="italic hover:text-foreground transition-colors"
-              onClick={() => setAdditionalNotes(ex)}
+              onClick={() => {
+                setAdditionalNotes(ex);
+                setAdditionalNotesConfirmed(false);
+              }}
             >
               &ldquo;{ex}&rdquo;
             </button>
@@ -618,13 +628,30 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           </span>
         ))}
       </p>
-      <textarea
-        value={additionalNotes}
-        onChange={(e) => setAdditionalNotes(e.target.value)}
-        placeholder="Any extra context for your trip..."
-        rows={2}
-        className={cn(inputClass, 'resize-none')}
-      />
+      <div className="flex items-start gap-3">
+        <textarea
+          value={additionalNotes}
+          onChange={(e) => {
+            setAdditionalNotes(e.target.value);
+            setAdditionalNotesConfirmed(false);
+          }}
+          onBlur={() => {
+            if (additionalNotes.trim().length > 0) setAdditionalNotesConfirmed(true);
+          }}
+          placeholder="Any extra context for your trip..."
+          rows={2}
+          className={cn(inputClass, 'resize-none')}
+          style={{ width: '75%' }}
+        />
+        {additionalNotesConfirmed && (
+          <span
+            className="flex items-center gap-1 shrink-0 mt-2.5"
+            style={{ color: "#2ABFBF", fontSize: "12px", fontWeight: 500 }}
+          >
+            <Check className="h-3.5 w-3.5" /> Got it
+          </span>
+        )}
+      </div>
     </fieldset>
   )
 
@@ -650,33 +677,39 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         ))}
       </div>
       {locationType === 'region' && (
-        <div className="space-y-1">
-          <input
-            type="text"
-            value={regionValue}
-            onChange={(e) => {
-              setRegionValue(e.target.value);
-              setRegionConfirmed(false);
-            }}
-            onBlur={() => {
-              if (regionValue.trim().length > 0) setRegionConfirmed(true);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && regionValue.trim().length > 0) {
-                e.preventDefault();
-                setRegionConfirmed(true);
-              }
-            }}
-            placeholder='e.g. "Southern Europe", "Southeast Asia"'
-            className={inputClass}
-          />
+        <div>
+          <div className="relative">
+            <input
+              type="text"
+              value={regionValue}
+              onChange={(e) => {
+                setRegionValue(e.target.value);
+                setRegionConfirmed(false);
+              }}
+              onBlur={() => {
+                if (regionValue.trim().length > 0) setRegionConfirmed(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && regionValue.trim().length > 0) {
+                  e.preventDefault();
+                  setRegionConfirmed(true);
+                }
+              }}
+              placeholder='e.g. "Southern Europe", "Southeast Asia"'
+              className={inputClass}
+              style={regionConfirmed ? { borderColor: "#2ABFBF", paddingRight: "80px" } : undefined}
+            />
+            {regionConfirmed && (
+              <span
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+                style={{ color: "#2ABFBF", fontSize: "12px", fontWeight: 500 }}
+              >
+                <Check className="h-3.5 w-3.5" /> Got it
+              </span>
+            )}
+          </div>
           {!regionConfirmed && regionValue.trim().length === 0 && (
-            <p className="text-xs text-muted-foreground">Press Enter or tab away to confirm</p>
-          )}
-          {regionConfirmed && (
-            <p className="text-xs text-primary flex items-center gap-1">
-              <Check className="h-3 w-3" /> Got it
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Press Enter or tab away to confirm</p>
           )}
         </div>
       )}
