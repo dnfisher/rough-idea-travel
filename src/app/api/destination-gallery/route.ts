@@ -7,7 +7,7 @@ async function fetchGooglePlacesPhotos(
   query: string,
   apiKey: string,
   maxPhotos = 5,
-  maxWidthPx = 800
+  maxWidthPx = 1000
 ): Promise<string[]> {
   try {
     const searchRes = await fetch("https://places.googleapis.com/v1/places:searchText", {

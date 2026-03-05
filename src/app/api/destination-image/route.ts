@@ -9,7 +9,7 @@ const UA = "RoughIdeaTravel/1.0 (travel planning tool)";
 async function fetchGooglePlacesPhoto(
   query: string,
   apiKey: string,
-  maxWidthPx = 1200
+  maxWidthPx = 1600
 ): Promise<string | null> {
   try {
     // Step 1: Text Search to find a place with photos
@@ -36,7 +36,11 @@ async function fetchGooglePlacesPhoto(
     if (!photos || photos.length === 0) return null;
 
     // Step 2: Build the photo media URL — this endpoint redirects to the actual image
-    const photoName = photos[0].name; // e.g. "places/ChIJ.../photos/AUacSh..."
+    // photos[1] tends to be more scenic/outdoor than photos[0] (which is the most-clicked,
+    // often a hotel lobby, restaurant interior, or tourist selfie spot).
+    // Fall back to photos[0] if fewer than 2 photos.
+    const targetPhoto = photos.length > 1 ? photos[1] : photos[0];
+    const photoName = targetPhoto.name; // e.g. "places/ChIJ.../photos/AUacSh..."
     const mediaUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidthPx}&key=${apiKey}`;
 
     // Step 3: Follow the redirect to get the final cached image URL
@@ -158,8 +162,8 @@ export async function GET(req: NextRequest) {
   // ── Primary: Google Places Photos (high quality) ──
   if (googleApiKey) {
     const queries = [
+      country ? `${name} ${country} landmark outdoor` : `${name} landmark outdoor`,
       country ? `${name}, ${country}` : name,
-      country ? `${name} ${country} scenic destination` : `${name} scenic destination`,
     ];
 
     for (const q of queries) {
