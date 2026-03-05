@@ -37,15 +37,15 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://roughidea.co"),
   title: {
-    default: "Rough Idea — AI Trip Planning",
+    default: "Rough Idea — Your next trip, planned in 3 questions.",
     template: "%s | Rough Idea",
   },
   description:
-    "AI-powered trip planning. Tell us when, how far, and what you're into — we'll find your perfect destination and build a full itinerary.",
+    "Tell us when, how far, and what you're into — we'll find your perfect destination and build a full day-by-day itinerary.",
   openGraph: {
-    title: "Rough Idea — AI Trip Planning",
+    title: "Rough Idea — Your next trip, planned in 3 questions.",
     description:
-      "AI-powered trip planning. Tell us when, how far, and what you're into — we'll find your perfect destination and build a full itinerary.",
+      "Tell us when, how far, and what you're into — we'll find your perfect destination and build a full day-by-day itinerary.",
     url: "https://roughidea.co",
     siteName: "Rough Idea",
     images: [
@@ -61,9 +61,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Rough Idea — AI Trip Planning",
+    title: "Rough Idea — Your next trip, planned in 3 questions.",
     description:
-      "AI-powered trip planning. Tell us when, how far, and what you're into — we'll find your perfect destination and build a full itinerary.",
+      "Tell us when, how far, and what you're into — we'll find your perfect destination and build a full day-by-day itinerary.",
     images: ["/images/hero-poster.jpg"],
   },
   manifest: "/site.webmanifest",
