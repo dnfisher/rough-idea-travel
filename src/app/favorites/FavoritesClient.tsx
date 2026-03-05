@@ -10,6 +10,7 @@ import { DestinationImage } from "@/components/results/DestinationImage";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { UserButton } from "@/components/auth/UserButton";
 import { cn } from "@/lib/utils";
+import { Footer } from "@/components/layout/Footer";
 
 interface FavoriteRow {
   id: string;
@@ -460,6 +461,9 @@ export function FavoritesClient({
           </div>
         )}
       </main>
+
+      <Footer />
+
     </div>
   );
 }

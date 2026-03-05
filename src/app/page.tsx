@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { HeroVideoBackground } from '@/components/homepage/HeroVideoBackground';
 import { storeDestinationContext } from '@/lib/destination-url';
+import { Footer } from '@/components/layout/Footer';
 
 const CLASH: React.CSSProperties = {
   fontFamily: "'Clash Display', system-ui, sans-serif",
@@ -284,31 +285,7 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer__inner">
-          <div className="footer__top">
-            <div>
-              <p className="footer__logo">ROUGH IDEA<span>.</span></p>
-              <p className="footer__tagline">AI-powered trip planning</p>
-            </div>
-            <nav className="footer__nav">
-              <a href="#">How It Works</a>
-              <a href="#">About</a>
-              <a href="#">Blog</a>
-              <a href="#">Contact</a>
-            </nav>
-          </div>
-          <div className="footer__bottom">
-            <p className="footer__copy">© 2025 Rough Idea Travel. All rights reserved.</p>
-            <div className="footer__legal">
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-              <a href="#">Cookie Policy</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
     </div>
   );
