@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { MessageSquare, MapPin, Calendar, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { HeroVideoBackground } from '@/components/homepage/HeroVideoBackground';
+import { storeDestinationContext } from '@/lib/destination-url';
 
 const CLASH: React.CSSProperties = {
   fontFamily: "'Clash Display', system-ui, sans-serif",
@@ -45,9 +47,11 @@ interface ShowcaseDestination {
   country: string | null;
   slug: string;
   imageUrl: string | null;
+  destinationData: Record<string, unknown> | null;
 }
 
 export default function Home() {
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [showcase, setShowcase] = useState<ShowcaseDestination[] | null>(null);
 
@@ -63,6 +67,14 @@ export default function Home() {
       .then(data => setShowcase(Array.isArray(data) ? data : []))
       .catch(() => setShowcase([]));
   }, []);
+
+  const handleShowcaseCardClick = (dest: ShowcaseDestination) => {
+    if (dest.destinationData) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      storeDestinationContext(dest.slug, { summary: dest.destinationData as any });
+    }
+    router.push(`/destination/${dest.slug}`);
+  };
 
   return (
     <div className="homepage" style={{ minHeight: '100vh', background: '#0F0E0D' }}>
@@ -253,10 +265,10 @@ export default function Home() {
                   />
                 ))
               : showcase.map(dest => (
-                  <Link
+                  <div
                     key={dest.slug}
-                    href="/explore"
-                    style={{ textDecoration: 'none' }}
+                    onClick={() => handleShowcaseCardClick(dest)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <div className="destination-teaser-card">
                       {dest.imageUrl && (
@@ -292,7 +304,7 @@ export default function Home() {
                         </p>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))
             }
           </div>
