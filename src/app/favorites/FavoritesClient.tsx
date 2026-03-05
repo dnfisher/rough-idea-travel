@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { Heart, Compass, Plus, ChevronDown, Pencil, Trash2, MoreHorizontal, FolderInput } from "lucide-react";
 import Link from "next/link";
 import type { DeepPartial } from "ai";
@@ -44,8 +44,6 @@ export function FavoritesClient({
   const [showUncategorized, setShowUncategorized] = useState(true);
   const [creatingList, setCreatingList] = useState(false);
   const [newListName, setNewListName] = useState("");
-  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
-
   // New state
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -73,14 +71,6 @@ export function FavoritesClient({
     } catch {
       // fail silently
     }
-  }
-
-  function handleCopyShareLink(shareId: string) {
-    const url = `${window.location.origin}/wishlist/${shareId}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopiedShareId(shareId);
-      setTimeout(() => setCopiedShareId(null), 2000);
-    });
   }
 
   function openInNewTab(fav: FavoriteRow) {
@@ -125,6 +115,19 @@ export function FavoritesClient({
     }
   }
 
+  async function handleRemoveFromSaved(favId: string) {
+    try {
+      const res = await fetch(`/api/favorites/${favId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to remove");
+    } catch {
+      // fail silently — still remove locally
+    } finally {
+      handleRemoveUncategorized(favId);
+      setOpenMenuId(null);
+      setRemoveConfirmFavId(null);
+    }
+  }
+
   useEffect(() => {
     if (!openMenuId) return;
     function handleOutside() {
@@ -136,12 +139,9 @@ export function FavoritesClient({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [openMenuId]);
 
-  const CLASH: React.CSSProperties = { fontFamily: "'Clash Display', system-ui, sans-serif" };
+  const CLASH: CSSProperties = { fontFamily: "'Clash Display', system-ui, sans-serif" };
   const totalSaved = wishlists.reduce((sum, wl) => sum + wl.itemCount, 0) + uncategorized.length;
   const isEmpty = wishlists.length === 0 && uncategorized.length === 0;
-
-  // Suppress unused variable warning for copiedShareId (kept for handleCopyShareLink)
-  void copiedShareId;
 
   return (
     <div className="favorites-page min-h-screen" style={{ background: "#0F0E0D" }}>
@@ -439,10 +439,7 @@ export function FavoritesClient({
                                       <button
                                         className="unsorted-card__dropdown-item unsorted-card__dropdown-item--danger"
                                         style={{ width: "100%", justifyContent: "center" }}
-                                        onClick={() => {
-                                          handleRemoveUncategorized(fav.id);
-                                          setOpenMenuId(null);
-                                        }}
+                                        onClick={() => handleRemoveFromSaved(fav.id)}
                                       >
                                         Yes, remove
                                       </button>
