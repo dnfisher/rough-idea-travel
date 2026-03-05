@@ -246,9 +246,9 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
     return null;
   }, [ctx?.tripInput?.dates]);
 
-  const hasQuick = !!(detail?.pros?.length);
+  // Covers both 2-section format (overview) and legacy 3-section format (quick/insights)
+  const hasOverview = !!(detail?.pros?.length || detail?.localInsights?.length);
   const hasItinerary = !!(itineraryData?.days?.length);
-  const hasInsights = !!(detail?.localInsights?.length);
   const hasBooking = !!(detail?.accommodation || detail?.flightEstimate || detail?.drivingEstimate || detail?.estimatedTotalTripCostEur);
   const showRefresh = usePreloaded && !!ctx?.detail && !!ctx?.tripInput;
   const goBack = useCallback(() => window.close(), []);
@@ -394,7 +394,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           <ShareButton destination={destination} size="md" />
         </div>
 
-        {/* Quick stats */}
+        {/* Quick stats — 4 cards max, single row on desktop */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {destination.estimatedDailyCostEur != null && (
             <div className="rounded-xl border border-border p-3 text-center">
@@ -402,14 +402,6 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
               <p className="text-xs text-muted-foreground">Daily cost</p>
             </div>
           )}
-          {destination.estimatedTotalTripCostEur != null ? (
-            <div className="rounded-xl border border-border p-3 text-center">
-              <p className="text-sm font-medium">~{formatPrice(destination.estimatedTotalTripCostEur, currency)}</p>
-              <p className="text-xs text-muted-foreground">Est. trip total</p>
-            </div>
-          ) : detailLoading ? (
-            <div className="rounded-xl border border-border p-3 h-16 animate-shimmer" />
-          ) : null}
           {tripDateLabel && (
             <div className="rounded-xl border border-border p-3 text-center">
               <CalendarDays className="h-4 w-4 mx-auto mb-1 text-primary" />
@@ -431,13 +423,6 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
               <p className="text-xs text-muted-foreground">Best time</p>
             </div>
           )}
-          {destination.weather?.sunshineHours != null && (
-            <div className="rounded-xl border border-border p-3 text-center">
-              <Sun className="h-4 w-4 mx-auto mb-1 text-primary" />
-              <p className="text-sm font-medium">{destination.weather.sunshineHours}h sun</p>
-              <p className="text-xs text-muted-foreground">Daily average</p>
-            </div>
-          )}
         </div>
 
         {/* Why — editorial lead section */}
@@ -450,8 +435,17 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           </div>
         )}
 
+        {/* Gallery */}
+        {destination.name && (
+          <DestinationGallery
+            name={destination.name}
+            country={stableCountry}
+            searchName={imageSearchName ?? undefined}
+          />
+        )}
+
         {/* Local Events */}
-        {hasInsights && destination.localEvents && destination.localEvents.length > 0 && (
+        {hasOverview && destination.localEvents && destination.localEvents.length > 0 && (
           <div>
             <h2 className="font-display font-semibold text-base mb-3 flex items-center gap-1.5">
               <Calendar className="h-4 w-4 text-primary" />
@@ -550,7 +544,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         )}
 
         {/* Local Insights — skeleton or content */}
-        {hasInsights ? (
+        {hasOverview ? (
           destination.localInsights && destination.localInsights.length > 0 ? (
             <div>
               <h2 className="font-display font-semibold text-base mb-3 flex items-center gap-1.5">
@@ -579,7 +573,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         ) : null}
 
         {/* Pros & Cons — show skeleton if Phase 2 not loaded yet */}
-        {hasQuick ? (
+        {hasOverview ? (
           (destination.pros?.length || destination.cons?.length) ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {destination.pros && destination.pros.length > 0 && (
@@ -619,15 +613,6 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         ) : detailLoading ? (
           <ProsConsSkeleton />
         ) : null}
-
-        {/* Gallery */}
-        {destination.name && (
-          <DestinationGallery
-            name={destination.name}
-            country={stableCountry}
-            searchName={imageSearchName ?? undefined}
-          />
-        )}
 
         {/* Itinerary — generated on demand */}
         {hasItinerary ? (
