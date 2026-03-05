@@ -30,7 +30,8 @@ export function SaveToListModal({
   const [saving, setSaving] = useState(false);
   const [showCreateInput, setShowCreateInput] = useState(false);
   const [newListName, setNewListName] = useState("");
-  const [selectedListId, setSelectedListId] = useState<string | null | "quick">(null);
+  const QUICK_SAVE = "quick" as const;
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const createInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch wishlists when modal opens
@@ -146,9 +147,9 @@ export function SaveToListModal({
                 <button
                   className={cn(
                     "save-modal__item save-modal__item--no-list",
-                    selectedListId === "quick" && "save-modal__item--selected"
+                    selectedListId === QUICK_SAVE && "save-modal__item--selected"
                   )}
-                  onClick={() => setSelectedListId("quick")}
+                  onClick={() => setSelectedListId(QUICK_SAVE)}
                   disabled={saving}
                 >
                   <div className="save-modal__thumb" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -157,7 +158,7 @@ export function SaveToListModal({
                   <div className="save-modal__item-text">
                     <span className="save-modal__item-name">Save without adding to a list</span>
                   </div>
-                  {selectedListId === "quick" && (
+                  {selectedListId === QUICK_SAVE && (
                     <div className="save-modal__check">
                       <Check size={10} />
                     </div>
@@ -263,8 +264,10 @@ export function SaveToListModal({
               className="save-modal__btn-save"
               disabled={saving || selectedListId === null}
               onClick={() => {
-                if (selectedListId === "quick") handleQuickSave();
-                else if (selectedListId) handleSelectList(selectedListId);
+                if (saving || !selectedListId) return;
+                setSaving(true);
+                if (selectedListId === QUICK_SAVE) handleQuickSave();
+                else handleSelectList(selectedListId);
               }}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save to wishlist"}
