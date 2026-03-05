@@ -559,6 +559,8 @@ body {
 .popular-trips {
   background: #252219;
   padding: 80px 0 80px 32px;
+  position: relative;
+  z-index: 1;
 }
 
 .popular-trips__header {
@@ -709,6 +711,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  z-index: 1;
   text-align: center;
   border-top: 1px solid #2E2B25;
 }
@@ -770,6 +774,8 @@ body {
   background: #1C1A17;
   border-top: 1px solid #2E2B25;
   padding: 40px 32px;
+  position: relative;
+  z-index: 1;
 }
 
 .footer__inner {
@@ -819,7 +825,7 @@ body {
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   font-weight: 400;
-  color: #A89F94;
+  color: #C4B9B0;
   text-decoration: none;
   transition: color 0.15s ease;
 }
@@ -855,13 +861,13 @@ body {
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   font-weight: 400;
-  color: #6B6258;
+  color: #F2EEE8;
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 .footer__legal a:hover {
-  color: #A89F94;
+  color: #2ABFBF;
 }
 
 @media (max-width: 640px) {

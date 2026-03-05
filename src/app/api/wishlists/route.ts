@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { wishlists, favorites } from "@/lib/db/schema";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, and } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -26,7 +26,7 @@ export async function GET() {
         const [countResult] = await db
           .select({ count: count() })
           .from(favorites)
-          .where(eq(favorites.listId, wl.id));
+          .where(and(eq(favorites.listId, wl.id), eq(favorites.userId, session.user.id)));
 
         const coverItems = await db
           .select({
@@ -34,7 +34,7 @@ export async function GET() {
             country: favorites.country,
           })
           .from(favorites)
-          .where(eq(favorites.listId, wl.id))
+          .where(and(eq(favorites.listId, wl.id), eq(favorites.userId, session.user.id)))
           .orderBy(desc(favorites.createdAt))
           .limit(3);
 

@@ -8,10 +8,7 @@ export function Footer() {
             <p className="footer__tagline">AI-powered trip planning</p>
           </div>
           <nav className="footer__nav">
-            <a href="#">How It Works</a>
-            <a href="#">About</a>
-            <a href="#">Blog</a>
-            <a href="#">Contact</a>
+            <a href="/explore">Start Exploring</a>
           </nav>
         </div>
         <div className="footer__bottom">

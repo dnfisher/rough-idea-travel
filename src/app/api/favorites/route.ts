@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { favorites, wishlists } from "@/lib/db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
+import { TripInputSchema } from "@/lib/ai/schemas";
 
 export async function GET(req: Request) {
   try {
@@ -79,6 +80,13 @@ export async function POST(req: Request) {
       });
     }
 
+    if (JSON.stringify(destinationData).length > 50_000) {
+      return new Response(JSON.stringify({ error: "Destination data too large" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     // Validate listId belongs to user if provided
     if (listId) {
       const list = await db
@@ -95,6 +103,8 @@ export async function POST(req: Request) {
       }
     }
 
+    const parsedTripInput = tripInputData ? TripInputSchema.safeParse(tripInputData) : null;
+
     const [inserted] = await db
       .insert(favorites)
       .values({
@@ -102,7 +112,7 @@ export async function POST(req: Request) {
         destinationName: destinationData.name,
         country: destinationData.country,
         destinationData,
-        tripInputData: tripInputData ?? null,
+        tripInputData: parsedTripInput?.success ? parsedTripInput.data : null,
         listId: listId ?? null,
       })
       .returning();

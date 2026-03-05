@@ -40,3 +40,9 @@ export function getDestinationContext(slug: string): DestinationPageContext | nu
     return null;
   }
 }
+
+export function destinationImageUrl(name: string, country?: string): string {
+  const params = new URLSearchParams({ name });
+  if (country) params.set("country", country);
+  return `/api/destination-image?${params.toString()}`;
+}

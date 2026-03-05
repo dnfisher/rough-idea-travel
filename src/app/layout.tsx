@@ -35,9 +35,41 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Rough Idea — Travel Planning",
+  metadataBase: new URL("https://roughidea.co"),
+  title: {
+    default: "Rough Idea — AI Trip Planning",
+    template: "%s | Rough Idea",
+  },
   description:
-    "Got a rough idea for a trip? Tell us when, where-ish, and what you're into. We'll suggest destinations, compare weather, and build itineraries.",
+    "AI-powered trip planning. Tell us when, how far, and what you're into — we'll find your perfect destination and build a full itinerary.",
+  openGraph: {
+    title: "Rough Idea — AI Trip Planning",
+    description:
+      "AI-powered trip planning. Tell us when, how far, and what you're into — we'll find your perfect destination and build a full itinerary.",
+    url: "https://roughidea.co",
+    siteName: "Rough Idea",
+    images: [
+      {
+        url: "/images/hero-poster.jpg",
+        width: 1920,
+        height: 1080,
+        alt: "Rough Idea — AI Trip Planning",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Rough Idea — AI Trip Planning",
+    description:
+      "AI-powered trip planning. Tell us when, how far, and what you're into — we'll find your perfect destination and build a full itinerary.",
+    images: ["/images/hero-poster.jpg"],
+  },
+  manifest: "/site.webmanifest",
+  alternates: {
+    canonical: "https://roughidea.co",
+  },
 };
 
 export default async function RootLayout({
@@ -49,6 +81,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="theme-color" content="#0F0E0D" />
         <link rel="preconnect" href="https://api.fontshare.com" />
         <link
           href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap"

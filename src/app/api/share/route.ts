@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sharedTrips } from "@/lib/db/schema";
+import { TripInputSchema } from "@/lib/ai/schemas";
 
 export async function POST(req: Request) {
   try {
@@ -32,6 +33,8 @@ export async function POST(req: Request) {
       });
     }
 
+    const parsedTripInput = tripInputData ? TripInputSchema.safeParse(tripInputData) : null;
+
     const [inserted] = await db
       .insert(sharedTrips)
       .values({
@@ -39,7 +42,7 @@ export async function POST(req: Request) {
         destinationName: destinationData.name,
         country: destinationData.country,
         destinationData,
-        tripInputData: tripInputData ?? null,
+        tripInputData: parsedTripInput?.success ? parsedTripInput.data : null,
       })
       .returning();
 

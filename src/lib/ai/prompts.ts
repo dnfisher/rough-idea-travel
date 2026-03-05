@@ -187,11 +187,15 @@ export function isRoadTripInput(input: TripInput): boolean {
   return input.tripStyle === "road_trip" || input.travelRange === "driving_distance";
 }
 
+function sanitizeText(s: string): string {
+  return s.replace(/[\r\n]+/g, " ").trim();
+}
+
 function buildPreferenceParts(input: TripInput): string[] {
   const parts: string[] = [];
 
   if (input.homeCity) {
-    parts.push(`Home city: ${input.homeCity}`);
+    parts.push(`Home city: ${sanitizeText(input.homeCity)}`);
   }
   if (input.travelRange && input.travelRange !== "any") {
     const rangeLabels: Record<string, string> = {
@@ -223,7 +227,7 @@ function buildPreferenceParts(input: TripInput): string[] {
   }
 
   if (input.weatherPreference) {
-    parts.push(`Weather preference: ${input.weatherPreference}`);
+    parts.push(`Weather preference: ${sanitizeText(input.weatherPreference)}`);
   }
 
   parts.push(`Budget level: ${input.budgetLevel}`);
@@ -256,7 +260,7 @@ function buildPreferenceParts(input: TripInput): string[] {
   }
 
   if (input.additionalNotes) {
-    parts.push(`Additional context: ${input.additionalNotes}`);
+    parts.push(`Additional context: ${sanitizeText(input.additionalNotes)}`);
   }
 
   if (input.currency && input.currency !== "EUR") {

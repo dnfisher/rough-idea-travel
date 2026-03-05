@@ -1,0 +1,17 @@
+{
+  "name": "Rough Idea — AI Trip Planning",
+  "short_name": "Rough Idea",
+  "description": "AI-powered trip planning. Tell us when, how far, and what you're into — we'll find your perfect destination and build a full itinerary.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F0E0D",
+  "theme_color": "#0F0E0D",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

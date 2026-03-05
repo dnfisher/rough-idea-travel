@@ -8,8 +8,10 @@ const PostSchema = z.object({
   name: z.string().min(1).max(200),
   country: z.string().max(100).optional(),
   slug: z.string().min(1).max(300).regex(/^[a-z0-9-]+$/, "Invalid slug format"),
-  imageUrl: z.string().max(2000).optional(),
-  destinationData: z.record(z.string(), z.unknown()).optional(),
+  // Only accept our own image proxy URLs — prevents storing external/attacker URLs
+  imageUrl: z.string().max(500).regex(/^\/api\/destination-image\?/, "Must be a destination image proxy URL").optional(),
+  destinationData: z.record(z.string(), z.unknown()).optional()
+    .refine(d => !d || JSON.stringify(d).length <= 50_000, "destinationData too large"),
 });
 
 export async function GET(_req: NextRequest) {
@@ -36,14 +38,15 @@ export async function POST(req: NextRequest) {
     }
 
     const { name, country, slug, imageUrl, destinationData } = parsed.data;
+    const now = new Date();
 
     await db
       .insert(showcaseDestinations)
-      .values({ name, country, slug, imageUrl, destinationData: destinationData ?? null, viewedAt: new Date() })
+      .values({ name, country, slug, imageUrl, destinationData: destinationData ?? null, viewedAt: now })
       .onConflictDoUpdate({
         target: showcaseDestinations.slug,
         set: {
-          viewedAt: new Date(),
+          viewedAt: now,
           country,
           imageUrl,
           destinationData: destinationData ?? null,

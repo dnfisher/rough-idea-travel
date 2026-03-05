@@ -61,18 +61,12 @@ const chipClass = (active: boolean) =>
 
 const pillClass = (active: boolean) =>
   cn(
-    "px-3.5 py-1.5 rounded-full text-sm transition-all",
+    "px-3.5 py-1.5 rounded-full text-sm transition-all border",
     active
       ? "bg-[#2ABFBF] text-[#0F0E0D] border-[#2ABFBF] font-medium"
-      : "border border-[#2E2B25] text-[#A89F94] hover:border-[#2ABFBF] hover:text-[#F2EEE8]"
+      : "border-[#2E2B25] text-[#A89F94] hover:border-[#2ABFBF] hover:text-[#F2EEE8]"
   );
 
-const ADDITIONAL_NOTES_EXAMPLES = [
-  'celebrating an anniversary',
-  'need wheelchair access',
-  'my partner hates flying',
-  'travelling with a toddler',
-]
 
 export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputFormProps) {
   const [homeCity, setHomeCity] = useState("");
@@ -111,6 +105,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [additionalNotesConfirmed, setAdditionalNotesConfirmed] = useState(false);
+  const [showAdditionalNotes, setShowAdditionalNotes] = useState(false);
 
   const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
   const [homeCityError, setHomeCityError] = useState<string | null>(null);
@@ -229,7 +224,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const homeCityField = (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
         <Home className="h-4 w-4 text-primary" />
         Where are you based?
       </legend>
@@ -304,7 +299,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const travelRangeField = (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
         <Globe className="h-4 w-4 text-primary" />
         How far do you want to go?
       </legend>
@@ -331,7 +326,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const groupTypeField = (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
         <Users className="h-4 w-4 text-primary" />
         Who&apos;s travelling?
       </legend>
@@ -352,7 +347,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const datesField = (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
         <Calendar className="h-4 w-4 text-primary" />
         When do you want to travel?
       </legend>
@@ -463,7 +458,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const interestsField = (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
         <Sparkles className="h-4 w-4 text-primary" />
         What are you into?
       </legend>
@@ -535,7 +530,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const tripStyleField = (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
         <Compass className="h-4 w-4 text-primary" />
         Trip style
       </legend>
@@ -556,7 +551,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const weatherField = (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
         <Sun className="h-4 w-4 text-primary" />
         Weather preference
       </legend>
@@ -577,7 +572,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const budgetField = (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
         <DollarSign className="h-4 w-4 text-primary" />
         Budget
       </legend>
@@ -597,31 +592,15 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     </fieldset>
   )
 
-  const additionalNotesField = (
+  const isAdditionalNotesExpanded = showAdditionalNotes || additionalNotes.trim().length > 0;
+
+  const additionalNotesField = isAdditionalNotesExpanded ? (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-1">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
         <Pencil className="h-4 w-4 text-primary" />
         Anything else?
         <span className="text-xs font-normal text-muted-foreground ml-1">optional</span>
       </legend>
-      <p className="text-xs text-muted-foreground mb-2">
-        e.g.{' '}
-        {ADDITIONAL_NOTES_EXAMPLES.map((ex, i) => (
-          <span key={ex}>
-            <button
-              type="button"
-              className="italic hover:text-foreground transition-colors"
-              onClick={() => {
-                setAdditionalNotes(ex);
-                setAdditionalNotesConfirmed(false);
-              }}
-            >
-              &ldquo;{ex}&rdquo;
-            </button>
-            {i < ADDITIONAL_NOTES_EXAMPLES.length - 1 ? ' · ' : ''}
-          </span>
-        ))}
-      </p>
       <div className="flex items-start gap-3" aria-live="polite">
         <textarea
           value={additionalNotes}
@@ -632,10 +611,11 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           onBlur={() => {
             if (additionalNotes.trim().length > 0) setAdditionalNotesConfirmed(true);
           }}
-          placeholder="Any extra context for your trip..."
+          placeholder="e.g. celebrating an anniversary, travelling with a toddler…"
           rows={2}
           className={cn(inputClass, 'resize-none')}
           style={{ width: '75%' }}
+          autoFocus
         />
         {additionalNotesConfirmed && (
           <span
@@ -647,28 +627,30 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         )}
       </div>
     </fieldset>
+  ) : (
+    <button
+      type="button"
+      onClick={() => setShowAdditionalNotes(true)}
+      className={cn(chipClass(false), "inline-flex items-center gap-1.5")}
+    >
+      <Plus className="h-3.5 w-3.5" />
+      Anything else?
+    </button>
   )
 
   const locationField = (
     <fieldset>
-      <legend className="flex items-center gap-2 text-sm font-medium mb-3">
+      <legend className="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
         <MapPin className="h-4 w-4 text-primary" />
         Where are you thinking?
       </legend>
       <div className="flex gap-2 mb-3">
-        {[
-          { value: "open" as const, label: "Surprise me" },
-          { value: "region" as const, label: "Region" },
-        ].map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => setLocationType(opt.value)}
-            className={pillClass(locationType === opt.value)}
-          >
-            {opt.label}
-          </button>
-        ))}
+        <button type="button" onClick={() => setLocationType("open")} className={pillClass(locationType === "open")}>
+          Surprise me
+        </button>
+        <button type="button" onClick={() => setLocationType("region")} className={pillClass(locationType === "region")}>
+          Region
+        </button>
       </div>
       {locationType === 'region' && (
         <div>

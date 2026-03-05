@@ -23,13 +23,7 @@ export async function POST(req: Request) {
   try {
     const apiKey = process.env.ROUGH_IDEA_ANTHROPIC_API_KEY;
     if (!apiKey) {
-      const relevantKeys = Object.keys(process.env)
-        .filter((k) => k.includes("ANTHROPIC") || k.includes("ROUGH"))
-        .join(", ");
-      console.error(
-        "[explore] ROUGH_IDEA_ANTHROPIC_API_KEY is not set. Related env vars:",
-        relevantKeys || "none found"
-      );
+      console.error("[explore] ROUGH_IDEA_ANTHROPIC_API_KEY is not set");
       return new Response(
         JSON.stringify({ error: "Anthropic API key not configured" }),
         { status: 500, headers: { "Content-Type": "application/json" } }

@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
-import { getDestinationContext, type DestinationPageContext } from "@/lib/destination-url";
+import { getDestinationContext, destinationImageUrl, type DestinationPageContext } from "@/lib/destination-url";
 import { DestinationImage } from "@/components/results/DestinationImage";
 import { ItineraryTimeline } from "@/components/results/ItineraryTimeline";
 import { ExploreMap } from "@/components/results/ExploreMap";
@@ -249,14 +249,12 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   useEffect(() => {
     if (!ctx?.summary.name) return;
     const name = ctx.summary.name;
-    const country = ctx.summary.country ?? "";
-    const params = new URLSearchParams({ name });
-    if (country) params.set("country", country);
-    const imageUrl = `/api/destination-image?${params.toString()}`;
+    const country = ctx.summary.country ?? undefined;
+    const imageUrl = destinationImageUrl(name, country);
     fetch("/api/showcase", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, country: country || undefined, slug, imageUrl, destinationData: ctx.summary }),
+      body: JSON.stringify({ name, country, slug, imageUrl, destinationData: ctx.summary }),
     }).catch(() => {/* silent — showcase is non-critical */});
   }, [ctx?.summary.name, slug]);
 

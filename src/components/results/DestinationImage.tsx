@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { destinationImageUrl } from "@/lib/destination-url";
 
 interface DestinationImageProps {
   name?: string;
@@ -37,9 +38,7 @@ export function DestinationImage({ name, country, className = "", searchName, fa
   const imageUrl = useMemo(() => {
     const queryName = searchName || name;
     if (!queryName) return null;
-    const params = new URLSearchParams({ name: queryName });
-    if (country) params.set("country", country);
-    return `/api/destination-image?${params.toString()}`;
+    return destinationImageUrl(queryName, country);
   }, [name, searchName, country]);
 
   const displayName = fallbackName ?? name;
