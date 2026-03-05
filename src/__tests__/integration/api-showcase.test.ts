@@ -25,7 +25,7 @@ describe('GET /api/showcase', () => {
       from: vi.fn().mockReturnValue({
         orderBy: vi.fn().mockReturnValue({
           limit: vi.fn().mockResolvedValue([
-            { name: 'Lisbon', country: 'Portugal', slug: 'lisbon-portugal', imageUrl: '/api/destination-image?name=Lisbon' },
+            { name: 'Lisbon', country: 'Portugal', slug: 'lisbon-portugal', imageUrl: '/api/destination-image?name=Lisbon', destinationData: { name: 'Lisbon', country: 'Portugal' } },
           ]),
         }),
       }),
@@ -89,6 +89,7 @@ describe('POST /api/showcase', () => {
         country: 'Portugal',
         slug: 'lisbon-portugal',
         imageUrl: '/api/destination-image?name=Lisbon&country=Portugal',
+        destinationData: { name: 'Lisbon', country: 'Portugal' },
       }),
     })
     const res = await POST(req)

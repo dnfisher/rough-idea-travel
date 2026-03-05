@@ -7,8 +7,9 @@ import { desc } from "drizzle-orm";
 const PostSchema = z.object({
   name: z.string().min(1).max(200),
   country: z.string().max(100).optional(),
-  slug: z.string().min(1).max(300).regex(/^[a-z0-9-]+$/, 'Invalid slug format'),
+  slug: z.string().min(1).max(300).regex(/^[a-z0-9-]+$/, "Invalid slug format"),
   imageUrl: z.string().max(2000).optional(),
+  destinationData: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function GET(_req: NextRequest) {
@@ -34,14 +35,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    const { name, country, slug, imageUrl } = parsed.data;
+    const { name, country, slug, imageUrl, destinationData } = parsed.data;
 
     await db
       .insert(showcaseDestinations)
-      .values({ name, country, slug, imageUrl, viewedAt: new Date() })
+      .values({ name, country, slug, imageUrl, destinationData: destinationData ?? null, viewedAt: new Date() })
       .onConflictDoUpdate({
         target: showcaseDestinations.slug,
-        set: { viewedAt: new Date(), country: parsed.data.country, imageUrl: parsed.data.imageUrl },
+        set: {
+          viewedAt: new Date(),
+          country,
+          imageUrl,
+          destinationData: destinationData ?? null,
+        },
       });
 
     return NextResponse.json({ ok: true });
