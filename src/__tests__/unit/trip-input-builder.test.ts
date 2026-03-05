@@ -106,6 +106,26 @@ describe('buildTripInput', () => {
   it('omits additionalNotes when empty', () => {
     expect(buildTripInput({ ...base, additionalNotes: '' }).additionalNotes).toBeUndefined()
   })
+
+  it('omits startingPoint when empty string is passed', () => {
+    const result = buildTripInput({
+      ...base,
+      travelRange: 'driving_distance',
+      startingPoint: '',
+      homeCity: 'Frankfurt',
+    })
+    expect(result.startingPoint).toBeUndefined()
+  })
+
+  it('includes startingPoint when explicitly provided', () => {
+    const result = buildTripInput({
+      ...base,
+      travelRange: 'driving_distance',
+      startingPoint: 'Frankfurt',
+      homeCity: 'Frankfurt',
+    })
+    expect(result.startingPoint).toBe('Frankfurt')
+  })
 })
 
 // --- buildSummaryPills ---

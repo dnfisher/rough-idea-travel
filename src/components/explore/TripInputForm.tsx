@@ -47,22 +47,22 @@ interface TripInputFormProps {
 }
 
 const inputClass =
-  "w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors";
+  "w-full px-3.5 py-2.5 rounded-xl border bg-[#252219] border-[#2E2B25] text-[#F2EEE8] placeholder:text-[#6B6258] text-sm focus:outline-none focus:ring-2 focus:ring-[rgba(42,191,191,0.12)] focus:border-[#2ABFBF] transition-colors";
 
 const chipClass = (active: boolean) =>
   cn(
-    "px-3.5 py-2 rounded-xl text-sm border transition-all",
+    "px-3.5 py-2 rounded-xl text-sm transition-all",
     active
-      ? "bg-accent text-accent-foreground border-primary/30 shadow-sm"
-      : "border-border hover:border-primary/40 text-muted-foreground"
+      ? "border border-[#2ABFBF] bg-[rgba(42,191,191,0.08)] text-[#2ABFBF]"
+      : "border border-[#2E2B25] text-[#A89F94] hover:border-[#2ABFBF] hover:text-[#F2EEE8]"
   );
 
 const pillClass = (active: boolean) =>
   cn(
-    "px-3.5 py-1.5 rounded-full text-sm border transition-all",
+    "px-3.5 py-1.5 rounded-full text-sm transition-all",
     active
-      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-      : "border-border hover:border-primary/40 text-muted-foreground"
+      ? "bg-[#2ABFBF] text-[#0F0E0D] border-[#2ABFBF] font-medium"
+      : "border border-[#2E2B25] text-[#A89F94] hover:border-[#2ABFBF] hover:text-[#F2EEE8]"
   );
 
 const ADDITIONAL_NOTES_EXAMPLES = [
@@ -95,7 +95,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [flexibleDatesConfirmed, setFlexibleDatesConfirmed] = useState(false);
   const [regionConfirmed, setRegionConfirmed] = useState(false);
 
-  const [startingPoint, setStartingPoint] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState('');
 
   const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
@@ -112,17 +111,10 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   // City autocomplete state
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [citySuggestionIndex, setCitySuggestionIndex] = useState(-1);
-  const [showStartPointSuggestions, setShowStartPointSuggestions] = useState(false);
-  const [startPointSuggestionIndex, setStartPointSuggestionIndex] = useState(-1);
   const citySuggestionsRef = useRef<HTMLDivElement>(null);
-  const startPointSuggestionsRef = useRef<HTMLDivElement>(null);
 
   const filteredCities = homeCity.trim().length >= 1
     ? COMMON_CITIES.filter((c) => c.toLowerCase().includes(homeCity.toLowerCase())).slice(0, 8)
-    : [];
-
-  const filteredStartCities = startingPoint.trim().length >= 1
-    ? COMMON_CITIES.filter((c) => c.toLowerCase().includes(startingPoint.toLowerCase())).slice(0, 8)
     : [];
 
   const showSummary = (hasSubmittedOnce || !!hasResults) && !isEditing;
@@ -132,9 +124,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     function handleClickOutside(e: MouseEvent) {
       if (citySuggestionsRef.current && !citySuggestionsRef.current.contains(e.target as Node)) {
         setShowCitySuggestions(false);
-      }
-      if (startPointSuggestionsRef.current && !startPointSuggestionsRef.current.contains(e.target as Node)) {
-        setShowStartPointSuggestions(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -180,7 +169,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       tripStyle,
       locationType,
       regionValue,
-      startingPoint,
+      startingPoint: travelRange === "driving_distance" ? homeCity : "",
       additionalNotes,
     })
   }
@@ -260,7 +249,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           autoComplete="off"
         />
         {showCitySuggestions && filteredCities.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-background shadow-lg">
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-[#2E2B25] bg-[#1C1A17] shadow-lg">
             {filteredCities.map((city, i) => (
               <button
                 key={city}
@@ -274,8 +263,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
                 className={cn(
                   "w-full px-3.5 py-2 text-sm text-left transition-colors",
                   i === citySuggestionIndex
-                    ? "bg-accent text-accent-foreground"
-                    : "hover:bg-muted"
+                    ? "bg-[#252219] text-[#F2EEE8]"
+                    : "text-[#A89F94] hover:bg-[#252219] hover:text-[#F2EEE8]"
                 )}
               >
                 {city}
@@ -307,9 +296,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
               setTravelRange(range.value);
               if (range.value === "driving_distance") {
                 setTripStyle("road_trip");
-                if (!startingPoint.trim() && homeCity.trim()) {
-                  setStartingPoint(homeCity);
-                }
               }
             }}
             className={cn(chipClass(travelRange === range.value), "flex flex-col items-start text-left")}
@@ -319,71 +305,6 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           </button>
         ))}
       </div>
-      {travelRange === "driving_distance" && (
-        <div className="mt-3">
-          <label className="text-xs text-muted-foreground mb-1 block">
-            Starting point for your road trip
-          </label>
-          <div className="relative" ref={startPointSuggestionsRef}>
-            <input
-              type="text"
-              value={startingPoint}
-              onChange={(e) => {
-                setStartingPoint(e.target.value);
-                setShowStartPointSuggestions(true);
-                setStartPointSuggestionIndex(-1);
-              }}
-              onFocus={() => {
-                if (startingPoint.trim().length >= 1) setShowStartPointSuggestions(true);
-              }}
-              onKeyDown={(e) => {
-                if (!showStartPointSuggestions || filteredStartCities.length === 0) return;
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setStartPointSuggestionIndex((prev) => Math.min(prev + 1, filteredStartCities.length - 1));
-                } else if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setStartPointSuggestionIndex((prev) => Math.max(prev - 1, 0));
-                } else if (e.key === "Enter" && startPointSuggestionIndex >= 0) {
-                  e.preventDefault();
-                  setStartingPoint(filteredStartCities[startPointSuggestionIndex]);
-                  setShowStartPointSuggestions(false);
-                  setStartPointSuggestionIndex(-1);
-                } else if (e.key === "Escape") {
-                  setShowStartPointSuggestions(false);
-                }
-              }}
-              placeholder='e.g. "Frankfurt", "London"'
-              className={inputClass}
-              autoComplete="off"
-            />
-            {showStartPointSuggestions && filteredStartCities.length > 0 && (
-              <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-background shadow-lg">
-                {filteredStartCities.map((city, i) => (
-                  <button
-                    key={city}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setStartingPoint(city);
-                      setShowStartPointSuggestions(false);
-                      setStartPointSuggestionIndex(-1);
-                    }}
-                    className={cn(
-                      "w-full px-3.5 py-2 text-sm text-left transition-colors",
-                      i === startPointSuggestionIndex
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-muted"
-                    )}
-                  >
-                    {city}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </fieldset>
   );
 
@@ -490,7 +411,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             max={30}
             value={duration}
             onChange={(e) => setDuration(Math.min(30, Math.max(1, Number(e.target.value))))}
-            className="w-16 px-2 py-2 rounded-xl border border-border bg-background text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-16 px-2 py-2 rounded-xl border border-[#2E2B25] bg-[#252219] text-[#F2EEE8] text-sm text-center focus:outline-none focus:ring-2 focus:ring-[rgba(42,191,191,0.12)] focus:border-[#2ABFBF] transition-colors"
           />
           <span className="text-sm text-muted-foreground">days</span>
         </div>
@@ -513,7 +434,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         {customInterests.map((interest) => (
           <span
             key={interest}
-            className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-sm bg-accent text-accent-foreground border border-primary/30 shadow-sm"
+            className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-sm border border-[#2ABFBF] bg-[rgba(42,191,191,0.08)] text-[#2ABFBF]"
           >
             {interest}
             <button
@@ -561,7 +482,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={addCustomInterest}
-            className="px-3.5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors"
+            className="px-3.5 py-2.5 rounded-xl bg-[#2ABFBF] text-[#0F0E0D] text-sm hover:opacity-90 transition-colors"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -742,11 +663,11 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-muted-foreground">Your search</h3>
+          <h3 className="text-sm font-medium text-[#6B6258]">Your search</h3>
           <button
             type="button"
             onClick={() => { setIsEditing(true); goToCard(0); }}
-            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-[#2ABFBF] hover:underline"
           >
             <Pencil className="h-3 w-3" />
             Edit
@@ -758,7 +679,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
               key={i}
               type="button"
               onClick={() => { setIsEditing(true); goToCard(pill.card); }}
-              className="px-2.5 py-1 rounded-full bg-accent text-accent-foreground text-xs border border-border hover:border-primary/30 transition-colors"
+              className="px-2.5 py-1 rounded-full text-xs border border-[#2E2B25] bg-[#252219] text-[#A89F94] hover:border-[#2ABFBF] hover:text-[#2ABFBF] transition-colors"
             >
               {pill.label}
             </button>
@@ -771,13 +692,13 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           className={cn(
             "w-full py-3 rounded-xl font-medium text-sm transition-all",
             isLoading
-              ? "bg-muted text-muted-foreground cursor-not-allowed"
-              : "bg-foreground text-background hover:opacity-90 shadow-md hover:shadow-lg"
+              ? "bg-[#252219] text-[#6B6258] cursor-not-allowed"
+              : "bg-[#2ABFBF] text-[#0F0E0D] font-semibold hover:opacity-90 shadow-md hover:shadow-lg"
           )}
         >
           {isLoading ? (
             <span className="flex items-center justify-center gap-2">
-              <span className="h-4 w-4 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+              <span className="h-4 w-4 border-2 border-[#6B6258]/40 border-t-[#6B6258] rounded-full animate-spin" />
               Exploring...
             </span>
           ) : (
@@ -829,7 +750,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     >
       {isLoading ? (
         <span className="flex items-center justify-center gap-2">
-          <span className="h-4 w-4 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+          <span className="h-4 w-4 border-2 border-[#6B6258]/40 border-t-[#6B6258] rounded-full animate-spin" />
           Exploring...
         </span>
       ) : (
@@ -856,10 +777,10 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             <div className={cn(
               'h-1.5 rounded-full w-full transition-all duration-300 group-hover:h-2',
               i === activeCard
-                ? 'bg-primary'
+                ? 'bg-[#2ABFBF]'
                 : i < activeCard
-                ? 'bg-primary/40'
-                : 'bg-border'
+                ? 'bg-[rgba(42,191,191,0.35)]'
+                : 'bg-[#2E2B25]'
             )} />
           </button>
         ))}
@@ -884,7 +805,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           <button
             type="button"
             onClick={handleBack}
-            className="flex items-center gap-1 px-3.5 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+            className="flex items-center gap-1 px-3.5 py-2 rounded-xl border border-[#2E2B25] text-sm text-[#A89F94] hover:text-[#F2EEE8] hover:border-[#2ABFBF] transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
             Back
@@ -896,7 +817,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             <button
               type="button"
               onClick={handleNext}
-              className="flex items-center gap-1 px-3.5 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+              className="flex items-center gap-1 px-3.5 py-2 rounded-xl border border-[#2E2B25] text-sm text-[#A89F94] hover:text-[#F2EEE8] hover:border-[#2ABFBF] transition-colors"
             >
               Next
               <ChevronRight className="h-4 w-4" />
