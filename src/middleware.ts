@@ -42,7 +42,9 @@ export async function middleware(req: NextRequest) {
   ].join("; ");
 
   // Forward nonce to Server Components via request header.
-  // Next.js App Router reads x-nonce automatically for its own bootstrap scripts.
+  // Next.js does NOT automatically read x-nonce. layout.tsx must read it explicitly
+  // via headers() and apply it to inline script tags. 'strict-dynamic' in the CSP
+  // allows Next.js bootstrap chunks (dynamically loaded) to execute.
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
 

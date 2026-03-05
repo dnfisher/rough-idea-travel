@@ -1,18 +1,5 @@
 import type { NextConfig } from "next";
 
-const ContentSecurityPolicy = [
-  "default-src 'self'",
-  // unsafe-inline required for Tailwind/inline styles; fontshare for Clash Display
-  "style-src 'self' 'unsafe-inline' https://api.fontshare.com",
-  // Clash Display from Fontshare, DM Sans / others from Google Fonts
-  "font-src 'self' https://api.fontshare.com https://fonts.gstatic.com",
-  // Destination photos and map tiles come from many CDN origins
-  "img-src 'self' data: blob: https:",
-  // API calls are server-side only; connect-src covers client fetch() calls
-  "connect-src 'self'",
-  "frame-ancestors 'self'",
-].join("; ");
-
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -23,7 +10,6 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-          { key: "Content-Security-Policy", value: ContentSecurityPolicy },
         ],
       },
     ];
