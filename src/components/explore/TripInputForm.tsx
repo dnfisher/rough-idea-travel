@@ -365,7 +365,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       </div>
       {dateType === 'flexible' ? (
         <div>
-          <div className="relative">
+          <div className="relative" aria-live="polite">
             <input
               type="text"
               value={dateDescription}
@@ -628,7 +628,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           </span>
         ))}
       </p>
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3" aria-live="polite">
         <textarea
           value={additionalNotes}
           onChange={(e) => {
@@ -678,7 +678,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       </div>
       {locationType === 'region' && (
         <div>
-          <div className="relative">
+          <div className="relative" aria-live="polite">
             <input
               type="text"
               value={regionValue}
