@@ -256,7 +256,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
     fetch("/api/showcase", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, country: country || undefined, slug, imageUrl }),
+      body: JSON.stringify({ name, country: country || undefined, slug, imageUrl, destinationData: ctx.summary }),
     }).catch(() => {/* silent — showcase is non-critical */});
   }, [ctx?.summary.name, slug]);
 
