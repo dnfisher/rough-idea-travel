@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const TRUSTED_IMAGE_HOSTS = [
+  "lh3.googleusercontent.com",
+  "maps.gstatic.com",
+  "maps.googleapis.com",
+  "upload.wikimedia.org",
+];
+
+function isTrustedImageUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && TRUSTED_IMAGE_HOSTS.some(h => u.hostname.endsWith(h));
+  } catch {
+    return false;
+  }
+}
+
 const CACHE = new Map<string, { url: string | null; ts: number }>();
 const CACHE_TTL = 1000 * 60 * 60 * 4; // 4 hours (Google photo URLs are long-lived)
 const CACHE_MAX = 500;
@@ -47,7 +63,7 @@ async function fetchGooglePlacesPhoto(
     // Step 3: Follow the redirect to get the final cached image URL
     const mediaRes = await fetch(mediaUrl, { redirect: "manual" });
     const location = mediaRes.headers.get("location");
-    if (location) return location;
+    if (location && isTrustedImageUrl(location)) return location;
 
     // If no redirect, use the media URL directly (client will follow)
     return mediaUrl;
@@ -144,8 +160,8 @@ export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
   const country = req.nextUrl.searchParams.get("country");
 
-  if (!name) {
-    return NextResponse.json({ error: "name required" }, { status: 400 });
+  if (!name || !/^[\p{L}\p{N}\s,.\-'()]{1,100}$/u.test(name)) {
+    return NextResponse.json({ error: "Invalid name" }, { status: 400 });
   }
 
   const cacheKey = `${name}|${country}`;
@@ -154,7 +170,9 @@ export async function GET(req: NextRequest) {
     if (!cached.url) {
       return new NextResponse(null, { status: 404 });
     }
-    return NextResponse.redirect(cached.url);
+    const cachedRes = NextResponse.redirect(cached.url, 302);
+    cachedRes.headers.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+    return cachedRes;
   }
 
   let imageUrl: string | null = null;
@@ -202,5 +220,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(null, { status: 404 });
   }
 
-  return NextResponse.redirect(imageUrl);
+  const res = NextResponse.redirect(imageUrl, 302);
+  res.headers.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+  return res;
 }

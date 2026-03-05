@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
+function isTrustedImageUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" &&
+      ["lh3.googleusercontent.com", "maps.gstatic.com"].some(h => u.hostname.endsWith(h));
+  } catch {
+    return false;
+  }
+}
+
 const CACHE = new Map<string, { photos: string[]; ts: number }>();
 const CACHE_TTL = 1000 * 60 * 60 * 4; // 4 hours
 const CACHE_MAX = 200;
@@ -30,8 +40,9 @@ async function fetchGooglePlacesPhotos(
       photos.slice(0, maxPhotos).map(async (photo) => {
         const mediaUrl = `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=${maxWidthPx}&key=${apiKey}`;
         const mediaRes = await fetch(mediaUrl, { redirect: "manual" });
-        // Return the redirect location; skip photos that don't redirect (avoids exposing the API key)
-        return mediaRes.headers.get("location");
+        // Return the redirect location only if it points to a trusted host
+        const location = mediaRes.headers.get("location");
+        return location && isTrustedImageUrl(location) ? location : null;
       })
     );
     return results.filter((url): url is string => url !== null);
@@ -45,8 +56,8 @@ export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
   const country = req.nextUrl.searchParams.get("country");
 
-  if (!name) {
-    return NextResponse.json({ error: "name required" }, { status: 400 });
+  if (!name || !/^[\p{L}\p{N}\s,.\-'()]{1,100}$/u.test(name)) {
+    return NextResponse.json({ error: "Invalid name" }, { status: 400 });
   }
 
   const cacheKey = `${name}|${country}`;
@@ -65,5 +76,7 @@ export async function GET(req: NextRequest) {
 
   if (CACHE.size >= CACHE_MAX) CACHE.delete(CACHE.keys().next().value!);
   CACHE.set(cacheKey, { photos, ts: Date.now() });
-  return NextResponse.json({ photos });
+  return NextResponse.json({ photos }, {
+    headers: { "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400" },
+  });
 }
