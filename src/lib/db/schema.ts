@@ -121,5 +121,6 @@ export const showcaseDestinations = pgTable("showcase_destinations", {
   country: text("country"),
   slug: text("slug").notNull().unique(),
   imageUrl: text("image_url"),
+  destinationData: jsonb("destination_data"),
   viewedAt: timestamp("viewed_at", { mode: "date" }).defaultNow().notNull(),
 });
