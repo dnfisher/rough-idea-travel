@@ -9,6 +9,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 //   ffmpeg -i input.mp4 -c:v libvpx-vp9 -crf 33 -b:v 0 -vf "scale=1920:-2" -an output.webm
 // Consider CDN hosting for production — 83MB total in /public/ will slow Vercel deploys.
 const VIDEO_SOURCES = [
+  '/videos/coverr-golden-gate-bridge-4635-1080p.mp4',
   '/videos/coverr-coast-in-brazil-4147-1080p.mp4',
   '/videos/coverr-grand-teton-national-park-5555-1080p.mp4',
   '/videos/coverr-sandy-beach-3010-1080p.mp4',
