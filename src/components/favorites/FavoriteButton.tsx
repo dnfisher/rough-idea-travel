@@ -5,11 +5,11 @@ import { Heart } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import type { DeepPartial } from "ai";
-import type { DestinationSuggestion } from "@/lib/ai/schemas";
+import type { DestinationSuggestion, DestinationSummary } from "@/lib/ai/schemas";
 import { SaveToListModal } from "./SaveToListModal";
 
 interface FavoriteButtonProps {
-  destination: DeepPartial<DestinationSuggestion>;
+  destination: DeepPartial<DestinationSuggestion> | DeepPartial<DestinationSummary>;
   isFavorited: boolean;
   favoriteId: string | null;
   onToggle: (newFavoriteId: string | null) => void;

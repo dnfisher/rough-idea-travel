@@ -132,7 +132,7 @@ export function DestinationCard({
             onClick={(e) => e.stopPropagation()}
           >
             <FavoriteButton
-              destination={destination as DeepPartial<import("@/lib/ai/schemas").DestinationSuggestion>}
+              destination={destination}
               isFavorited={isFavorited}
               favoriteId={favoriteId}
               onToggle={onFavoriteToggle}
