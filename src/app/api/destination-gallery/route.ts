@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const CACHE = new Map<string, { photos: string[]; ts: number }>();
 const CACHE_TTL = 1000 * 60 * 60 * 4; // 4 hours
+const CACHE_MAX = 200;
 
 async function fetchGooglePlacesPhotos(
   query: string,
@@ -25,17 +26,15 @@ async function fetchGooglePlacesPhotos(
     const photos: Array<{ name: string }> = searchData?.places?.[0]?.photos ?? [];
     if (photos.length === 0) return [];
 
-    const urls: string[] = [];
-    for (const photo of photos.slice(0, maxPhotos)) {
-      const mediaUrl = `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=${maxWidthPx}&key=${apiKey}`;
-      const mediaRes = await fetch(mediaUrl, { redirect: "manual" });
-      const location = mediaRes.headers.get("location");
-      if (location) {
-        urls.push(location);
-      }
-      // If no redirect location, skip this photo to avoid exposing the API key
-    }
-    return urls;
+    const results = await Promise.all(
+      photos.slice(0, maxPhotos).map(async (photo) => {
+        const mediaUrl = `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=${maxWidthPx}&key=${apiKey}`;
+        const mediaRes = await fetch(mediaUrl, { redirect: "manual" });
+        // Return the redirect location; skip photos that don't redirect (avoids exposing the API key)
+        return mediaRes.headers.get("location");
+      })
+    );
+    return results.filter((url): url is string => url !== null);
   } catch (err) {
     console.error("[destination-gallery] Google Places error:", err);
     return [];
@@ -64,6 +63,7 @@ export async function GET(req: NextRequest) {
     photos = await fetchGooglePlacesPhotos(query, googleApiKey);
   }
 
+  if (CACHE.size >= CACHE_MAX) CACHE.delete(CACHE.keys().next().value!);
   CACHE.set(cacheKey, { photos, ts: Date.now() });
   return NextResponse.json({ photos });
 }

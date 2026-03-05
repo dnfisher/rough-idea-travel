@@ -22,6 +22,7 @@ import {
   Plane,
   Car,
   ExternalLink,
+  ChevronLeft,
   ChevronRight,
   CheckCircle2,
   Images,
@@ -117,6 +118,19 @@ function parseMonthsFromText(text: string): { active: number[]; shoulder: number
 
 const CLASH: React.CSSProperties = { fontFamily: "'Clash Display', system-ui, sans-serif" };
 const DM: React.CSSProperties = { fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif" };
+const lbNavBtn: React.CSSProperties = {
+  position: "absolute",
+  background: "rgba(255,255,255,0.1)",
+  border: "none",
+  borderRadius: "50%",
+  width: "44px",
+  height: "44px",
+  cursor: "pointer",
+  color: "#F2EEE8",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
 
 function label(extra?: React.CSSProperties): React.CSSProperties {
   return { ...DM, fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.09em", color: "var(--dp-text-muted, #6B6258)", marginBottom: "8px", ...extra };
@@ -372,14 +386,18 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   // Lightbox keyboard navigation
   useEffect(() => {
     if (lightboxIndex === null) return;
+    const total = galleryPhotos.length;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") { setLightboxIndex(null); return; }
-      if (e.key === "ArrowRight") setLightboxIndex((i) => i === null ? null : Math.min(i + 1, galleryPhotos.length - 1));
-      if (e.key === "ArrowLeft")  setLightboxIndex((i) => i === null ? null : Math.max(i - 1, 0));
+      if (e.key === "Escape")      { setLightboxIndex(null); return; }
+      if (e.key === "ArrowRight")  setLightboxIndex((i) => Math.min((i ?? 0) + 1, total - 1));
+      if (e.key === "ArrowLeft")   setLightboxIndex((i) => Math.max((i ?? 0) - 1, 0));
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [lightboxIndex, galleryPhotos.length]);
+  // lightboxIndex intentionally omitted: functional updaters don't need it, and including
+  // it would re-register the listener on every keypress.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightboxIndex === null, galleryPhotos.length]);
 
   // ── No context fallback ──
   if (noContext) {
@@ -666,14 +684,13 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
               <div style={{ padding: "52px 0 44px" }}>
                 <p
                   style={{
-                    fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
-                    fontSize: "clamp(20px, 2.2vw, 26px)",
-                    fontWeight: 400,
-                    fontStyle: "italic",
-                    lineHeight: 1.85,
-                    color: "rgba(242,238,232,0.88)",
+                    fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
+                    fontSize: "clamp(22px, 2.4vw, 30px)",
+                    fontWeight: 300,
+                    lineHeight: 1.7,
+                    color: "rgba(242,238,232,0.9)",
                     maxWidth: "720px",
-                    letterSpacing: "0.01em",
+                    letterSpacing: "-0.01em",
                   }}
                 >
                   {destination.reasoning}
@@ -1665,25 +1682,11 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           {/* Prev */}
           {lightboxIndex > 0 && (
             <button
-              onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => Math.max((i ?? 1) - 1, 0)); }}
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
               aria-label="Previous photo"
-              style={{
-                position: "absolute",
-                left: "16px",
-                background: "rgba(255,255,255,0.1)",
-                border: "none",
-                borderRadius: "50%",
-                width: "44px",
-                height: "44px",
-                cursor: "pointer",
-                color: "#F2EEE8",
-                fontSize: "20px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              style={{ ...lbNavBtn, left: "16px" }}
             >
-              ‹
+              <ChevronLeft style={{ width: "24px", height: "24px" }} />
             </button>
           )}
 
@@ -1704,26 +1707,12 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           {/* Next */}
           {lightboxIndex < galleryPhotos.length - 1 && (
             <button
-              onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => Math.min((i ?? 0) + 1, galleryPhotos.length - 1)); }}
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
               aria-label="Next photo"
-              style={{
-                position: "absolute",
-                right: "16px",
-                background: "rgba(255,255,255,0.1)",
-                border: "none",
-                borderRadius: "50%",
-                width: "44px",
-                height: "44px",
-                cursor: "pointer",
-                color: "#F2EEE8",
-                fontSize: "20px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              style={{ ...lbNavBtn, right: "16px" }}
             >
-              ›
-          </button>
+              <ChevronRight style={{ width: "24px", height: "24px" }} />
+            </button>
           )}
 
           {/* Thumbnail strip */}
@@ -1744,7 +1733,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
             >
               {galleryPhotos.map((url, i) => (
                 <button
-                  key={i}
+                  key={url}
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
                   aria-label={`View photo ${i + 1}`}
                   style={{
@@ -1763,6 +1752,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                   <img
                     src={url}
                     alt=""
+                    loading="lazy"
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   />
                 </button>
