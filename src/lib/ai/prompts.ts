@@ -101,7 +101,7 @@ Guidelines:
 - For flying trips: include flightEstimate with nearest IATA airport codes
 - For road trips: include drivingEstimate. If route is 4-5+ hours from home, also include flightEstimate
 - localInsights: 3-4 items (categories: Food & Drink, Customs, Language, Getting Around, Money, Hidden Gems, Local Tips). 1-2 sentences each
-- localEvents: 2-3 events/festivals during or near travel dates
+- localEvents: 2-3 events/festivals that occur WITHIN the user's travel dates or within 2 weeks before/after. Events must be upcoming (after today's date, provided in the prompt). Never generate past events.
 - estimatedTotalTripCostEur: based on nightly rate, transport, and daily expenses
 - Numeric cost fields always in EUR. Use user's preferred currency in free-text descriptions
 - Be concise throughout — brevity over exhaustiveness`;
@@ -276,10 +276,12 @@ export function buildDetailPrompt(
   country: string,
   input: TripInput
 ): string {
+  const today = new Date().toISOString().split("T")[0]; // e.g. "2026-03-04"
   const parts: string[] = [
     `Generate a full detailed trip plan for: ${destinationName}, ${country}`,
     "",
     "User preferences:",
+    `Today's date: ${today}`,
     ...buildPreferenceParts(input),
   ];
 
