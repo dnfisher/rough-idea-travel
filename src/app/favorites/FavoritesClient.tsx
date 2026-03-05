@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Heart, Compass, Plus, ChevronDown, ChevronUp, Share2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Heart, Compass, Plus, ChevronDown, Pencil, Trash2, MoreHorizontal, FolderInput } from "lucide-react";
 import Link from "next/link";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
@@ -45,6 +45,12 @@ export function FavoritesClient({
   const [creatingList, setCreatingList] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
+
+  // New state
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [movePickerFavId, setMovePickerFavId] = useState<string | null>(null);
+  const [removeConfirmFavId, setRemoveConfirmFavId] = useState<string | null>(null);
 
   function handleRemoveUncategorized(favId: string) {
     setUncategorized((prev) => prev.filter((f) => f.id !== favId));
@@ -90,196 +96,259 @@ export function FavoritesClient({
     window.open(`/destination/${slug}`, "_blank");
   }
 
+  async function handleDeleteWishlist(id: string) {
+    try {
+      const res = await fetch(`/api/wishlists/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      setWishlists((prev) => prev.filter((wl) => wl.id !== id));
+    } catch {
+      // fail silently
+    } finally {
+      setConfirmDeleteId(null);
+    }
+  }
+
+  async function handleMoveToList(favId: string, listId: string) {
+    try {
+      const res = await fetch(`/api/favorites/${favId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listId }),
+      });
+      if (!res.ok) throw new Error("Failed to move");
+      setUncategorized((prev) => prev.filter((f) => f.id !== favId));
+    } catch {
+      // fail silently
+    } finally {
+      setMovePickerFavId(null);
+      setOpenMenuId(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    function handleOutside() {
+      setOpenMenuId(null);
+      setMovePickerFavId(null);
+      setRemoveConfirmFavId(null);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [openMenuId]);
+
+  const CLASH: React.CSSProperties = { fontFamily: "'Clash Display', system-ui, sans-serif" };
   const totalSaved = wishlists.reduce((sum, wl) => sum + wl.itemCount, 0) + uncategorized.length;
   const isEmpty = wishlists.length === 0 && uncategorized.length === 0;
 
+  // Suppress unused variable warning for copiedShareId (kept for handleCopyShareLink)
+  void copiedShareId;
+
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="/" className="font-logo text-3xl uppercase tracking-[-0.02em]">
-            ROUGH IDEA<span className="text-highlight">.</span>
+    <div className="favorites-page min-h-screen" style={{ background: "#0F0E0D" }}>
+      {/* Nav */}
+      <header className="homepage-nav" style={{ position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 40px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <a href="/" style={{ ...CLASH, fontSize: 22, fontWeight: 600, color: "#F2EEE8", textDecoration: "none", letterSpacing: "-0.02em" }}>
+            ROUGH IDEA<span style={{ color: "#E8833A" }}>.</span>
           </a>
           <UserButton />
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Heart className="h-6 w-6 text-red-500 fill-current" />
-          <h1 className="font-display font-semibold text-2xl">My Wishlists</h1>
-          <span className="text-sm text-muted-foreground ml-1">
-            {totalSaved} saved
-          </span>
+      <main style={{ maxWidth: 1080, margin: "0 auto", padding: "32px 40px" }}>
+
+        {/* Page header */}
+        <div className="wishlist-header">
+          <div className="wishlist-header__left">
+            <Heart size={22} style={{ color: "#E8833A", fill: "#E8833A" }} />
+            <h1 style={{ ...CLASH, fontSize: 28, fontWeight: 500, color: "#F2EEE8", margin: 0 }}>
+              My Wishlists
+            </h1>
+            <span className="wishlist-header__count">{totalSaved} saved</span>
+          </div>
+          <button
+            className="wishlist-header__new-btn"
+            onClick={() => setCreatingList(true)}
+          >
+            <Plus size={14} />
+            New list
+          </button>
         </div>
 
         {isEmpty ? (
-          <div className="rounded-2xl border border-border bg-card p-12 text-center">
-            <Heart className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-            <h2 className="font-display font-semibold text-lg mb-2">
-              No saved destinations yet
-            </h2>
-            <p className="text-sm text-muted-foreground mb-6">
+          <div className="wishlist-empty">
+            <Heart size={48} style={{ color: "#2E2B25", margin: "0 auto", display: "block" }} />
+            <h2 className="wishlist-empty__title">No saved destinations yet</h2>
+            <p className="wishlist-empty__subtitle">
               Explore destinations and click the heart icon to save your favorites.
             </p>
             <a
               href="/explore"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
+              className="btn-primary-lg"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}
             >
-              <Compass className="h-4 w-4" />
+              <Compass size={16} />
               Explore Destinations
             </a>
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Wishlist cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {wishlists.map((wl) => (
-                <div key={wl.id} className="group relative">
-                  <Link
-                    href={`/favorites/${wl.id}`}
-                    className="block rounded-2xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all"
-                  >
-                    {/* Cover image */}
-                    <div className="relative h-40">
+          <div>
+
+            {/* Wishlist grid */}
+            <div className="wishlist-grid">
+              {wishlists.map((wl) => {
+                if (confirmDeleteId === wl.id) {
+                  return (
+                    <div key={wl.id} className="wishlist-card-confirm">
+                      <p className="wishlist-card-confirm__text">
+                        Delete{" "}
+                        <span className="wishlist-card-confirm__name">&ldquo;{wl.name}&rdquo;</span>
+                        ?
+                      </p>
+                      <div className="wishlist-card-confirm__actions">
+                        <button
+                          className="wishlist-card-confirm__cancel"
+                          onClick={() => setConfirmDeleteId(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="wishlist-card-confirm__delete"
+                          onClick={() => handleDeleteWishlist(wl.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={wl.id} style={{ position: "relative" }}>
+                    <Link href={`/favorites/${wl.id}`} className="wishlist-list-card">
                       {wl.coverDestinations[0] ? (
                         <DestinationImage
                           name={wl.coverDestinations[0].destinationName}
                           country={wl.coverDestinations[0].country}
-                          className="w-full h-full"
+                          className="wishlist-list-card__image"
                         />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <Heart className="h-8 w-8 text-muted-foreground/30" />
-                        </div>
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
-                      <div className="absolute bottom-3 left-3 right-3">
-                        <h3 className="font-display font-semibold text-white text-base drop-shadow-sm">
-                          {wl.name}
-                        </h3>
-                        <p className="text-xs text-white/80">
+                      ) : null}
+                      <div className="wishlist-list-card__overlay" />
+                      <div className="wishlist-list-card__content">
+                        <span className="wishlist-list-card__name">{wl.name}</span>
+                        <span className="wishlist-list-card__count">
                           {wl.itemCount} {wl.itemCount === 1 ? "destination" : "destinations"}
-                        </p>
+                        </span>
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
 
-                  {/* Share button */}
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleCopyShareLink(wl.shareId);
-                    }}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-white/20 text-muted-foreground hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
-                    title={copiedShareId === wl.shareId ? "Link copied!" : "Copy share link"}
-                  >
-                    {copiedShareId === wl.shareId ? (
-                      <span className="text-xs px-1 font-medium text-green-600">Copied!</span>
-                    ) : (
-                      <Share2 className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                </div>
-              ))}
+                    {/* Hover actions sit above the Link */}
+                    <div className="wishlist-list-card__actions">
+                      <Link
+                        href={`/favorites/${wl.id}`}
+                        className="card-action-btn card-action-btn--edit"
+                        title="Edit list"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Pencil size={14} />
+                      </Link>
+                      <button
+                        className="card-action-btn card-action-btn--delete"
+                        title="Delete list"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setConfirmDeleteId(wl.id);
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
 
               {/* Create new list card */}
               {creatingList ? (
-                <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 flex flex-col items-center justify-center min-h-[208px]">
+                <div className="wishlist-create-input-card">
                   <input
                     type="text"
                     value={newListName}
                     onChange={(e) => setNewListName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleCreateList();
-                      if (e.key === "Escape") {
-                        setCreatingList(false);
-                        setNewListName("");
-                      }
+                      if (e.key === "Escape") { setCreatingList(false); setNewListName(""); }
                     }}
                     placeholder="e.g. Spring Trip 2026"
-                    className="w-full text-center bg-transparent border-b border-primary/30 pb-2 text-sm outline-none placeholder:text-muted-foreground mb-4"
                     autoFocus
                   />
-                  <div className="flex gap-2">
+                  <div className="wishlist-create-input-card__actions">
                     <button
                       onClick={handleCreateList}
                       disabled={!newListName.trim()}
-                      className={cn(
-                        "px-4 py-2 rounded-xl text-sm font-medium transition-colors",
-                        newListName.trim()
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "bg-muted text-muted-foreground"
-                      )}
+                      className="save-modal__btn-save"
                     >
                       Create
                     </button>
                     <button
-                      onClick={() => {
-                        setCreatingList(false);
-                        setNewListName("");
-                      }}
-                      className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+                      onClick={() => { setCreatingList(false); setNewListName(""); }}
+                      className="save-modal__btn-cancel"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={() => setCreatingList(true)}
-                  className="rounded-2xl border border-dashed border-border bg-card/50 overflow-hidden shadow-sm hover:shadow-md hover:border-primary/50 hover:bg-primary/5 transition-all flex flex-col items-center justify-center min-h-[208px] gap-3"
-                >
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <Plus className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <span className="text-sm font-medium text-muted-foreground">Create new list</span>
+                <button className="wishlist-create-card" onClick={() => setCreatingList(true)}>
+                  <Plus size={24} className="wishlist-create-card__icon" />
+                  <span className="wishlist-create-card__label">Create new list</span>
                 </button>
               )}
             </div>
 
-            {/* Uncategorized favorites */}
+            {/* Unsorted favorites */}
             {uncategorized.length > 0 && (
-              <div>
+              <div className="unsorted-section">
                 <button
+                  className="unsorted-header"
                   onClick={() => setShowUncategorized(!showUncategorized)}
-                  className="flex items-center gap-2 mb-4 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showUncategorized ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                  Unsorted favorites ({uncategorized.length})
+                  <ChevronDown
+                    size={16}
+                    className={cn(
+                      "unsorted-header__chevron",
+                      !showUncategorized && "unsorted-header__chevron--collapsed"
+                    )}
+                  />
+                  <span className="unsorted-header__label">Unsorted favorites</span>
+                  <span className="unsorted-header__count">({uncategorized.length})</span>
                 </button>
 
                 {showUncategorized && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="unsorted-row">
                     {uncategorized.map((fav) => {
                       const dest = fav.destinationData as DeepPartial<DestinationSuggestion>;
                       const firstStop = dest?.itinerary?.days?.[0]?.location;
+                      const isMenuOpen = openMenuId === fav.id;
+                      const isMovePicker = movePickerFavId === fav.id;
+                      const isRemoveConfirm = removeConfirmFavId === fav.id;
+
                       return (
                         <div
                           key={fav.id}
+                          className="unsorted-card"
                           onClick={() => openInNewTab(fav)}
-                          className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition-all"
                         >
-                          <div className="relative h-40">
+                          {/* Image area */}
+                          <div className="unsorted-card__image-wrap">
                             <DestinationImage
                               name={fav.destinationName}
                               country={fav.country}
                               searchName={firstStop}
                               fallbackName={firstStop}
-                              className="w-full h-full"
+                              className="unsorted-card__image"
                             />
-                            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
-                            <div className="absolute bottom-3 left-3 right-3">
-                              <h3 className="font-display font-semibold text-white text-base drop-shadow-sm">
-                                {fav.destinationName}
-                              </h3>
-                              <p className="text-xs text-white/80">{fav.country}</p>
-                            </div>
-                            <div className="absolute top-2 right-2">
+                            <div className="unsorted-card__heart">
                               <FavoriteButton
                                 destination={dest}
                                 isFavorited={true}
@@ -291,15 +360,97 @@ export function FavoritesClient({
                               />
                             </div>
                           </div>
-                          <div className="p-3">
-                            <p className="text-xs text-muted-foreground">
-                              Saved{" "}
-                              {new Date(fav.createdAt).toLocaleDateString("en-GB", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </p>
+
+                          {/* Card body */}
+                          <div className="unsorted-card__body" onClick={(e) => e.stopPropagation()}>
+                            <div className="unsorted-card__body-text">
+                              <div className="unsorted-card__name">{fav.destinationName}</div>
+                              <div className="unsorted-card__meta">{fav.country}</div>
+                              <div className="unsorted-card__date">
+                                Saved{" "}
+                                {new Date(fav.createdAt).toLocaleDateString("en-GB", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Ellipsis menu */}
+                            <div style={{ position: "relative" }}>
+                              <button
+                                className="unsorted-card__menu-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(isMenuOpen ? null : fav.id);
+                                  setMovePickerFavId(null);
+                                  setRemoveConfirmFavId(null);
+                                }}
+                                title="More options"
+                              >
+                                <MoreHorizontal size={14} />
+                              </button>
+
+                              {isMenuOpen && (
+                                <div className="unsorted-card__dropdown" onClick={(e) => e.stopPropagation()}>
+                                  {!isMovePicker && !isRemoveConfirm && (
+                                    <>
+                                      <button
+                                        className="unsorted-card__dropdown-item"
+                                        onClick={() => setMovePickerFavId(fav.id)}
+                                      >
+                                        <FolderInput size={13} />
+                                        Move to list
+                                      </button>
+                                      <button
+                                        className="unsorted-card__dropdown-item unsorted-card__dropdown-item--danger"
+                                        onClick={() => setRemoveConfirmFavId(fav.id)}
+                                      >
+                                        <Trash2 size={13} />
+                                        Remove from saved
+                                      </button>
+                                    </>
+                                  )}
+
+                                  {isMovePicker && (
+                                    <div className="unsorted-card__list-picker">
+                                      {wishlists.map((wl) => (
+                                        <button
+                                          key={wl.id}
+                                          className="unsorted-card__list-picker-item"
+                                          onClick={() => handleMoveToList(fav.id, wl.id)}
+                                        >
+                                          {wl.name}
+                                        </button>
+                                      ))}
+                                      {wishlists.length === 0 && (
+                                        <span style={{ padding: "8px 10px", display: "block", fontSize: 12, color: "#6B6258", fontFamily: "DM Sans, sans-serif" }}>
+                                          No lists yet
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {isRemoveConfirm && (
+                                    <div style={{ padding: "8px 10px" }}>
+                                      <p style={{ fontFamily: "DM Sans, sans-serif", fontSize: 12, color: "#A89F94", margin: "0 0 10px" }}>
+                                        Remove from saved?
+                                      </p>
+                                      <button
+                                        className="unsorted-card__dropdown-item unsorted-card__dropdown-item--danger"
+                                        style={{ width: "100%", justifyContent: "center" }}
+                                        onClick={() => {
+                                          handleRemoveUncategorized(fav.id);
+                                          setOpenMenuId(null);
+                                        }}
+                                      >
+                                        Yes, remove
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -308,10 +459,10 @@ export function FavoritesClient({
                 )}
               </div>
             )}
+
           </div>
         )}
       </main>
-
     </div>
   );
 }
