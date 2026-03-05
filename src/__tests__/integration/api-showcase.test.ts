@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
 
 const dbMock = vi.hoisted(() => {
   const mock: Record<string, ReturnType<typeof vi.fn>> = {}
@@ -29,7 +30,7 @@ describe('GET /api/showcase', () => {
         }),
       }),
     })
-    const req = new Request('http://localhost/api/showcase')
+    const req = new NextRequest('http://localhost/api/showcase')
     const res = await GET(req)
     expect(res.status).toBe(200)
     const json = await res.json()
@@ -45,7 +46,7 @@ describe('GET /api/showcase', () => {
         }),
       }),
     })
-    const req = new Request('http://localhost/api/showcase')
+    const req = new NextRequest('http://localhost/api/showcase')
     const res = await GET(req)
     expect(res.status).toBe(200)
     const json = await res.json()
@@ -55,7 +56,7 @@ describe('GET /api/showcase', () => {
 
 describe('POST /api/showcase', () => {
   it('returns 400 when name is missing', async () => {
-    const req = new Request('http://localhost/api/showcase', {
+    const req = new NextRequest('http://localhost/api/showcase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug: 'lisbon-portugal' }),
@@ -65,7 +66,7 @@ describe('POST /api/showcase', () => {
   })
 
   it('returns 400 when slug is missing', async () => {
-    const req = new Request('http://localhost/api/showcase', {
+    const req = new NextRequest('http://localhost/api/showcase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Lisbon' }),
@@ -80,7 +81,7 @@ describe('POST /api/showcase', () => {
         onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
       }),
     })
-    const req = new Request('http://localhost/api/showcase', {
+    const req = new NextRequest('http://localhost/api/showcase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

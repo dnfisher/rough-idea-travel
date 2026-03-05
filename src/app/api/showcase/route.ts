@@ -7,7 +7,7 @@ import { desc } from "drizzle-orm";
 const PostSchema = z.object({
   name: z.string().min(1).max(200),
   country: z.string().max(100).optional(),
-  slug: z.string().min(1).max(300),
+  slug: z.string().min(1).max(300).regex(/^[a-z0-9-]+$/, 'Invalid slug format'),
   imageUrl: z.string().max(2000).optional(),
 });
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       .values({ name, country, slug, imageUrl, viewedAt: new Date() })
       .onConflictDoUpdate({
         target: showcaseDestinations.slug,
-        set: { viewedAt: new Date() },
+        set: { viewedAt: new Date(), country: parsed.data.country, imageUrl: parsed.data.imageUrl },
       });
 
     return NextResponse.json({ ok: true });
