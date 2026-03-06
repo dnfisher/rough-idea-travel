@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
   const country = req.nextUrl.searchParams.get("country");
   const interestsRaw = req.nextUrl.searchParams.get("interests");
 
-  if (!name || !/^[\p{L}\p{N}\s,.\-'()]{1,100}$/u.test(name)) {
+  if (!name || !/^[\p{L}\p{N}\s,.\-'()&]{1,100}$/u.test(name)) {
     return NextResponse.json({ error: "Invalid name" }, { status: 400 });
   }
 
@@ -102,6 +102,14 @@ export async function GET(req: NextRequest) {
     const basePlace = country ? `${name}, ${country}` : name;
     const query = interestTerms ? `${basePlace} ${interestTerms}` : basePlace;
     photos = await fetchGooglePlacesPhotos(query, googleApiKey);
+
+    // For compound names like "Tulum & Playa del Carmen", try the first part if no results
+    if (photos.length === 0 && name.includes("&")) {
+      const firstPart = name.split("&")[0].trim();
+      const fallbackPlace = country ? `${firstPart}, ${country}` : firstPart;
+      const fallbackQuery = interestTerms ? `${fallbackPlace} ${interestTerms}` : fallbackPlace;
+      photos = await fetchGooglePlacesPhotos(fallbackQuery, googleApiKey);
+    }
   }
 
   if (CACHE.size >= CACHE_MAX) CACHE.delete(CACHE.keys().next().value!);

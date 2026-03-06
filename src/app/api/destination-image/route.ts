@@ -207,11 +207,11 @@ export async function GET(req: NextRequest) {
   const country = req.nextUrl.searchParams.get("country");
   const interestsRaw = req.nextUrl.searchParams.get("interests");
 
-  if (!name || !/^[\p{L}\p{N}\s,.\-'()]{1,100}$/u.test(name)) {
+  if (!name || !/^[\p{L}\p{N}\s,.\-'()&]{1,100}$/u.test(name)) {
     return NextResponse.json({ error: "Invalid name" }, { status: 400 });
   }
 
-  if (country && !/^[\p{L}\p{N}\s,.\-'()]{1,100}$/u.test(country)) {
+  if (country && !/^[\p{L}\p{N}\s,.\-'()&]{1,100}$/u.test(country)) {
     return NextResponse.json({ error: "Invalid country" }, { status: 400 });
   }
 
@@ -238,9 +238,13 @@ export async function GET(req: NextRequest) {
   if (googleApiKey) {
     const basePlace = country ? `${name} ${country}` : name;
     const qualifier = interestTerms || "landmark outdoor";
+    // For compound names like "Tulum & Playa del Carmen", also try the first part alone
+    const firstPart = name.includes("&") ? name.split("&")[0].trim() : null;
+    const firstPartPlace = firstPart && country ? `${firstPart} ${country}` : firstPart;
     const queries = [
       `${basePlace} ${qualifier}`,
       basePlace,
+      ...(firstPartPlace ? [`${firstPartPlace} ${qualifier}`, firstPartPlace] : []),
     ];
 
     for (const q of queries) {
