@@ -148,7 +148,7 @@ export function FavoritesClient({
   return (
     <div className="favorites-page min-h-screen" style={{ background: "#0F0E0D" }}>
       {/* Nav */}
-      <header className="homepage-nav" style={{ position: "sticky", top: 0, zIndex: 50 }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(28, 26, 23, 0.88)", backdropFilter: "blur(16px)", borderBottom: "1px solid #2E2B25" }}>
         <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 40px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <a href="/" style={{ ...CLASH, fontSize: 22, fontWeight: 600, color: "#F2EEE8", textDecoration: "none", letterSpacing: "-0.02em" }}>
             ROUGH IDEA<span style={{ color: "#E8833A" }}>.</span>

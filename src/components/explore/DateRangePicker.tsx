@@ -31,6 +31,12 @@ function formatDisplay(iso: string): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
+function sameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+}
+
 export function DateRangePicker({ startDate, endDate, onChange, className }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState<Date>(() => {
@@ -52,16 +58,16 @@ export function DateRangePicker({ startDate, endDate, onChange, className }: Dat
       const start = selected.from ? toIso(selected.from) : "";
       const end = selected.to ? toIso(selected.to) : "";
 
-      // When start is selected but no end yet, sync right month to start month
-      if (selected.from && !selected.to) {
-        setDisplayMonth(selected.from);
-      }
+      // DayPicker v9 sets from=to on first click — treat as start-only
+      const isRealRange = selected.from && selected.to && !sameDay(selected.from, selected.to);
 
-      onChange(start, end);
-
-      // Close when a complete range is selected
-      if (selected.from && selected.to) {
+      if (isRealRange) {
+        onChange(start, end);
         setIsOpen(false);
+      } else {
+        // First click — only set start, keep picker open
+        onChange(start, "");
+        if (selected.from) setDisplayMonth(selected.from);
       }
     },
     [onChange]
@@ -73,14 +79,14 @@ export function DateRangePicker({ startDate, endDate, onChange, className }: Dat
     setIsOpen(false);
   }
 
-  const triggerLabel =
-    startDate && endDate
-      ? `${formatDisplay(startDate)} – ${formatDisplay(endDate)}`
-      : startDate
-      ? `${formatDisplay(startDate)} – select return`
-      : "Select dates";
+  const hasStart = !!startDate;
+  const hasRange = !!startDate && !!endDate;
 
-  const hasSelection = !!startDate;
+  const triggerLabel = hasRange
+    ? `${formatDisplay(startDate)} – ${formatDisplay(endDate)}`
+    : hasStart
+    ? `${formatDisplay(startDate)} – pick return date`
+    : "Select dates";
 
   return (
     <div className={cn("relative", className)}>
@@ -92,9 +98,9 @@ export function DateRangePicker({ startDate, endDate, onChange, className }: Dat
           width: "100%",
           padding: "10px 14px",
           borderRadius: "12px",
-          border: `1px solid ${isOpen ? "#2ABFBF" : "#2E2B25"}`,
+          border: `1px solid ${isOpen || hasStart ? "#2ABFBF" : "#2E2B25"}`,
           background: "#252219",
-          color: hasSelection ? "#F2EEE8" : "#6B6258",
+          color: hasStart ? "#F2EEE8" : "#6B6258",
           fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
           fontSize: "14px",
           textAlign: "left",
@@ -109,7 +115,7 @@ export function DateRangePicker({ startDate, endDate, onChange, className }: Dat
       >
         <Calendar style={{ width: "15px", height: "15px", flexShrink: 0, color: "#6B6258" }} />
         <span style={{ flex: 1 }}>{triggerLabel}</span>
-        {hasSelection && (
+        {hasStart && (
           <button
             type="button"
             onClick={handleClear}
@@ -124,18 +130,19 @@ export function DateRangePicker({ startDate, endDate, onChange, className }: Dat
               flexShrink: 0,
             }}
           >
-            <X
-              style={{
-                width: "14px",
-                height: "14px",
-                color: "#6B6258",
-              }}
-            />
+            <X style={{ width: "14px", height: "14px", color: "#6B6258" }} />
           </button>
         )}
       </button>
 
-      {/* Inline calendar */}
+      {/* Hint when picking return date */}
+      {isOpen && hasStart && !hasRange && (
+        <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#2ABFBF" }}>
+          Now pick your return date
+        </p>
+      )}
+
+      {/* Inline calendar — single month */}
       {isOpen && (
         <div
           style={{
@@ -151,7 +158,7 @@ export function DateRangePicker({ startDate, endDate, onChange, className }: Dat
             mode="range"
             selected={range}
             onSelect={handleSelect}
-            numberOfMonths={2}
+            numberOfMonths={1}
             month={displayMonth}
             onMonthChange={setDisplayMonth}
             disabled={{ before: new Date() }}

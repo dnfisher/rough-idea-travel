@@ -34,7 +34,7 @@ export function validateDateRange(startDate: string, endDate: string): string | 
 
 export interface BuildTripInputState {
   homeCity: string
-  travelRange: TripInput['travelRange']
+  travelRanges: string[]
   dateType: 'flexible' | 'specific'
   startDate: string
   endDate: string
@@ -42,8 +42,8 @@ export interface BuildTripInputState {
   duration: number
   groupType: GroupType
   interests: string[]
-  weatherPreference: string
-  budgetLevel: TripInput['budgetLevel']
+  weatherPreferences: string[]
+  budgetLevels: string[]
   tripStyle: TripInput['tripStyle']
   locationType: 'open' | 'region' | 'specific'
   regionValue: string
@@ -52,9 +52,13 @@ export interface BuildTripInputState {
 }
 
 export function buildTripInput(state: BuildTripInputState): TripInput {
+  // Filter out catch-all values; join remaining as comma-separated
+  const ranges = state.travelRanges.filter(r => r !== 'any')
+  const weathers = state.weatherPreferences.filter(w => w !== 'any')
+
   return {
     ...(state.homeCity ? { homeCity: state.homeCity } : {}),
-    ...(state.travelRange && state.travelRange !== 'any' ? { travelRange: state.travelRange } : {}),
+    ...(ranges.length > 0 ? { travelRange: ranges.join(',') } : {}),
     dates: {
       flexible: state.dateType === 'flexible',
       ...(state.dateType === 'flexible'
@@ -64,9 +68,8 @@ export function buildTripInput(state: BuildTripInputState): TripInput {
     },
     travelers: groupTypeTravelers(state.groupType),
     interests: state.interests,
-    // 'any' means no preference — omit so the AI prompt receives no weather constraint
-    weatherPreference: state.weatherPreference === 'any' ? undefined : state.weatherPreference,
-    budgetLevel: state.budgetLevel,
+    weatherPreference: weathers.length > 0 ? weathers.join(', ') : undefined,
+    budgetLevel: state.budgetLevels.join(','),
     tripStyle: state.tripStyle,
     locationPreference: {
       type: state.locationType,
@@ -79,7 +82,7 @@ export function buildTripInput(state: BuildTripInputState): TripInput {
 
 export interface SummaryPillState {
   homeCity: string
-  travelRange: TripInput['travelRange']
+  travelRanges: string[]
   dateType: 'flexible' | 'specific'
   startDate: string
   endDate: string
@@ -87,7 +90,7 @@ export interface SummaryPillState {
   groupType: GroupType
   interests: string[]
   tripStyle: TripInput['tripStyle']
-  budgetLevel: TripInput['budgetLevel']
+  budgetLevels: string[]
   locationType: 'open' | 'region' | 'specific'
   regionValue: string
 }
@@ -97,9 +100,10 @@ export function buildSummaryPills(state: SummaryPillState): { label: string; car
 
   // Card 0: Where & Who
   if (state.homeCity) pills.push({ label: state.homeCity, card: 0 })
-  if (state.travelRange && state.travelRange !== 'any') {
-    const rangeLabel = TRAVEL_RANGES.find(r => r.value === state.travelRange)?.label
-    if (rangeLabel) pills.push({ label: rangeLabel, card: 0 })
+  const activeRanges = state.travelRanges.filter(r => r !== 'any')
+  if (activeRanges.length > 0) {
+    const labels = activeRanges.map(r => TRAVEL_RANGES.find(tr => tr.value === r)?.label).filter(Boolean)
+    if (labels.length > 0) pills.push({ label: labels.join(', '), card: 0 })
   }
   const groupLabel = GROUP_TYPES.find(g => g.value === state.groupType)?.label
   if (groupLabel) pills.push({ label: groupLabel, card: 0 })
@@ -127,8 +131,8 @@ export function buildSummaryPills(state: SummaryPillState): { label: string; car
   const styleLabel = TRIP_STYLES.find(s => s.value === state.tripStyle)?.label
   // 'mixed' is the default non-choice — omit from summary as it adds no information
   if (styleLabel && state.tripStyle !== 'mixed') pills.push({ label: styleLabel, card: 2 })
-  const budgetLabel = BUDGET_LEVELS.find(b => b.value === state.budgetLevel)?.label
-  if (budgetLabel) pills.push({ label: budgetLabel, card: 2 })
+  const budgetLabels = state.budgetLevels.map(b => BUDGET_LEVELS.find(bl => bl.value === b)?.label).filter(Boolean)
+  if (budgetLabels.length > 0) pills.push({ label: budgetLabels.join(', '), card: 2 })
 
   return pills
 }

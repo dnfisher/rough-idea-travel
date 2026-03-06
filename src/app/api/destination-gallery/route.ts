@@ -17,7 +17,7 @@ const CACHE_MAX = 200;
 async function fetchGooglePlacesPhotos(
   query: string,
   apiKey: string,
-  maxPhotos = 20,
+  maxPhotos = 10,
   maxWidthPx = 1600
 ): Promise<string[]> {
   try {
@@ -40,7 +40,6 @@ async function fetchGooglePlacesPhotos(
       photos.slice(0, maxPhotos).map(async (photo) => {
         const mediaUrl = `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=${maxWidthPx}&key=${apiKey}`;
         const mediaRes = await fetch(mediaUrl, { redirect: "manual" });
-        // Return the redirect location only if it points to a trusted host
         const location = mediaRes.headers.get("location");
         return location && isTrustedImageUrl(location) ? location : null;
       })
@@ -51,6 +50,16 @@ async function fetchGooglePlacesPhotos(
     return [];
   }
 }
+
+/** Gallery search angles to get diverse imagery */
+const GALLERY_ANGLES = [
+  "landscape scenic viewpoint",
+  "landmark attraction",
+  "architecture historic",
+  "beach coastline nature",
+  "street market local culture",
+  "food restaurant cuisine",
+];
 
 /** Map user interests to image-search-friendly descriptors */
 function interestSearchTerms(interests: string[]): string {
@@ -100,16 +109,37 @@ export async function GET(req: NextRequest) {
 
   if (googleApiKey) {
     const basePlace = country ? `${name}, ${country}` : name;
-    const query = interestTerms ? `${basePlace} ${interestTerms}` : basePlace;
-    photos = await fetchGooglePlacesPhotos(query, googleApiKey);
+    // For compound names, also prepare a simpler fallback
+    const firstPart = name.includes("&") ? name.split("&")[0].trim() : null;
+    const fallbackPlace = firstPart && country ? `${firstPart}, ${country}` : firstPart;
 
-    // For compound names like "Tulum & Playa del Carmen", try the first part if no results
-    if (photos.length === 0 && name.includes("&")) {
-      const firstPart = name.split("&")[0].trim();
-      const fallbackPlace = country ? `${firstPart}, ${country}` : firstPart;
-      const fallbackQuery = interestTerms ? `${fallbackPlace} ${interestTerms}` : fallbackPlace;
-      photos = await fetchGooglePlacesPhotos(fallbackQuery, googleApiKey);
+    // Build diverse queries: base + interest terms, then multiple angles
+    const queries = [
+      interestTerms ? `${basePlace} ${interestTerms}` : `${basePlace} landscape scenic`,
+      ...GALLERY_ANGLES.map((angle) => `${basePlace} ${angle}`),
+    ];
+
+    // Fetch from multiple queries in parallel (each returns up to 10 photos)
+    const seen = new Set<string>();
+    const batchResults = await Promise.all(
+      queries.map((q) => fetchGooglePlacesPhotos(q, googleApiKey, 10))
+    );
+    for (const batch of batchResults) {
+      for (const url of batch) {
+        if (!seen.has(url)) {
+          seen.add(url);
+          photos.push(url);
+        }
+      }
     }
+
+    // If nothing from diverse queries, try the compound fallback
+    if (photos.length === 0 && fallbackPlace) {
+      photos = await fetchGooglePlacesPhotos(fallbackPlace, googleApiKey, 10);
+    }
+
+    // Cap at 30
+    photos = photos.slice(0, 30);
   }
 
   if (CACHE.size >= CACHE_MAX) CACHE.delete(CACHE.keys().next().value!);

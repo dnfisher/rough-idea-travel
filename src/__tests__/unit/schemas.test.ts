@@ -29,12 +29,6 @@ describe('TripInputSchema', () => {
     ).toThrow(z.ZodError)
   })
 
-  it('rejects invalid budgetLevel', () => {
-    expect(() =>
-      TripInputSchema.parse({ ...validTripInput, budgetLevel: 'extravagant' })
-    ).toThrow(z.ZodError)
-  })
-
   it('rejects invalid tripStyle', () => {
     expect(() =>
       TripInputSchema.parse({ ...validTripInput, tripStyle: 'submarine' })

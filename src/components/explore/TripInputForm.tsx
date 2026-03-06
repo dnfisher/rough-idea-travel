@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Calendar,
   MapPin,
@@ -35,7 +35,6 @@ import {
   GROUP_TYPES,
   buildTripInput as buildTripInputHelper,
   buildSummaryPills as buildSummaryPillsHelper,
-  validateHomeCity,
   validateDateRange,
 } from '@/lib/form/trip-input-builder'
 import type { GroupType } from '@/lib/form/trip-input-builder'
@@ -70,7 +69,7 @@ const pillClass = (active: boolean) =>
 
 export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputFormProps) {
   const [homeCity, setHomeCity] = useState("");
-  const [travelRange, setTravelRange] = useState<TripInput["travelRange"]>("any");
+  const [travelRanges, setTravelRanges] = useState<string[]>(["any"]);
 
   const [selectedDurationChip, setSelectedDurationChip] = useState<string>("7")
   const [otherDurationValue, setOtherDurationValue] = useState("")
@@ -93,8 +92,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [interests, setInterests] = useState<string[]>([]);
   const [customInterest, setCustomInterest] = useState("");
   const [showCustomInterestInput, setShowCustomInterestInput] = useState(false);
-  const [weatherPreference, setWeatherPreference] = useState("warm");
-  const [budgetLevel, setBudgetLevel] = useState<TripInput["budgetLevel"]>("moderate");
+  const [weatherPreferences, setWeatherPreferences] = useState<string[]>(["warm"]);
+  const [budgetLevels, setBudgetLevels] = useState<string[]>(["moderate"]);
   const [tripStyle, setTripStyle] = useState<TripInput["tripStyle"]>("mixed");
   const [groupType, setGroupType] = useState<GroupType>(undefined)
 
@@ -102,6 +101,11 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [regionValue, setRegionValue] = useState("");
   const [flexibleDatesConfirmed, setFlexibleDatesConfirmed] = useState(false);
   const [regionConfirmed, setRegionConfirmed] = useState(false);
+  const [regionSuggestions, setRegionSuggestions] = useState<string[]>([]);
+  const [showRegionSuggestions, setShowRegionSuggestions] = useState(false);
+  const [regionSuggestionIndex, setRegionSuggestionIndex] = useState(-1);
+  const regionSuggestionsRef = useRef<HTMLDivElement>(null);
+  const regionDebounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [additionalNotesConfirmed, setAdditionalNotesConfirmed] = useState(false);
@@ -109,6 +113,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
   const [homeCityError, setHomeCityError] = useState<string | null>(null);
+  const [homeCityVerified, setHomeCityVerified] = useState(false);
   const [endDateError, setEndDateError] = useState<string | null>(null);
 
   // Card mode state (post-submit editing)
@@ -122,18 +127,66 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [citySuggestionIndex, setCitySuggestionIndex] = useState(-1);
   const citySuggestionsRef = useRef<HTMLDivElement>(null);
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const filteredCities = homeCity.trim().length >= 1
-    ? COMMON_CITIES.filter((c) => c.toLowerCase().includes(homeCity.toLowerCase())).slice(0, 8)
-    : [];
+  const fetchCitySuggestions = useCallback((query: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      // For very short input, use local fallback
+      setCitySuggestions(
+        trimmed.length >= 1
+          ? COMMON_CITIES.filter((c) => c.toLowerCase().includes(trimmed.toLowerCase())).slice(0, 8)
+          : []
+      );
+      return;
+    }
+    // Instant local results while API loads
+    setCitySuggestions(
+      COMMON_CITIES.filter((c) => c.toLowerCase().includes(trimmed.toLowerCase())).slice(0, 8)
+    );
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/places-autocomplete?q=${encodeURIComponent(trimmed)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.length > 0) setCitySuggestions(data);
+        }
+      } catch { /* keep local results */ }
+    }, 300);
+  }, []);
+
+  const filteredCities = citySuggestions;
+
+  const fetchRegionSuggestions = useCallback((query: string) => {
+    if (regionDebounceRef.current) clearTimeout(regionDebounceRef.current);
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setRegionSuggestions([]);
+      return;
+    }
+    regionDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/places-autocomplete?q=${encodeURIComponent(trimmed)}&mode=region`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.length > 0) setRegionSuggestions(data);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+  }, []);
 
   const showSummary = (hasSubmittedOnce || !!hasResults) && !isEditing;
 
-  // Click-outside to close city suggestion dropdowns
+  // Click-outside to close suggestion dropdowns
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (citySuggestionsRef.current && !citySuggestionsRef.current.contains(e.target as Node)) {
         setShowCitySuggestions(false);
+      }
+      if (regionSuggestionsRef.current && !regionSuggestionsRef.current.contains(e.target as Node)) {
+        setShowRegionSuggestions(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -159,6 +212,39 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     );
   }
 
+  function toggleTravelRange(value: string) {
+    setTravelRanges((prev) => {
+      if (value === "any") return ["any"];
+      const without = prev.filter((v) => v !== "any" && v !== value);
+      if (prev.includes(value)) {
+        return without.length === 0 ? ["any"] : without;
+      }
+      return [...without, value];
+    });
+    if (value === "driving_distance") setTripStyle("road_trip");
+  }
+
+  function toggleWeatherPref(value: string) {
+    setWeatherPreferences((prev) => {
+      if (value === "any") return ["any"];
+      const without = prev.filter((v) => v !== "any" && v !== value);
+      if (prev.includes(value)) {
+        return without.length === 0 ? ["any"] : without;
+      }
+      return [...without, value];
+    });
+  }
+
+  function toggleBudgetLevel(value: string) {
+    setBudgetLevels((prev) => {
+      if (prev.includes(value)) {
+        const without = prev.filter((v) => v !== value);
+        return without.length === 0 ? [value] : without; // keep at least one
+      }
+      return [...prev, value];
+    });
+  }
+
   function addCustomInterest() {
     const trimmed = customInterest.trim();
     if (trimmed && !interests.includes(trimmed) && !INTEREST_OPTIONS.includes(trimmed)) {
@@ -172,7 +258,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   function buildTripInput(): TripInput {
     return buildTripInputHelper({
       homeCity,
-      travelRange,
+      travelRanges,
       dateType,
       startDate,
       endDate,
@@ -180,12 +266,12 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
       duration,
       groupType,
       interests,
-      weatherPreference,
-      budgetLevel,
+      weatherPreferences,
+      budgetLevels,
       tripStyle,
       locationType,
       regionValue,
-      startingPoint: travelRange === "driving_distance" ? homeCity : "",
+      startingPoint: travelRanges.includes("driving_distance") ? homeCity : "",
       additionalNotes,
     })
   }
@@ -209,9 +295,14 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
 
   function handleNext() {
     if (activeCard === 0) {
-      const cityError = validateHomeCity(homeCity);
-      setHomeCityError(cityError);
-      if (cityError) return;
+      if (!homeCity.trim()) {
+        setHomeCityError("Please enter your home city so we can find flights and distances.");
+        return;
+      }
+      if (!homeCityVerified) {
+        setHomeCityError("Please select a location from the suggestions.");
+        return;
+      }
     }
     if (activeCard < TOTAL_CARDS - 1) goToCard(activeCard + 1);
   }
@@ -233,14 +324,26 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           type="text"
           value={homeCity}
           onChange={(e) => {
-            setHomeCity(e.target.value);
+            const val = e.target.value;
+            setHomeCity(val);
+            setHomeCityVerified(false);
             setShowCitySuggestions(true);
             setCitySuggestionIndex(-1);
+            fetchCitySuggestions(val);
             if (homeCityError) setHomeCityError(null);
           }}
-          onBlur={() => setHomeCityError(validateHomeCity(homeCity))}
+          onBlur={() => {
+            if (!homeCity.trim()) {
+              setHomeCityError("Please enter your home city so we can find flights and distances.");
+            } else if (!homeCityVerified) {
+              setHomeCityError("Please select a location from the suggestions.");
+            }
+          }}
           onFocus={() => {
-            if (homeCity.trim().length >= 1) setShowCitySuggestions(true);
+            if (homeCity.trim().length >= 1) {
+              setShowCitySuggestions(true);
+              fetchCitySuggestions(homeCity);
+            }
           }}
           onKeyDown={(e) => {
             if (!showCitySuggestions || filteredCities.length === 0) return;
@@ -253,6 +356,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
             } else if (e.key === "Enter" && citySuggestionIndex >= 0) {
               e.preventDefault();
               setHomeCity(filteredCities[citySuggestionIndex]);
+              setHomeCityVerified(true);
+              setHomeCityError(null);
               setShowCitySuggestions(false);
               setCitySuggestionIndex(-1);
             } else if (e.key === "Escape") {
@@ -261,9 +366,18 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           }}
           placeholder='e.g. "London", "Berlin", "New York"'
           className={inputClass}
+          style={homeCityVerified ? { borderColor: "#2ABFBF", paddingRight: "80px" } : undefined}
           autoFocus
           autoComplete="off"
         />
+        {homeCityVerified && (
+          <span
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+            style={{ color: "#2ABFBF", fontSize: "12px", fontWeight: 500 }}
+          >
+            <Check className="h-3.5 w-3.5" /> Got it
+          </span>
+        )}
         {showCitySuggestions && filteredCities.length > 0 && (
           <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-[#2E2B25] bg-[#1C1A17] shadow-lg">
             {filteredCities.map((city, i) => (
@@ -273,6 +387,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setHomeCity(city);
+                  setHomeCityVerified(true);
+                  setHomeCityError(null);
                   setShowCitySuggestions(false);
                   setCitySuggestionIndex(-1);
                 }}
@@ -308,13 +424,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           <button
             key={range.value}
             type="button"
-            onClick={() => {
-              setTravelRange(range.value);
-              if (range.value === "driving_distance") {
-                setTripStyle("road_trip");
-              }
-            }}
-            className={cn(chipClass(travelRange === range.value), "flex flex-col items-start text-left")}
+            onClick={() => toggleTravelRange(range.value)}
+            className={cn(chipClass(travelRanges.includes(range.value)), "flex flex-col items-start text-left")}
           >
             <span className="font-medium text-foreground">{range.label}</span>
             <span className="text-xs text-muted-foreground">{range.desc}</span>
@@ -560,8 +671,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           <button
             key={opt.value}
             type="button"
-            onClick={() => setWeatherPreference(opt.value)}
-            className={chipClass(weatherPreference === opt.value)}
+            onClick={() => toggleWeatherPref(opt.value)}
+            className={chipClass(weatherPreferences.includes(opt.value))}
           >
             {opt.label}
           </button>
@@ -581,8 +692,8 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
           <button
             key={level.value}
             type="button"
-            onClick={() => setBudgetLevel(level.value)}
-            className={cn(chipClass(budgetLevel === level.value), 'flex flex-col items-start text-left')}
+            onClick={() => toggleBudgetLevel(level.value)}
+            className={cn(chipClass(budgetLevels.includes(level.value)), 'flex flex-col items-start text-left')}
           >
             <span className="font-medium text-foreground">{level.label}</span>
             <span className="text-xs text-muted-foreground">{level.desc}</span>
@@ -653,39 +764,93 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
         </button>
       </div>
       {locationType === 'region' && (
-        <div>
-          <div className="relative" aria-live="polite">
-            <input
-              type="text"
-              value={regionValue}
-              onChange={(e) => {
-                setRegionValue(e.target.value);
-                setRegionConfirmed(false);
-              }}
-              onBlur={() => {
-                if (regionValue.trim().length > 0) setRegionConfirmed(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && regionValue.trim().length > 0) {
+        <div className="relative" ref={regionSuggestionsRef}>
+          <input
+            type="text"
+            value={regionValue}
+            onChange={(e) => {
+              const val = e.target.value;
+              setRegionValue(val);
+              setRegionConfirmed(false);
+              setShowRegionSuggestions(true);
+              setRegionSuggestionIndex(-1);
+              fetchRegionSuggestions(val);
+            }}
+            onFocus={() => {
+              if (regionValue.trim().length >= 2) {
+                setShowRegionSuggestions(true);
+                fetchRegionSuggestions(regionValue);
+              }
+            }}
+            onBlur={() => {
+              if (regionValue.trim().length > 0 && !regionConfirmed) {
+                // Allow unverified region — it's a hint, not a flight origin
+                setRegionConfirmed(true);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (showRegionSuggestions && regionSuggestions.length > 0) {
+                if (e.key === "ArrowDown") {
                   e.preventDefault();
+                  setRegionSuggestionIndex((prev) => Math.min(prev + 1, regionSuggestions.length - 1));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setRegionSuggestionIndex((prev) => Math.max(prev - 1, 0));
+                } else if (e.key === "Enter" && regionSuggestionIndex >= 0) {
+                  e.preventDefault();
+                  setRegionValue(regionSuggestions[regionSuggestionIndex]);
                   setRegionConfirmed(true);
+                  setShowRegionSuggestions(false);
+                  setRegionSuggestionIndex(-1);
+                  return;
+                } else if (e.key === "Escape") {
+                  setShowRegionSuggestions(false);
+                  return;
                 }
-              }}
-              placeholder='e.g. "Southern Europe", "Southeast Asia"'
-              className={inputClass}
-              style={regionConfirmed ? { borderColor: "#2ABFBF", paddingRight: "80px" } : undefined}
-            />
-            {regionConfirmed && (
-              <span
-                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
-                style={{ color: "#2ABFBF", fontSize: "12px", fontWeight: 500 }}
-              >
-                <Check className="h-3.5 w-3.5" /> Got it
-              </span>
-            )}
-          </div>
-          {!regionConfirmed && regionValue.trim().length === 0 && (
-            <p className="text-xs text-muted-foreground mt-1">Press Enter or tab away to confirm</p>
+              }
+              if (e.key === 'Enter' && regionValue.trim().length > 0) {
+                e.preventDefault();
+                setRegionConfirmed(true);
+                setShowRegionSuggestions(false);
+              }
+            }}
+            placeholder='e.g. "Italy", "Southeast Asia", "California"'
+            className={inputClass}
+            style={regionConfirmed ? { borderColor: "#2ABFBF", paddingRight: "80px" } : undefined}
+            autoComplete="off"
+          />
+          {regionConfirmed && (
+            <span
+              className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+              style={{ color: "#2ABFBF", fontSize: "12px", fontWeight: 500 }}
+            >
+              <Check className="h-3.5 w-3.5" /> Got it
+            </span>
+          )}
+          {showRegionSuggestions && regionSuggestions.length > 0 && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl border border-[#2E2B25] bg-[#1C1A17] shadow-lg">
+              {regionSuggestions.map((region, i) => (
+                <button
+                  key={region}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setRegionValue(region);
+                    setRegionConfirmed(true);
+                    setShowRegionSuggestions(false);
+                    setRegionSuggestionIndex(-1);
+                  }}
+                  className={cn(
+                    "w-full px-3.5 py-2 text-sm text-left transition-colors",
+                    i === regionSuggestionIndex
+                      ? "bg-[#252219] text-[#F2EEE8]"
+                      : "text-[#A89F94] hover:bg-[#252219] hover:text-[#F2EEE8]"
+                  )}
+                >
+                  {region}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       )}
@@ -695,7 +860,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
   // --- Summary pills ---
   const summaryPills = buildSummaryPillsHelper({
     homeCity,
-    travelRange,
+    travelRanges,
     dateType,
     startDate,
     endDate,
@@ -703,7 +868,7 @@ export function TripInputForm({ onSubmit, isLoading, hasResults }: TripInputForm
     groupType,
     interests,
     tripStyle,
-    budgetLevel,
+    budgetLevels,
     locationType,
     regionValue,
   })

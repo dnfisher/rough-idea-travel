@@ -42,7 +42,7 @@ describe('validateDateRange', () => {
 describe('buildTripInput', () => {
   const base = {
     homeCity: 'London',
-    travelRange: 'medium_haul' as const,
+    travelRanges: ['medium_haul'],
     dateType: 'specific' as const,
     startDate: '2026-07-01',
     endDate: '2026-07-10',
@@ -50,8 +50,8 @@ describe('buildTripInput', () => {
     duration: 7,
     groupType: 'couple' as const,
     interests: ['Hiking', 'Food & Wine'],
-    weatherPreference: 'warm',
-    budgetLevel: 'moderate' as const,
+    weatherPreferences: ['warm'],
+    budgetLevels: ['moderate'],
     tripStyle: 'mixed' as const,
     locationType: 'open' as const,
     regionValue: '',
@@ -95,7 +95,19 @@ describe('buildTripInput', () => {
   })
 
   it('omits weatherPreference when "any"', () => {
-    expect(buildTripInput({ ...base, weatherPreference: 'any' }).weatherPreference).toBeUndefined()
+    expect(buildTripInput({ ...base, weatherPreferences: ['any'] }).weatherPreference).toBeUndefined()
+  })
+
+  it('joins multiple weather preferences', () => {
+    expect(buildTripInput({ ...base, weatherPreferences: ['warm', 'mild'] }).weatherPreference).toBe('warm, mild')
+  })
+
+  it('joins multiple travel ranges', () => {
+    expect(buildTripInput({ ...base, travelRanges: ['short_haul', 'medium_haul'] }).travelRange).toBe('short_haul,medium_haul')
+  })
+
+  it('omits travelRange when "any"', () => {
+    expect(buildTripInput({ ...base, travelRanges: ['any'] }).travelRange).toBeUndefined()
   })
 
   it('includes additionalNotes when non-empty', () => {
@@ -110,7 +122,7 @@ describe('buildTripInput', () => {
   it('omits startingPoint when empty string is passed', () => {
     const result = buildTripInput({
       ...base,
-      travelRange: 'driving_distance',
+      travelRanges: ['driving_distance'],
       startingPoint: '',
       homeCity: 'Frankfurt',
     })
@@ -120,7 +132,7 @@ describe('buildTripInput', () => {
   it('includes startingPoint when explicitly provided', () => {
     const result = buildTripInput({
       ...base,
-      travelRange: 'driving_distance',
+      travelRanges: ['driving_distance'],
       startingPoint: 'Frankfurt',
       homeCity: 'Frankfurt',
     })
@@ -132,7 +144,7 @@ describe('buildTripInput', () => {
 describe('buildSummaryPills', () => {
   const base = {
     homeCity: 'Berlin',
-    travelRange: 'medium_haul' as const,
+    travelRanges: ['medium_haul'],
     dateType: 'specific' as const,
     startDate: '2026-07-01',
     endDate: '2026-07-10',
@@ -140,7 +152,7 @@ describe('buildSummaryPills', () => {
     groupType: 'couple' as const,
     interests: ['Hiking'],
     tripStyle: 'adventure' as const,
-    budgetLevel: 'moderate' as const,
+    budgetLevels: ['moderate'],
     locationType: 'open' as const,
     regionValue: '',
   }

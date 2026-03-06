@@ -52,21 +52,23 @@ async function fetchGooglePlacesPhoto(
     const photos = searchData?.places?.[0]?.photos;
     if (!photos || photos.length === 0) return null;
 
-    // Step 2: Build the photo media URL — this endpoint redirects to the actual image
-    // photos[1] tends to be more scenic/outdoor than photos[0] (which is the most-clicked,
-    // often a hotel lobby, restaurant interior, or tourist selfie spot).
-    // Fall back to photos[0] if fewer than 2 photos.
-    const targetPhoto = photos.length > 1 ? photos[1] : photos[0];
-    const photoName = targetPhoto.name; // e.g. "places/ChIJ.../photos/AUacSh..."
-    const mediaUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidthPx}&key=${apiKey}`;
+    // Try photos 2-4 first (indices 1-3) — photos[0] is the most-clicked and
+    // often a tourist selfie or crowded scene. Later photos tend to be more
+    // editorial / landscape. Fall back to photos[0] if nothing works.
+    const candidates = [
+      ...(photos.length > 2 ? [photos[2]] : []),
+      ...(photos.length > 3 ? [photos[3]] : []),
+      ...(photos.length > 1 ? [photos[1]] : []),
+      photos[0],
+    ];
 
-    // Step 3: Follow the redirect to get the final cached image URL
-    const mediaRes = await fetch(mediaUrl, { redirect: "manual" });
-    const location = mediaRes.headers.get("location");
-    if (location && isTrustedImageUrl(location)) return location;
+    for (const photo of candidates) {
+      const mediaUrl = `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=${maxWidthPx}&key=${apiKey}`;
+      const mediaRes = await fetch(mediaUrl, { redirect: "manual" });
+      const location = mediaRes.headers.get("location");
+      if (location && isTrustedImageUrl(location)) return location;
+    }
 
-    // If no redirect to a trusted host, fall through to Wikipedia fallback
-    // (returning mediaUrl here would leak the API key via the Location header)
     return null;
   } catch (err) {
     console.error("[destination-image] Google Places error:", err);
@@ -234,17 +236,19 @@ export async function GET(req: NextRequest) {
   let imageUrl: string | null = null;
   const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
 
-  // ── Primary: Google Places Photos (high quality) ──
+  // ── Primary: Google Places Photos (high quality, landscape-biased) ──
   if (googleApiKey) {
     const basePlace = country ? `${name} ${country}` : name;
+    const landscapeTerms = "landscape scenic viewpoint panorama";
     const qualifier = interestTerms || "landmark outdoor";
     // For compound names like "Tulum & Playa del Carmen", also try the first part alone
     const firstPart = name.includes("&") ? name.split("&")[0].trim() : null;
     const firstPartPlace = firstPart && country ? `${firstPart} ${country}` : firstPart;
     const queries = [
+      `${basePlace} ${landscapeTerms}`,
       `${basePlace} ${qualifier}`,
       basePlace,
-      ...(firstPartPlace ? [`${firstPartPlace} ${qualifier}`, firstPartPlace] : []),
+      ...(firstPartPlace ? [`${firstPartPlace} ${landscapeTerms}`, firstPartPlace] : []),
     ];
 
     for (const q of queries) {

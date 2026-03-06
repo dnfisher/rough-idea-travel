@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export const TripInputSchema = z.object({
   homeCity: z.string().max(200).optional(),
-  travelRange: z.enum(["short_haul", "medium_haul", "long_haul", "driving_distance", "any"]).optional(),
+  travelRange: z.string().max(200).optional(),
   dates: z.object({
     flexible: z.boolean(),
     description: z.string().max(200).optional(), // e.g. "mid-April"
@@ -20,7 +20,7 @@ export const TripInputSchema = z.object({
   travelers: z.number().min(1).max(20).default(1),
   interests: z.array(z.string().max(100)).max(20),
   weatherPreference: z.string().max(200).optional(),
-  budgetLevel: z.enum(["budget", "moderate", "comfortable", "luxury"]),
+  budgetLevel: z.string().max(200),
   tripStyle: z.enum([
     "road_trip",
     "city_hopping",

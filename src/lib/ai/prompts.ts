@@ -186,7 +186,7 @@ Guidelines:
 export const EXPLORATION_SYSTEM_PROMPT = EXPLORATION_SUMMARY_SYSTEM_PROMPT;
 
 export function isRoadTripInput(input: TripInput): boolean {
-  return input.tripStyle === "road_trip" || input.travelRange === "driving_distance";
+  return input.tripStyle === "road_trip" || (input.travelRange ?? "").includes("driving_distance");
 }
 
 function sanitizeText(s: string): string {
@@ -206,7 +206,8 @@ function buildPreferenceParts(input: TripInput): string[] {
       long_haul: "Long-haul (6+ hours flight / different continent)",
       driving_distance: "Driving distance only (road trip, no flights)",
     };
-    parts.push(`Travel range: ${rangeLabels[input.travelRange]}`);
+    const labels = input.travelRange.split(",").map(r => rangeLabels[r.trim()]).filter(Boolean);
+    if (labels.length > 0) parts.push(`Travel range: ${labels.join(" OR ")}`);
   }
 
   if (input.dates.flexible && input.dates.description) {
@@ -232,10 +233,17 @@ function buildPreferenceParts(input: TripInput): string[] {
     parts.push(`Weather preference: ${sanitizeText(input.weatherPreference)}`);
   }
 
-  parts.push(`Budget level: ${input.budgetLevel}`);
+  const budgetLabels: Record<string, string> = {
+    budget: "Budget (hostels, street food)",
+    moderate: "Moderate (mid-range hotels)",
+    comfortable: "Comfortable (nice hotels, dining)",
+    luxury: "Luxury (top-end everything)",
+  };
+  const budgets = input.budgetLevel.split(",").map(b => budgetLabels[b.trim()] ?? b.trim()).filter(Boolean);
+  parts.push(`Budget level: ${budgets.join(" OR ")}`);
   parts.push(`Trip style: ${input.tripStyle.replace(/_/g, " ")}`);
 
-  if (input.tripStyle === "road_trip" || input.travelRange === "driving_distance") {
+  if (input.tripStyle === "road_trip" || (input.travelRange ?? "").includes("driving_distance")) {
     parts.push("IMPORTANT: This is a road trip. Each suggestion should be a DRIVING ROUTE visiting multiple locations, not a single destination. If the route is far from the home city (4-5+ hours drive), suggest flying to the nearest airport and hiring a car (fly_and_drive). Otherwise it's drive_only from home. Focus on the driving experience at the destination.");
   }
 
