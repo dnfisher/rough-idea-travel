@@ -365,16 +365,46 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
     const country = destination.country ?? "";
     const firstStop = destination.itinerary?.days?.[0]?.location;
     const searchDestName = firstStop && destName.length > 40 ? firstStop : destName;
-    const searchLocation = detail?.accommodation?.recommendedArea ?? `${searchDestName}, ${country}`;
+    const searchLocation = detail?.accommodation?.recommendedArea
+      ? `${detail.accommodation.recommendedArea}, ${searchDestName}`
+      : `${searchDestName}, ${country}`;
+
+    // Dates from the user's original search
+    const dates = ctx?.tripInput?.dates;
+    const checkin = dates && !dates.flexible ? dates.startDate : undefined;  // "YYYY-MM-DD"
+    const checkout = dates && !dates.flexible ? dates.endDate : undefined;
+
+    // Booking.com: ss=location, checkin=YYYY-MM-DD, checkout=YYYY-MM-DD
+    const bookingParams = new URLSearchParams({ ss: searchLocation });
+    if (checkin) bookingParams.set("checkin", checkin);
+    if (checkout) bookingParams.set("checkout", checkout);
+
+    // Airbnb: /s/Location/homes?checkin=YYYY-MM-DD&checkout=YYYY-MM-DD
+    // Airbnb path segment: use simple "City--Country" format (no commas)
+    const airbnbLocation = country
+      ? `${searchDestName}--${country}`.replace(/\s+/g, "-")
+      : searchDestName.replace(/\s+/g, "-");
+    const airbnbParams = new URLSearchParams();
+    if (checkin) airbnbParams.set("checkin", checkin);
+    if (checkout) airbnbParams.set("checkout", checkout);
+    const airbnbQuery = airbnbParams.toString();
+
+    // Google Flights: tfs= format uses dates as YYYY-MM-DD
+    let googleFlightsUrl: string | null = null;
+    if (detail?.flightEstimate?.fromAirportCode && detail?.flightEstimate?.toAirportCode) {
+      const from = encodeURIComponent(detail.flightEstimate.fromAirportCode);
+      const to = encodeURIComponent(detail.flightEstimate.toAirportCode);
+      const datePart = checkin ? `+on+${encodeURIComponent(checkin)}` : "";
+      googleFlightsUrl = `https://www.google.com/travel/flights?q=flights+from+${from}+to+${to}${datePart}`;
+    }
+
     return {
-      booking: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(searchLocation)}`,
-      airbnb: `https://www.airbnb.com/s/${encodeURIComponent(`${searchDestName}, ${country}`)}/homes`,
-      googleFlights: detail?.flightEstimate?.fromAirportCode && detail?.flightEstimate?.toAirportCode
-        ? `https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(detail.flightEstimate.fromAirportCode)}+to+${encodeURIComponent(detail.flightEstimate.toAirportCode)}`
-        : null,
+      booking: `https://www.booking.com/searchresults.html?${bookingParams.toString()}`,
+      airbnb: `https://www.airbnb.com/s/${encodeURIComponent(airbnbLocation)}/homes${airbnbQuery ? `?${airbnbQuery}` : ""}`,
+      googleFlights: googleFlightsUrl,
       googleMaps: `https://www.google.com/maps/search/${encodeURIComponent(`${searchDestName}, ${country}`)}`,
     };
-  }, [destination, detail]);
+  }, [destination, detail, ctx?.tripInput?.dates]);
 
   // Fetch gallery photos
   useEffect(() => {
