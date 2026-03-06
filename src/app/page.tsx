@@ -65,6 +65,7 @@ export default function Home() {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [showcase, setShowcase] = useState<ShowcaseDestination[] | null>(null);
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
@@ -98,21 +99,24 @@ export default function Home() {
           ROUGH IDEA<span style={{ color: '#E8833A' }}>.</span>
         </span>
         <Link
-          href="/explore"
+          href="/auth/signin"
           style={{
-            background: '#2ABFBF',
-            color: '#0F0E0D',
+            border: '1.5px solid rgba(242,238,232,0.25)',
+            color: '#F2EEE8',
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 14,
-            fontWeight: 600,
+            fontWeight: 500,
             letterSpacing: '0.02em',
-            borderRadius: 10,
-            padding: '9px 20px',
+            borderRadius: 20,
+            padding: '8px 20px',
             textDecoration: 'none',
             display: 'inline-block',
+            transition: 'border-color 0.2s, background 0.2s',
           }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(242,238,232,0.5)'; e.currentTarget.style.background = 'rgba(242,238,232,0.06)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(242,238,232,0.25)'; e.currentTarget.style.background = 'transparent'; }}
         >
-          Start Exploring
+          Sign in
         </Link>
       </nav>
 
@@ -230,8 +234,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section B — Popular Trips (hidden when empty) */}
-      {(showcase === null || showcase.length > 0) && (
+      {/* Section B — Popular Trips (hidden when empty or all broken) */}
+      {(showcase === null || showcase.some(d => !brokenImages.has(d.slug))) && (
         <section className="popular-trips">
           <div className="popular-trips__header">
             <p className="popular-trips__eyebrow">POPULAR TRIPS</p>
@@ -244,7 +248,7 @@ export default function Home() {
               ? Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="destination-card animate-shimmer" />
                 ))
-              : showcase.map(dest => (
+              : showcase.filter(d => !brokenImages.has(d.slug)).map(dest => (
                   <div
                     key={dest.slug}
                     className="destination-card"
@@ -256,6 +260,7 @@ export default function Home() {
                         src={dest.imageUrl}
                         alt={dest.name}
                         loading="lazy"
+                        onError={() => setBrokenImages(prev => new Set(prev).add(dest.slug))}
                       />
                     )}
                     <div className="destination-card__overlay" />

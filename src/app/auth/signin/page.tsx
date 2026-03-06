@@ -60,6 +60,7 @@ export default async function SignInPage() {
                 </svg>
                 Continue with GitHub
               </a>
+
             </div>
 
             <p className="mt-6 text-xs text-muted-foreground">

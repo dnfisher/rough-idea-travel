@@ -99,6 +99,7 @@ export function SignInModal({ isOpen, onClose, reason, onBeforeSignIn }: SignInM
               </svg>
               Continue with GitHub
             </a>
+
           </div>
 
           <button
