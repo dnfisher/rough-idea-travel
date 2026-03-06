@@ -18,7 +18,8 @@ export async function GET() {
       .select()
       .from(wishlists)
       .where(eq(wishlists.userId, session.user.id))
-      .orderBy(desc(wishlists.updatedAt));
+      .orderBy(desc(wishlists.updatedAt))
+      .limit(50);
 
     // For each wishlist, get item count and cover data (first 3 favorites)
     const userId = session.user.id;

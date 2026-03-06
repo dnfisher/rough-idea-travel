@@ -10,7 +10,7 @@ const TRUSTED_IMAGE_HOSTS = [
 function isTrustedImageUrl(url: string): boolean {
   try {
     const u = new URL(url);
-    return u.protocol === "https:" && TRUSTED_IMAGE_HOSTS.some(h => u.hostname.endsWith(h));
+    return u.protocol === "https:" && TRUSTED_IMAGE_HOSTS.some(h => u.hostname === h || u.hostname.endsWith("." + h));
   } catch {
     return false;
   }
@@ -65,8 +65,9 @@ async function fetchGooglePlacesPhoto(
     const location = mediaRes.headers.get("location");
     if (location && isTrustedImageUrl(location)) return location;
 
-    // If no redirect, use the media URL directly (client will follow)
-    return mediaUrl;
+    // If no redirect to a trusted host, fall through to Wikipedia fallback
+    // (returning mediaUrl here would leak the API key via the Location header)
+    return null;
   } catch (err) {
     console.error("[destination-image] Google Places error:", err);
     return null;
@@ -162,6 +163,10 @@ export async function GET(req: NextRequest) {
 
   if (!name || !/^[\p{L}\p{N}\s,.\-'()]{1,100}$/u.test(name)) {
     return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+  }
+
+  if (country && !/^[\p{L}\p{N}\s,.\-'()]{1,100}$/u.test(country)) {
+    return NextResponse.json({ error: "Invalid country" }, { status: 400 });
   }
 
   const cacheKey = `${name}|${country}`;

@@ -6,7 +6,7 @@ describe('HeroVideoBackground', () => {
   it('renders a video element for each source', () => {
     const { container } = render(<HeroVideoBackground />)
     const videos = container.querySelectorAll('video')
-    expect(videos.length).toBe(9)
+    expect(videos.length).toBe(10)
   })
 
   it('all video elements are muted and have playsInline', () => {

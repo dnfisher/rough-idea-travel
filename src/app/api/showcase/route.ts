@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { showcaseDestinations } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
+import { auth } from "@/lib/auth";
 
 const PostSchema = z.object({
   name: z.string().min(1).max(200),
@@ -30,6 +31,11 @@ export async function GET(_req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const parsed = PostSchema.safeParse(body);
 

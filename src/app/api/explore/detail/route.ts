@@ -11,6 +11,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { readSearchCount, isSearchAllowed, makeSearchCookie, COOKIE_NAME, COOKIE_OPTIONS } from "@/lib/search-gate";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 120;
 
@@ -37,6 +38,12 @@ export async function POST(req: Request) {
     });
 
     const session = await auth();
+    if (session?.user?.id && !checkRateLimit(session.user.id)) {
+      return new Response(
+        JSON.stringify({ error: "rate_limit_exceeded" }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
     if (!session?.user?.id) {
       const cookieStore = await cookies();
       const count = readSearchCount(cookieStore.get(COOKIE_NAME)?.value);
@@ -69,9 +76,8 @@ export async function POST(req: Request) {
     return result.toTextStreamResponse();
   } catch (error) {
     console.error("[explore/detail] Error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: "Something went wrong" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

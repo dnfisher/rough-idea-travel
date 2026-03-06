@@ -4,7 +4,7 @@ function isTrustedImageUrl(url: string): boolean {
   try {
     const u = new URL(url);
     return u.protocol === "https:" &&
-      ["lh3.googleusercontent.com", "maps.gstatic.com"].some(h => u.hostname.endsWith(h));
+      ["lh3.googleusercontent.com", "maps.gstatic.com"].some(h => u.hostname === h || u.hostname.endsWith("." + h));
   } catch {
     return false;
   }

@@ -10,7 +10,11 @@ export async function GET(req: NextRequest) {
     ? (raw as AllowedProvider)
     : "google";
   const rawCallback = req.nextUrl.searchParams.get("callbackUrl") ?? "/explore";
-  const ALLOWED_CALLBACKS = ["/explore", "/", "/trip/"];
-  const callbackUrl = ALLOWED_CALLBACKS.some(p => rawCallback.startsWith(p)) ? rawCallback : "/explore";
+  const ALLOWED_CALLBACKS = ["/explore", "/trip/"];
+  const normalized = new URL(rawCallback, "http://localhost").pathname;
+  const callbackUrl =
+    ALLOWED_CALLBACKS.some(p => normalized === p || normalized.startsWith(p))
+      ? normalized
+      : "/explore";
   await signIn(provider, { redirectTo: callbackUrl });
 }
