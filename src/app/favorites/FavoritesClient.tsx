@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
 import { slugify, storeDestinationContext } from "@/lib/destination-url";
+import { destinationImageUrl } from "@/lib/destination-url";
 import { DestinationImage } from "@/components/results/DestinationImage";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { UserButton } from "@/components/auth/UserButton";
@@ -228,17 +229,27 @@ export function FavoritesClient({
                   <div key={wl.id} style={{ position: "relative" }}>
                     <Link href={`/favorites/${wl.id}`} className="wishlist-list-card">
                       {wl.coverDestinations[0] ? (
-                        <DestinationImage
-                          name={wl.coverDestinations[0].destinationName}
-                          country={wl.coverDestinations[0].country}
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={destinationImageUrl(
+                            wl.coverDestinations[0].destinationName,
+                            wl.coverDestinations[0].country,
+                          )}
+                          alt=""
                           className="wishlist-list-card__image"
                         />
-                      ) : null}
+                      ) : (
+                        <div className="wishlist-list-card__empty">
+                          <Compass size={28} />
+                        </div>
+                      )}
                       <div className="wishlist-list-card__overlay" />
                       <div className="wishlist-list-card__content">
                         <span className="wishlist-list-card__name">{wl.name}</span>
                         <span className="wishlist-list-card__count">
-                          {wl.itemCount} {wl.itemCount === 1 ? "destination" : "destinations"}
+                          {wl.itemCount === 0
+                            ? "No destinations yet"
+                            : `${wl.itemCount} ${wl.itemCount === 1 ? "destination" : "destinations"}`}
                         </span>
                       </div>
                     </Link>
