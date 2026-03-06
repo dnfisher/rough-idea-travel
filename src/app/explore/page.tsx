@@ -97,6 +97,20 @@ export default function ExplorePage() {
     }
   }, [overlayVisible, destCount]);
 
+  // Dismiss overlay when loading finishes (handles errors/timeouts where < 2 destinations arrived)
+  useEffect(() => {
+    if (!isLoading && overlayVisible && !overlayFadingRef.current) {
+      overlayFadingRef.current = true;
+      setOverlayFading(true);
+      const timer = setTimeout(() => {
+        setOverlayVisible(false);
+        setOverlayFading(false);
+        overlayFadingRef.current = false;
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, overlayVisible]);
+
   function handleSubmit(input: TripInput) {
     if (!checkSearchAllowed()) return;
     const enrichedInput = { ...input, currency };
