@@ -13,7 +13,7 @@ const PROTECTED_API_PREFIXES = [
 const STATIC_CSP_DIRECTIVES = [
   "default-src 'self'",
   "style-src 'self' 'unsafe-inline' https://api.fontshare.com",
-  "font-src 'self' https://api.fontshare.com https://fonts.gstatic.com",
+  "font-src 'self' https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   "connect-src 'self'",
   "frame-ancestors 'self'",
@@ -47,6 +47,12 @@ export async function middleware(req: NextRequest) {
   // allows Next.js bootstrap chunks (dynamically loaded) to execute.
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
+
+  // In Next.js Edge middleware, new Headers(req.headers) may not copy the Cookie
+  // header. Explicitly rebuild it from req.cookies to ensure auth callbacks
+  // (e.g. PKCE verifier) reach the downstream Route Handler.
+  const cookieHeader = req.cookies.getAll().map(({ name, value }) => `${name}=${value}`).join("; ");
+  if (cookieHeader) requestHeaders.set("cookie", cookieHeader);
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },

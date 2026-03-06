@@ -129,7 +129,7 @@ export default function ExplorePage() {
     setPendingAutoFavorite(null);
   }, []);
 
-  const hasResults = !!(effectiveResult?.summary || effectiveResult?.destinations?.length);
+  const hasResults = !!effectiveResult?.destinations?.length;
   const showLayout = hasResults || isLoading;
 
   // Map markers for left-panel map

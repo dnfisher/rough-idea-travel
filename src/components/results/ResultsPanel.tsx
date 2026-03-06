@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { ChevronDown } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type {
   ExplorationSummaryResult,
@@ -33,7 +32,6 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("match");
   const [favoritesMap, setFavoritesMap] = useState<Record<string, string>>({});
-  const [summaryExpanded, setSummaryExpanded] = useState(false);
 
   const { fetchDetail, getDetail, clearCache } = useDetailFetch();
 
@@ -234,7 +232,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
 
   return (
     <div className="space-y-4">
-      {/* Smart sentence + AI summary disclosure */}
+      {/* Smart sentence */}
       {result && finishedCount > 0 && (
         <div
           style={{
@@ -245,55 +243,9 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
             ...DM,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-            <p style={{ fontSize: "13px", color: "var(--foreground, #F2EEE8)", fontWeight: 500, margin: 0 }}>
-              {smartSentence}
-            </p>
-            {result.summary && (
-              <button
-                onClick={() => setSummaryExpanded((v) => !v)}
-                style={{
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "11px",
-                  color: "var(--dp-text-muted, #6B6258)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "0",
-                  ...DM,
-                }}
-              >
-                More
-                <ChevronDown
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    transition: "transform 0.2s",
-                    transform: summaryExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  }}
-                />
-              </button>
-            )}
-          </div>
-          {summaryExpanded && result.summary && (
-            <p
-              style={{
-                marginTop: "10px",
-                paddingTop: "10px",
-                borderTop: "1px solid var(--border, #2E2B25)",
-                fontSize: "13px",
-                lineHeight: 1.6,
-                color: "var(--muted-foreground, #A89F94)",
-                margin: "10px 0 0",
-                ...DM,
-              }}
-            >
-              {result.summary}
-            </p>
-          )}
+          <p style={{ fontSize: "13px", color: "var(--foreground, #F2EEE8)", fontWeight: 500, margin: 0 }}>
+            {smartSentence}
+          </p>
         </div>
       )}
 

@@ -110,9 +110,7 @@ export const DestinationSummarySchema = z.object({
 export type DestinationSummary = z.infer<typeof DestinationSummarySchema>;
 
 export const ExplorationSummaryResultSchema = z.object({
-  summary: z.string(),
   destinations: z.array(DestinationSummarySchema),
-  weatherComparison: z.array(WeatherDataSchema),
   recommendedDestination: z.string(),
 });
 
@@ -187,9 +185,7 @@ export type DestinationSuggestion = z.infer<typeof DestinationSuggestionSchema>;
 
 // Legacy full result schema (kept for shared trips compatibility)
 export const ExplorationResultSchema = z.object({
-  summary: z.string(),
   destinations: z.array(DestinationSuggestionSchema),
-  weatherComparison: z.array(WeatherDataSchema),
   recommendedDestination: z.string(),
 });
 
