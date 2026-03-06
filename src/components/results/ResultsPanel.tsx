@@ -9,6 +9,7 @@ import type {
 } from "@/lib/ai/schemas";
 import { DestinationCard } from "./DestinationCard";
 import { ExploreLoadingState } from "./ExploreLoadingState";
+import { TimeoutState } from "./TimeoutState";
 import { DestinationSortBar, type SortOption } from "./DestinationSortBar";
 import { ExploreMap } from "./ExploreMap";
 import type { MapMarker } from "./ExploreMapInner";
@@ -21,6 +22,7 @@ interface ResultsPanelProps {
   error: Error | undefined;
   tripInput: TripInput | null;
   onAuthRequired?: (destinationName?: string) => void;
+  onRetry?: () => void;
   pendingAutoFavorite?: string | null;
   onAutoFavoriteComplete?: () => void;
   hideMap?: boolean;
@@ -28,7 +30,7 @@ interface ResultsPanelProps {
   onCardHover?: (name: string | null) => void;
 }
 
-export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired, pendingAutoFavorite, onAutoFavoriteComplete, hideMap, hoveredDestName, onCardHover }: ResultsPanelProps) {
+export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequired, onRetry, pendingAutoFavorite, onAutoFavoriteComplete, hideMap, hoveredDestName, onCardHover }: ResultsPanelProps) {
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("match");
   const [favoritesMap, setFavoritesMap] = useState<Record<string, string>>({});
@@ -201,9 +203,8 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center">
-        <p className="text-destructive font-medium mb-1">Something went wrong</p>
-        <p className="text-sm text-muted-foreground">{error.message}</p>
+      <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 flex items-center justify-center shadow-sm">
+        <TimeoutState onRetry={onRetry} />
       </div>
     );
   }
@@ -303,6 +304,7 @@ export function ResultsPanel({ result, isLoading, error, tripInput, onAuthRequir
                       isSelected={selectedDestination === dest.name}
                       onClick={() => handleCardClick(dest.name)}
                       homeCity={tripInput?.homeCity}
+                      interests={tripInput?.interests}
                       isFavorited={!!(dest?.name && favoritesMap[dest.name])}
                       favoriteId={dest?.name ? (favoritesMap[dest.name] ?? null) : null}
                       onFavoriteToggle={(newId) => {

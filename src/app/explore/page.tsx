@@ -139,6 +139,13 @@ export default function ExplorePage() {
     }
   }, [object, restoredResult, currentTripInput, pendingFavoriteName]);
 
+  const handleRetry = useCallback(() => {
+    if (currentTripInput) {
+      setRestoredResult(null);
+      submit(currentTripInput);
+    }
+  }, [currentTripInput, submit]);
+
   const handleAutoFavoriteComplete = useCallback(() => {
     setPendingAutoFavorite(null);
   }, []);
@@ -264,7 +271,8 @@ export default function ExplorePage() {
                 style={{
                   fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif",
                   fontSize: "15px",
-                  color: "var(--muted-foreground, #A89F94)",
+                  color: "var(--foreground, #F2EEE8)",
+                  opacity: 0.7,
                   lineHeight: 1.5,
                 }}
               >
@@ -314,6 +322,7 @@ export default function ExplorePage() {
                 error={error ?? undefined}
                 tripInput={currentTripInput}
                 onAuthRequired={checkFavoriteAllowed}
+                onRetry={handleRetry}
                 pendingAutoFavorite={pendingAutoFavorite}
                 onAutoFavoriteComplete={handleAutoFavoriteComplete}
                 hideMap={true}

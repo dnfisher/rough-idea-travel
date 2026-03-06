@@ -11,6 +11,8 @@ interface DestinationImageProps {
   searchName?: string;
   /** Short name for the gradient fallback when image fails (defaults to name) */
   fallbackName?: string;
+  /** User interests — biases image selection toward relevant themes */
+  interests?: string[];
 }
 
 // Deterministic gradient based on destination name
@@ -32,14 +34,14 @@ function getGradient(name: string): string {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
-export function DestinationImage({ name, country, className = "", searchName, fallbackName }: DestinationImageProps) {
+export function DestinationImage({ name, country, className = "", searchName, fallbackName, interests }: DestinationImageProps) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
   const imageUrl = useMemo(() => {
     const queryName = searchName || name;
     if (!queryName) return null;
-    return destinationImageUrl(queryName, country);
-  }, [name, searchName, country]);
+    return destinationImageUrl(queryName, country, interests);
+  }, [name, searchName, country, interests]);
 
   const displayName = fallbackName ?? name;
 

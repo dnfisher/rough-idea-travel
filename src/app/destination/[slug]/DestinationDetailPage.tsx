@@ -384,6 +384,9 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
       country: stableCountry ?? destination.country ?? "",
       ...(imageSearchName ? { searchName: imageSearchName } : {}),
     });
+    if (tripInput?.interests?.length) {
+      params.set("interests", tripInput.interests.slice(0, 5).join(","));
+    }
     fetch(`/api/destination-gallery?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
@@ -394,7 +397,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
       .catch(() => {
         // silently ignore gallery errors
       });
-  }, [destination?.name, stableCountry, imageSearchName]);
+  }, [destination?.name, stableCountry, imageSearchName, tripInput?.interests]);
 
   // Lightbox keyboard navigation
   useEffect(() => {
@@ -456,6 +459,9 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   // ── Estimated total cost ──
   const totalCostEur = destination.estimatedTotalTripCostEur ?? null;
   const dailyCostEur = destination.estimatedDailyCostEur ?? null;
+  const travelers = tripInput?.travelers ?? 1;
+  const travelersLabel = travelers === 1 ? "" : ` for ${travelers}`;
+  const ppLabel = travelers > 1 ? " / person" : "";
 
   // Shared button style for primary CTAs
   const primaryBtnStyle: React.CSSProperties = {
@@ -485,6 +491,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           country={stableCountry}
           searchName={imageSearchName ?? undefined}
           fallbackName={imageSearchName ?? destination.name ?? undefined}
+          interests={tripInput?.interests}
           className="w-full h-full"
         />
         {/* Gradient overlay — bleeds seamlessly into page background */}
@@ -586,15 +593,21 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
               style={{ gap: "8px", borderRadius: "10px" }}
             >
               {/* Large left image */}
-              <div className="row-span-2 relative overflow-hidden" style={{ borderRadius: "10px" }}>
+              <button
+                className="row-span-2 relative overflow-hidden"
+                style={{ borderRadius: "10px", cursor: "pointer", padding: 0, border: "none" }}
+                onClick={() => setLightboxIndex(0)}
+                aria-label="View photos"
+              >
                 <DestinationImage
                   name={destination.name}
                   country={stableCountry}
                   searchName={imageSearchName ?? undefined}
                   fallbackName={imageSearchName ?? destination.name ?? undefined}
+                  interests={tripInput?.interests}
                   className="w-full h-full transition-opacity duration-200 hover:opacity-85"
                 />
-              </div>
+              </button>
               {/* 4 smaller cells */}
               {[0, 1, 2, 3].map((idx) => (
                 <button
@@ -1209,7 +1222,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                       {dailyCostEur != null && (
                         <div className="flex items-center justify-between">
                           <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 400, color: "var(--muted-foreground)" }}>
-                            Estimated daily cost
+                            Daily cost{ppLabel}
                           </span>
                           <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 500, color: "var(--foreground)" }}>
                             ~{formatPrice(dailyCostEur, currency)}
@@ -1233,7 +1246,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                             style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 400, color: "var(--muted-foreground)" }}
                           >
                             <Plane className="h-3 w-3" />
-                            Flights (est.)
+                            Flights{ppLabel} (est.)
                           </span>
                           <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "14px", fontWeight: 500, color: "var(--foreground)" }}>
                             ~{formatPrice(detail.flightEstimate.roundTripEur, currency)}
@@ -1263,7 +1276,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                             ~{formatPrice(totalCostEur, currency)}
                           </p>
                           <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
-                            estimated total
+                            est. total{travelersLabel}
                           </span>
                         </div>
                       )}
@@ -1377,7 +1390,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
             >
               {/* Header */}
               <div className="pb-4 mb-4" style={{ borderBottom: "1px solid var(--border)" }}>
-                <p style={label()}>Estimated trip</p>
+                <p style={label()}>Estimated trip{travelersLabel}</p>
                 {totalCostEur != null ? (
                   <p className="font-display text-foreground" style={{ ...CLASH, fontSize: "32px", fontWeight: 600 }}>
                     ~{formatPrice(totalCostEur, currency)}
@@ -1393,7 +1406,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                         color: "var(--muted-foreground)",
                       }}
                     >
-                      /day
+                      /day{ppLabel}
                     </span>
                   </p>
                 ) : detailLoading ? (
@@ -1410,7 +1423,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                 {dailyCostEur != null && (
                   <div className="flex items-center justify-between">
                     <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 400, color: "var(--muted-foreground)" }}>
-                      Daily cost
+                      Daily cost{ppLabel}
                     </span>
                     <span style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 500, color: "var(--foreground)" }}>
                       ~{formatPrice(dailyCostEur, currency)}
@@ -1568,14 +1581,14 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                 ~{formatPrice(totalCostEur, currency)}
               </p>
               <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "11px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
-                est. total
+                est. total{travelersLabel}
               </p>
             </>
           ) : dailyCostEur != null ? (
             <>
               <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "16px", fontWeight: 600, color: "var(--foreground)", lineHeight: 1.2 }}>
                 ~{formatPrice(dailyCostEur, currency)}
-                <span style={{ fontSize: "11px", fontWeight: 400, color: "var(--muted-foreground)" }}>/day</span>
+                <span style={{ fontSize: "11px", fontWeight: 400, color: "var(--muted-foreground)" }}>/day{ppLabel}</span>
               </p>
               <p style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "11px", fontWeight: 400, color: "var(--dp-text-muted, #6B6258)" }}>
                 est. daily cost

@@ -9,6 +9,7 @@ Guidelines:
 - Provide accurate GPS coordinates (latitude, longitude) for all locations
 - Weather data should be realistic averages for the specified travel dates
 - Numeric cost fields (estimatedDailyCostEur etc.) must always be in EUR. When mentioning prices in free-text (reasoning, tips, descriptions), use the user's preferred currency if specified; otherwise default to EUR
+- COST CONVENTION: estimatedDailyCostEur is always PER PERSON (food, activities, local transport for one traveler per day, excluding accommodation and flights). This applies regardless of group size
 - Include a mix of well-known and off-the-beaten-path suggestions
 - Match scores (0-100) should genuinely reflect how well each destination matches ALL stated preferences
 - Keep reasoning concise: 1-2 sentences explaining why this destination fits
@@ -27,10 +28,10 @@ Guidelines:
 - Keep packing tips to 3 items, practical tips to 3 items
 - For meals, 1 specific recommendation per meal (brief)
 - Day tips: 1 concise sentence each
-- Accommodation estimates: average nightly EUR rate for mid-range options. Numeric cost fields always in EUR; use user's preferred currency in free-text
-- For flying trips: nearest airport IATA code, departure airport IATA code, estimated round-trip flight cost in EUR
+- Accommodation estimates: average nightly EUR rate for mid-range options (per room, not per person). Numeric cost fields always in EUR; use user's preferred currency in free-text
+- For flying trips: nearest airport IATA code, departure airport IATA code, estimated round-trip flight cost in EUR PER PERSON
 - For road trips: provide drivingEstimate (estimatedGasCostEur, estimatedTotalDriveKm, estimatedDriveHours, startingPoint). If route is 4-5+ hours from home, also include flightEstimate
-- Calculate estimatedTotalTripCostEur based on nightly rate, transport, and daily expenses
+- COST CONVENTION: estimatedDailyCostEur is PER PERSON (food, activities, local transport for one traveler). flightEstimate.roundTripEur is PER PERSON. accommodation.averageNightlyEur is PER ROOM. estimatedTotalTripCostEur is the TOTAL for ALL travelers combined (daily costs x travelers x days + accommodation + transport for all travelers)
 - Include 3-4 local insights (categories: Food & Drink, Customs, Language, Getting Around, Money, Hidden Gems, Local Tips). Keep each insight to 1-2 sentences
 - Include 2-3 local events/festivals during or near travel dates. Each needs: name, date, brief description, type (one of: festival, cultural, music, food, sports, religious, market)
 - Be concise throughout — brevity over exhaustiveness
@@ -97,12 +98,12 @@ Guidelines:
 - packingTips: 3 items. practicalTips: 3 items
 - meals: 1 specific restaurant/dish recommendation per meal (brief)
 - tips: 1 concise sentence per day
-- accommodation.averageNightlyEur: mid-range nightly EUR rate
-- For flying trips: include flightEstimate with nearest IATA airport codes
+- accommodation.averageNightlyEur: mid-range nightly EUR rate (per room, not per person)
+- For flying trips: include flightEstimate with nearest IATA airport codes. roundTripEur is PER PERSON
 - For road trips: include drivingEstimate. If route is 4-5+ hours from home, also include flightEstimate
 - localInsights: 3-4 items (categories: Food & Drink, Customs, Language, Getting Around, Money, Hidden Gems, Local Tips). 1-2 sentences each
 - localEvents: 2-3 events/festivals that occur WITHIN the user's travel dates or within 2 weeks before/after. Events must be upcoming (after today's date, provided in the prompt). Never generate past events.
-- estimatedTotalTripCostEur: based on nightly rate, transport, and daily expenses
+- COST CONVENTION: estimatedDailyCostEur is PER PERSON. flightEstimate.roundTripEur is PER PERSON. accommodation.averageNightlyEur is PER ROOM. estimatedTotalTripCostEur is the TOTAL for ALL travelers combined
 - Numeric cost fields always in EUR. Use user's preferred currency in free-text descriptions
 - Be concise throughout — brevity over exhaustiveness`;
 
@@ -124,10 +125,10 @@ Guidelines:
 - pros/cons: 3-4 each, honest assessment
 - localInsights: 3-4 items (categories: Food & Drink, Customs, Language, Getting Around, Money, Hidden Gems, Local Tips). 1-2 sentences each
 - localEvents: 2-3 events/festivals that occur WITHIN the user's travel dates or within 2 weeks before/after. Events must be upcoming (after today's date, provided in the prompt). Never generate past events.
-- accommodation.averageNightlyEur: mid-range nightly EUR rate
-- For flying trips: include flightEstimate with nearest IATA airport codes
+- accommodation.averageNightlyEur: mid-range nightly EUR rate (per room, not per person)
+- For flying trips: include flightEstimate with nearest IATA airport codes. roundTripEur is PER PERSON
 - For road trips: include drivingEstimate. If route is 4-5+ hours from home, also include flightEstimate
-- estimatedTotalTripCostEur: based on nightly rate, transport, and daily expenses
+- COST CONVENTION: estimatedDailyCostEur is PER PERSON. flightEstimate.roundTripEur is PER PERSON. accommodation.averageNightlyEur is PER ROOM. estimatedTotalTripCostEur is the TOTAL for ALL travelers combined
 - Numeric cost fields always in EUR
 - Be concise`;
 
@@ -173,6 +174,7 @@ Guidelines:
 - IMPORTANT — Fly & Drive logic: If the route region is more than ~4-5 hours drive from the user's home city, set travelMode to "fly_and_drive". The user flies to a nearby airport and hires a car locally — the road trip is the driving experience AT the destination, not the journey TO it. If within reasonable driving distance (under ~4-5 hours), set travelMode to "drive_only"
 - Coordinates should be the route's starting point or central location
 - Numeric cost fields (estimatedDailyCostEur etc.) must always be in EUR. When mentioning prices in free-text, use the user's preferred currency if specified; otherwise default to EUR
+- COST CONVENTION: estimatedDailyCostEur is always PER PERSON (food, activities, local transport for one traveler per day, excluding accommodation and flights)
 - Keep topActivities to 3-4 key highlights along the entire route
 - Keep reasoning concise: 1-2 sentences explaining the route's appeal
 - Match scores (0-100) should reflect how well the route matches ALL preferences
@@ -219,7 +221,7 @@ function buildPreferenceParts(input: TripInput): string[] {
   }
 
   if (input.travelers > 1) {
-    parts.push(`Travelers: ${input.travelers}`);
+    parts.push(`Travelers: ${input.travelers} people. Calculate estimatedTotalTripCostEur for ALL ${input.travelers} travelers combined. Daily cost and flight estimates remain per person.`);
   }
 
   if (input.interests.length > 0) {

@@ -41,8 +41,9 @@ export function getDestinationContext(slug: string): DestinationPageContext | nu
   }
 }
 
-export function destinationImageUrl(name: string, country?: string): string {
+export function destinationImageUrl(name: string, country?: string, interests?: string[]): string {
   const params = new URLSearchParams({ name });
   if (country) params.set("country", country);
+  if (interests?.length) params.set("interests", interests.slice(0, 5).join(","));
   return `/api/destination-image?${params.toString()}`;
 }

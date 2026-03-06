@@ -52,15 +52,44 @@ async function fetchGooglePlacesPhotos(
   }
 }
 
+/** Map user interests to image-search-friendly descriptors */
+function interestSearchTerms(interests: string[]): string {
+  const INTEREST_MAP: Record<string, string> = {
+    nature: "nature scenery", hiking: "hiking trail", photography: "scenic panorama",
+    beach: "beach coastline", shopping: "shopping market", food: "food market",
+    history: "historic landmark", culture: "cultural heritage", architecture: "architecture landmark",
+    nightlife: "nightlife entertainment", adventure: "adventure outdoor", wildlife: "wildlife safari",
+    skiing: "ski snow mountain", diving: "diving ocean", surfing: "surfing beach",
+    cycling: "cycling countryside", wine: "vineyard wine", art: "art gallery",
+    music: "music cultural", wellness: "spa wellness", romantic: "romantic scenic",
+    family: "family attraction", luxury: "luxury resort", backpacking: "scenic trail",
+    "road trip": "scenic drive road",
+  };
+  const terms = new Set<string>();
+  for (const interest of interests.slice(0, 3)) {
+    const key = interest.toLowerCase().trim();
+    const mapped = INTEREST_MAP[key];
+    if (mapped) { for (const w of mapped.split(" ").slice(0, 2)) terms.add(w); }
+    else terms.add(key);
+  }
+  return [...terms].slice(0, 4).join(" ");
+}
+
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
   const country = req.nextUrl.searchParams.get("country");
+  const interestsRaw = req.nextUrl.searchParams.get("interests");
 
   if (!name || !/^[\p{L}\p{N}\s,.\-'()]{1,100}$/u.test(name)) {
     return NextResponse.json({ error: "Invalid name" }, { status: 400 });
   }
 
-  const cacheKey = `${name}|${country}`;
+  const interests = interestsRaw
+    ? interestsRaw.split(",").map(s => s.trim()).filter(Boolean).slice(0, 5)
+    : [];
+  const interestTerms = interests.length ? interestSearchTerms(interests) : "";
+
+  const cacheKey = `${name}|${country}|${interestTerms}`;
   const cached = CACHE.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     return NextResponse.json({ photos: cached.photos });
@@ -70,7 +99,8 @@ export async function GET(req: NextRequest) {
   let photos: string[] = [];
 
   if (googleApiKey) {
-    const query = country ? `${name}, ${country}` : name;
+    const basePlace = country ? `${name}, ${country}` : name;
+    const query = interestTerms ? `${basePlace} ${interestTerms}` : basePlace;
     photos = await fetchGooglePlacesPhotos(query, googleApiKey);
   }
 

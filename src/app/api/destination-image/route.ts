@@ -155,11 +155,57 @@ async function fetchWikipediaSearchImage(query: string): Promise<string | null> 
   return null;
 }
 
+// ── Interest-to-query mapping ──────────────────────────────────
+
+/** Map user interests to image-search-friendly descriptors (max 2-3 terms) */
+function interestSearchTerms(interests: string[]): string {
+  const INTEREST_MAP: Record<string, string> = {
+    nature: "nature scenery landscape",
+    hiking: "hiking trail mountain",
+    photography: "scenic viewpoint panorama",
+    beach: "beach coastline ocean",
+    shopping: "shopping district market street",
+    food: "food market local cuisine street",
+    history: "historic landmark architecture",
+    culture: "cultural landmark heritage",
+    architecture: "architecture landmark building",
+    nightlife: "nightlife entertainment district",
+    adventure: "adventure outdoor activity",
+    wildlife: "wildlife safari animals",
+    skiing: "ski resort snow mountain",
+    diving: "diving coast ocean reef",
+    surfing: "surfing beach waves coast",
+    cycling: "cycling scenic route countryside",
+    wine: "vineyard wine region countryside",
+    art: "art district gallery museum",
+    music: "music venue cultural district",
+    wellness: "spa wellness resort relaxation",
+    romantic: "romantic scenic sunset",
+    family: "family attraction landmark",
+    luxury: "luxury resort destination",
+    backpacking: "scenic trail nature landscape",
+    "road trip": "scenic drive road landscape",
+  };
+
+  const terms = new Set<string>();
+  for (const interest of interests.slice(0, 3)) {
+    const key = interest.toLowerCase().trim();
+    const mapped = INTEREST_MAP[key];
+    if (mapped) {
+      for (const word of mapped.split(" ").slice(0, 2)) terms.add(word);
+    } else {
+      terms.add(key);
+    }
+  }
+  return [...terms].slice(0, 4).join(" ");
+}
+
 // ── Route handler ──────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
   const country = req.nextUrl.searchParams.get("country");
+  const interestsRaw = req.nextUrl.searchParams.get("interests");
 
   if (!name || !/^[\p{L}\p{N}\s,.\-'()]{1,100}$/u.test(name)) {
     return NextResponse.json({ error: "Invalid name" }, { status: 400 });
@@ -169,7 +215,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid country" }, { status: 400 });
   }
 
-  const cacheKey = `${name}|${country}`;
+  const interests = interestsRaw
+    ? interestsRaw.split(",").map(s => s.trim()).filter(Boolean).slice(0, 5)
+    : [];
+  const interestTerms = interests.length ? interestSearchTerms(interests) : "";
+
+  const cacheKey = `${name}|${country}|${interestTerms}`;
   const cached = CACHE.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     if (!cached.url) {
@@ -185,9 +236,11 @@ export async function GET(req: NextRequest) {
 
   // ── Primary: Google Places Photos (high quality) ──
   if (googleApiKey) {
+    const basePlace = country ? `${name} ${country}` : name;
+    const qualifier = interestTerms || "landmark outdoor";
     const queries = [
-      country ? `${name} ${country} landmark outdoor` : `${name} landmark outdoor`,
-      country ? `${name}, ${country}` : name,
+      `${basePlace} ${qualifier}`,
+      basePlace,
     ];
 
     for (const q of queries) {
@@ -209,7 +262,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (!imageUrl) {
-      const suffixes = ["landscape", "scenic view", "city skyline"];
+      const suffixes = interestTerms
+        ? [interestTerms, "landscape", "scenic view"]
+        : ["landscape", "scenic view", "city skyline"];
       for (const suffix of suffixes) {
         const searchTerms = country ? `${name} ${country} ${suffix}` : `${name} ${suffix}`;
         imageUrl = await fetchWikipediaSearchImage(searchTerms);

@@ -19,6 +19,8 @@ interface DestinationCardProps {
   onClick?: () => void;
   /** Home/departure city — used to filter it out of routeStops for image selection */
   homeCity?: string;
+  /** User interests — biases image selection toward relevant themes */
+  interests?: string[];
   // Favourites
   isFavorited?: boolean;
   favoriteId?: string | null;
@@ -56,6 +58,7 @@ export function DestinationCard({
   isSelected,
   onClick,
   homeCity,
+  interests,
   isFavorited = false,
   favoriteId = null,
   onFavoriteToggle,
@@ -109,6 +112,7 @@ export function DestinationCard({
             country={destination.country}
             searchName={firstDestStop}
             fallbackName={firstDestStop}
+            interests={interests}
             className="w-full h-full"
           />
           <div
@@ -332,7 +336,7 @@ export function DestinationCard({
         <div style={{ display: "flex", gap: "16px", marginBottom: "10px" }}>
           {destination.estimatedDailyCostEur != null && (
             <span style={{ ...DM, fontSize: "14px", fontWeight: 500, color: "var(--muted-foreground, #A89F94)" }}>
-              ~{formatPrice(destination.estimatedDailyCostEur, currency)}/day
+              ~{formatPrice(destination.estimatedDailyCostEur, currency)}/day pp
             </span>
           )}
           {destination.suggestedDuration && (
