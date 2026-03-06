@@ -24,6 +24,7 @@ const VIDEO_SOURCES = [
 export function HeroVideoBackground() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [fadingIndex, setFadingIndex] = useState<number | null>(null);
+  const [ready, setReady] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoplayBlockedRef = useRef(false);
@@ -80,7 +81,10 @@ export function HeroVideoBackground() {
   }, [activeIndex]);
 
   return (
-    <div className="hero-video-container">
+    <div
+      className="hero-video-container"
+      style={{ opacity: ready ? 1 : 0, transition: 'opacity 0.6s ease' }}
+    >
       {VIDEO_SOURCES.map((src, index) => (
         <video
           key={src}
@@ -90,7 +94,7 @@ export function HeroVideoBackground() {
           muted
           playsInline
           preload={index === activeIndex ? 'auto' : 'none'}
-          poster="/images/hero-poster.jpg"
+          onPlaying={index === 0 && !ready ? () => setReady(true) : undefined}
           onEnded={index === activeIndex ? advance : undefined}
           onError={index === activeIndex ? advance : undefined}
           className={[

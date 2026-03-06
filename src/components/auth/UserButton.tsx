@@ -30,16 +30,13 @@ export function UserButton() {
 
   if (!session?.user) {
     return (
-      <div className="flex items-center gap-3">
-        <CurrencySelector />
-        <a
-          href="/auth/signin"
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#2E2B25] text-[#A89F94] text-sm font-medium hover:border-[#2ABFBF] hover:text-[#F2EEE8] transition-colors"
-        >
-          <User className="h-4 w-4" />
-          Sign in
-        </a>
-      </div>
+      <a
+        href="/auth/signin"
+        className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#2E2B25] text-[#A89F94] text-sm font-medium hover:border-[#2ABFBF] hover:text-[#F2EEE8] transition-colors"
+      >
+        <User className="h-4 w-4" />
+        Sign in
+      </a>
     );
   }
 
@@ -47,7 +44,6 @@ export function UserButton() {
 
   return (
     <div className="flex items-center gap-3">
-      <CurrencySelector />
       <a
         href="/favorites"
         className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#2E2B25] text-[#A89F94] text-sm font-medium hover:border-[#2ABFBF] hover:text-[#F2EEE8] transition-colors"
@@ -81,6 +77,10 @@ export function UserButton() {
             </div>
 
             <div className="py-1">
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-sm text-[#A89F94]">Currency</span>
+                <CurrencySelector />
+              </div>
               <a
                 href="/favorites"
                 onClick={() => setOpen(false)}
