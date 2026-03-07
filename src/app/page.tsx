@@ -66,32 +66,49 @@ function ShowcaseScroller({
   brokenImages,
   onBrokenImage,
   onCardClick,
+  reverse = false,
+  style,
 }: {
   showcase: ShowcaseDestination[] | null;
   brokenImages: Set<string>;
   onBrokenImage: (slug: string) => void;
   onCardClick: (dest: ShowcaseDestination) => void;
+  reverse?: boolean;
+  style?: React.CSSProperties;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
   const rafRef = useRef<number>(0);
+  const initRef = useRef(false);
 
   const animate = useCallback(() => {
     const el = rowRef.current;
     if (el && !pausedRef.current) {
-      el.scrollLeft += 0.5;
-      // Loop: when scrolled past halfway (duplicated content), reset
-      if (el.scrollLeft >= el.scrollWidth / 2) {
-        el.scrollLeft = 0;
+      if (reverse) {
+        el.scrollLeft -= 0.5;
+        if (el.scrollLeft <= 0) {
+          el.scrollLeft = el.scrollWidth / 2;
+        }
+      } else {
+        el.scrollLeft += 0.5;
+        if (el.scrollLeft >= el.scrollWidth / 2) {
+          el.scrollLeft = 0;
+        }
       }
     }
     rafRef.current = requestAnimationFrame(animate);
-  }, []);
+  }, [reverse]);
 
   useEffect(() => {
+    const el = rowRef.current;
+    if (el && reverse && !initRef.current) {
+      // Start from midpoint so reverse scroll has room
+      el.scrollLeft = el.scrollWidth / 2;
+      initRef.current = true;
+    }
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [animate]);
+  }, [animate, reverse]);
 
   const items = showcase?.filter(d => !brokenImages.has(d.slug)) ?? [];
   // Duplicate items for seamless loop
@@ -103,6 +120,7 @@ function ShowcaseScroller({
     <div
       ref={rowRef}
       className="popular-trips__row"
+      style={style}
       onMouseEnter={() => { pausedRef.current = true; }}
       onMouseLeave={() => { pausedRef.current = false; }}
     >
@@ -204,16 +222,16 @@ export default function Home() {
 
         <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: 880, padding: '0 24px' }}>
           <h1 style={{
-            ...CLASH,
+            fontFamily: "'Geograph', 'Plus Jakarta Sans', sans-serif",
             fontSize: 'clamp(44px, 6vw, 80px)',
-            fontWeight: 400,
+            fontWeight: 500,
             lineHeight: 1.08,
             letterSpacing: '-0.02em',
             margin: 0,
             textShadow: '0 2px 32px rgba(0,0,0,0.5)',
           }}>
             <span style={{ color: '#F2EEE8', display: 'block' }}>Your next trip,</span>
-            <span style={{ ...HEADLINE_GRADIENT, letterSpacing: '-0.02em', display: 'block' }}>
+            <span style={{ ...HEADLINE_GRADIENT, letterSpacing: '-0.02em', display: 'block', fontWeight: 700 }}>
               planned in three questions.
             </span>
           </h1>
@@ -282,10 +300,18 @@ export default function Home() {
           </div>
 
           <ShowcaseScroller
-            showcase={showcase}
+            showcase={showcase ? showcase.filter((_, i) => i % 2 === 0) : null}
             brokenImages={brokenImages}
             onBrokenImage={(slug) => setBrokenImages(prev => new Set(prev).add(slug))}
             onCardClick={handleShowcaseCardClick}
+          />
+          <ShowcaseScroller
+            showcase={showcase ? showcase.filter((_, i) => i % 2 === 1) : null}
+            brokenImages={brokenImages}
+            onBrokenImage={(slug) => setBrokenImages(prev => new Set(prev).add(slug))}
+            onCardClick={handleShowcaseCardClick}
+            reverse
+            style={{ marginTop: 14 }}
           />
         </section>
       )}

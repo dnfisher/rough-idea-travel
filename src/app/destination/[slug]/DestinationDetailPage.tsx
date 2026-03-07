@@ -1389,7 +1389,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
 
             {/* ── 13. Generated Itinerary ── */}
             {hasItinerary && (
-              <div>
+              <div id="itinerary-section">
                 <p style={label()}>Day by day</p>
                 <p className="font-display text-foreground mb-4" style={{ ...CLASH, fontSize: "26px", fontWeight: 500 }}>
                   Your Itinerary
@@ -1492,8 +1492,8 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
               <div className="space-y-3">
                 {isAuthenticated ? (
                   <button
-                    onClick={triggerItinerary}
-                    disabled={itineraryStreaming || hasItinerary}
+                    onClick={hasItinerary ? () => document.getElementById("itinerary-section")?.scrollIntoView({ behavior: "smooth" }) : triggerItinerary}
+                    disabled={itineraryStreaming}
                     className="flex items-center justify-center gap-2 w-full disabled:opacity-60"
                     style={{
                       background: "var(--primary)",
@@ -1514,10 +1514,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
                         Generating…
                       </>
                     ) : hasItinerary ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Itinerary Generated
-                      </>
+                      "View Itinerary"
                     ) : (
                       "Generate My Itinerary"
                     )}
@@ -1632,8 +1629,8 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
         </div>
         {isAuthenticated ? (
           <button
-            onClick={triggerItinerary}
-            disabled={itineraryStreaming || hasItinerary}
+            onClick={hasItinerary ? () => document.getElementById("itinerary-section")?.scrollIntoView({ behavior: "smooth" }) : triggerItinerary}
+            disabled={itineraryStreaming}
             className="flex-shrink-0 flex items-center gap-2 disabled:opacity-50"
             style={{
               background: "var(--primary)",
