@@ -98,8 +98,8 @@ export function WishlistDetailClient({
     <div className="min-h-screen bg-surface">
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="/" className="font-logo text-3xl uppercase tracking-[-0.02em]">
-            ROUGH IDEA<span className="text-highlight">.</span>
+          <a href="/" style={{ fontFamily: "'Clash Display', system-ui, sans-serif", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground, #F2EEE8)", textDecoration: "none" }}>
+            ROUGH IDEA<span style={{ color: "var(--highlight, #E8833A)" }}>.</span>
           </a>
           <UserButton />
         </div>

@@ -17,7 +17,7 @@ export function LegalPageLayout({ title, intro, crosslinks, children }: LegalPag
       {/* Nav */}
       <header className="homepage-nav" style={{ position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 40px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <a href="/" style={{ ...CLASH, fontSize: 22, fontWeight: 600, color: '#F2EEE8', textDecoration: 'none', letterSpacing: '-0.02em' }}>
+          <a href="/" style={{ ...CLASH, fontSize: 24, fontWeight: 700, color: '#F2EEE8', textDecoration: 'none', letterSpacing: '-0.02em' }}>
             ROUGH IDEA<span style={{ color: '#E8833A' }}>.</span>
           </a>
           <Link

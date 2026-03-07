@@ -701,7 +701,6 @@ body {
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-right: 32px;
@@ -719,14 +718,10 @@ body {
   overflow: hidden;
   position: relative;
   cursor: pointer;
-  scroll-snap-align: start;
   transition: transform 0.25s ease;
   background: #252219;
 }
 
-.destination-card:first-child {
-  flex: 0 0 400px;
-}
 
 .destination-card:hover {
   transform: scale(1.02);
@@ -899,10 +894,10 @@ body {
 
 .footer__logo {
   font-family: 'Clash Display', system-ui, sans-serif;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 700;
   color: #F2EEE8;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -1966,10 +1961,10 @@ body {
 }
 
 .auth-logo {
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 24px;
+  font-weight: 700;
   color: #F2EEE8;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.02em;
   text-decoration: none;
 }
 

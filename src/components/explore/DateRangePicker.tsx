@@ -116,9 +116,11 @@ export function DateRangePicker({ startDate, endDate, onChange, className }: Dat
         <Calendar style={{ width: "15px", height: "15px", flexShrink: 0, color: "#6B6258" }} />
         <span style={{ flex: 1 }}>{triggerLabel}</span>
         {hasStart && (
-          <button
-            type="button"
+          <span
+            role="button"
+            tabIndex={0}
             onClick={handleClear}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClear(e as unknown as React.MouseEvent); }}
             aria-label="Clear dates"
             style={{
               background: "none",
@@ -131,7 +133,7 @@ export function DateRangePicker({ startDate, endDate, onChange, className }: Dat
             }}
           >
             <X style={{ width: "14px", height: "14px", color: "#6B6258" }} />
-          </button>
+          </span>
         )}
       </button>
 

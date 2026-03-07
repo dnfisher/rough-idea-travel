@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MessageSquare, MapPin, Calendar, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -61,6 +61,84 @@ interface ShowcaseDestination {
   destinationData: Record<string, unknown> | null;
 }
 
+function ShowcaseScroller({
+  showcase,
+  brokenImages,
+  onBrokenImage,
+  onCardClick,
+}: {
+  showcase: ShowcaseDestination[] | null;
+  brokenImages: Set<string>;
+  onBrokenImage: (slug: string) => void;
+  onCardClick: (dest: ShowcaseDestination) => void;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
+  const rafRef = useRef<number>(0);
+
+  const animate = useCallback(() => {
+    const el = rowRef.current;
+    if (el && !pausedRef.current) {
+      el.scrollLeft += 0.5;
+      // Loop: when scrolled past halfway (duplicated content), reset
+      if (el.scrollLeft >= el.scrollWidth / 2) {
+        el.scrollLeft = 0;
+      }
+    }
+    rafRef.current = requestAnimationFrame(animate);
+  }, []);
+
+  useEffect(() => {
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [animate]);
+
+  const items = showcase?.filter(d => !brokenImages.has(d.slug)) ?? [];
+  // Duplicate items for seamless loop
+  const displayItems = showcase === null
+    ? Array.from({ length: 8 }).map((_, i) => ({ key: `skel-${i}`, skeleton: true as const }))
+    : [...items, ...items].map((dest, i) => ({ key: `${dest.slug}-${i}`, skeleton: false as const, dest }));
+
+  return (
+    <div
+      ref={rowRef}
+      className="popular-trips__row"
+      onMouseEnter={() => { pausedRef.current = true; }}
+      onMouseLeave={() => { pausedRef.current = false; }}
+    >
+      {displayItems.map(item =>
+        item.skeleton ? (
+          <div key={item.key} className="destination-card animate-shimmer" />
+        ) : (
+          <div
+            key={item.key}
+            className="destination-card"
+            onClick={() => onCardClick(item.dest)}
+          >
+            {item.dest.imageUrl && (
+              <img
+                className="destination-card__image"
+                src={item.dest.imageUrl}
+                alt={item.dest.name}
+                loading="lazy"
+                onError={() => onBrokenImage(item.dest.slug)}
+              />
+            )}
+            <div className="destination-card__overlay" />
+            <div className="destination-card__content">
+              {item.dest.country && (
+                <p className="destination-card__country">{item.dest.country}</p>
+              )}
+              <p className="destination-card__name">{item.dest.name}</p>
+              <span className="destination-card__cta">Explore →</span>
+            </div>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
@@ -95,7 +173,7 @@ export default function Home() {
 
       {/* Nav */}
       <nav className={`homepage-nav${scrolled ? ' scrolled' : ''}`}>
-        <span style={{ ...CLASH, fontSize: 20, fontWeight: 500, color: '#F2EEE8', letterSpacing: '0.02em' }}>
+        <span style={{ ...CLASH, fontSize: 24, fontWeight: 700, color: '#F2EEE8', letterSpacing: '-0.02em' }}>
           ROUGH IDEA<span style={{ color: '#E8833A' }}>.</span>
         </span>
         <Link
@@ -194,7 +272,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section A — How It Works */}
+      {/* Section A — Popular Trips (hidden when empty or all broken) */}
+      {(showcase === null || showcase.some(d => !brokenImages.has(d.slug))) && (
+        <section className="popular-trips">
+          <div className="popular-trips__header">
+            <p className="popular-trips__eyebrow">POPULAR TRIPS</p>
+            <h2 className="popular-trips__title">Where will you go?</h2>
+            <p className="popular-trips__sub">A few trips people are planning right now.</p>
+          </div>
+
+          <ShowcaseScroller
+            showcase={showcase}
+            brokenImages={brokenImages}
+            onBrokenImage={(slug) => setBrokenImages(prev => new Set(prev).add(slug))}
+            onCardClick={handleShowcaseCardClick}
+          />
+        </section>
+      )}
+
+      {/* Section B — How It Works */}
       <section style={{ background: '#0F0E0D', padding: '100px 24px', position: 'relative', zIndex: 1 }}>
         <div style={{ maxWidth: 1080, margin: '0 auto' }}>
           <p style={{ ...SECTION_LABEL, marginBottom: 56 }}>
@@ -233,50 +329,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Section B — Popular Trips (hidden when empty or all broken) */}
-      {(showcase === null || showcase.some(d => !brokenImages.has(d.slug))) && (
-        <section className="popular-trips">
-          <div className="popular-trips__header">
-            <p className="popular-trips__eyebrow">POPULAR TRIPS</p>
-            <h2 className="popular-trips__title">Where will you go?</h2>
-            <p className="popular-trips__sub">A few trips people are planning right now.</p>
-          </div>
-
-          <div className="popular-trips__row">
-            {showcase === null
-              ? Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="destination-card animate-shimmer" />
-                ))
-              : showcase.filter(d => !brokenImages.has(d.slug)).map(dest => (
-                  <div
-                    key={dest.slug}
-                    className="destination-card"
-                    onClick={() => handleShowcaseCardClick(dest)}
-                  >
-                    {dest.imageUrl && (
-                      <img
-                        className="destination-card__image"
-                        src={dest.imageUrl}
-                        alt={dest.name}
-                        loading="lazy"
-                        onError={() => setBrokenImages(prev => new Set(prev).add(dest.slug))}
-                      />
-                    )}
-                    <div className="destination-card__overlay" />
-                    <div className="destination-card__content">
-                      {dest.country && (
-                        <p className="destination-card__country">{dest.country}</p>
-                      )}
-                      <p className="destination-card__name">{dest.name}</p>
-                      <span className="destination-card__cta">Explore →</span>
-                    </div>
-                  </div>
-                ))
-            }
-          </div>
-        </section>
-      )}
 
       {/* Section C — Secondary CTA */}
       <section className="secondary-cta">

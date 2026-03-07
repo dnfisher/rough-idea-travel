@@ -228,7 +228,7 @@ export default function ExplorePage() {
               position: "absolute",
               inset: 0,
               background:
-                "linear-gradient(to bottom, rgba(15,14,13,0.55) 0%, rgba(15,14,13,0.25) 40%, rgba(15,14,13,0.8) 100%)",
+                "linear-gradient(to bottom, rgba(15,14,13,0.7) 0%, rgba(15,14,13,0.45) 40%, rgba(15,14,13,0.85) 100%)",
             }}
           />
         </div>
@@ -265,7 +265,7 @@ export default function ExplorePage() {
                   marginBottom: "10px",
                 }}
               >
-                Where should you go?
+                Where to next?
               </h1>
               <p
                 style={{
@@ -276,7 +276,7 @@ export default function ExplorePage() {
                   lineHeight: 1.5,
                 }}
               >
-                Tell us roughly what you&apos;re after and we&apos;ll find your perfect trip.
+                Tell us what you&apos;re after — we&apos;ll match you to somewhere worth going.
               </p>
             </div>
 
