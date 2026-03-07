@@ -724,7 +724,7 @@ export function ExploreLoadingState({ skipToEnd }: Props) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 flex items-center justify-center shadow-sm">
+    <div className="flex items-center justify-center">
       <div className="loader-container">
         <div className="loader-scene" ref={sceneRef}>
           <canvas ref={canvasRef} width={680} height={520} style={{ width: "340px", height: "260px" }} />

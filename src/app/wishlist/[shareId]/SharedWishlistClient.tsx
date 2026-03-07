@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
 import { Heart, Compass } from "lucide-react";
@@ -38,14 +39,16 @@ export function SharedWishlistClient({
     window.open(`/destination/${slug}`, "_blank");
   }
 
+  const CLASH: React.CSSProperties = { fontFamily: "'Clash Display', system-ui, sans-serif" };
+
   return (
     <>
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-          <Heart className="h-4 w-4 text-red-400 fill-current" />
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#A89F94", marginBottom: 8 }}>
+          <Heart className="h-4 w-4" style={{ color: "#E87070", fill: "#E87070" }} />
           <span>Shared wishlist</span>
-          <span className="mx-1">&middot;</span>
+          <span style={{ margin: "0 4px" }}>&middot;</span>
           <span>
             {new Date(createdAt).toLocaleDateString("en-GB", {
               day: "numeric",
@@ -54,32 +57,43 @@ export function SharedWishlistClient({
             })}
           </span>
         </div>
-        <h1 className="font-display font-semibold text-2xl mb-1">{wishlistName}</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 style={{ ...CLASH, fontSize: 28, fontWeight: 600, color: "#F2EEE8", margin: "0 0 4px" }}>{wishlistName}</h1>
+        <p style={{ fontSize: 14, color: "#A89F94" }}>
           {items.length} {items.length === 1 ? "destination" : "destinations"}
         </p>
       </div>
 
       {/* Destination grid */}
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center">
-          <Heart className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-          <h2 className="font-display font-semibold text-lg mb-2">
+        <div style={{ borderRadius: 16, border: "1px solid #2E2B25", background: "#1C1A17", padding: 48, textAlign: "center" }}>
+          <Heart style={{ width: 48, height: 48, margin: "0 auto 16px", color: "rgba(168,159,148,0.3)" }} />
+          <h2 style={{ ...CLASH, fontSize: 18, fontWeight: 600, color: "#F2EEE8", marginBottom: 8 }}>
             This wishlist is empty
           </h2>
-          <p className="text-sm text-muted-foreground mb-6">
+          <p style={{ fontSize: 14, color: "#A89F94", marginBottom: 24 }}>
             No destinations have been added yet.
           </p>
           <a
             href="/explore"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 20px",
+              borderRadius: 12,
+              background: "#F2EEE8",
+              color: "#0F0E0D",
+              fontSize: 14,
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
           >
             <Compass className="h-4 w-4" />
             Explore Destinations
           </a>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
           {items.map((fav) => {
             const dest = fav.destinationData as DeepPartial<DestinationSuggestion>;
             const firstStop = dest?.itinerary?.days?.[0]?.location;
@@ -87,9 +101,11 @@ export function SharedWishlistClient({
             <div
               key={fav.id}
               onClick={() => openInNewTab(fav)}
-              className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition-all"
+              style={{ borderRadius: 16, border: "1px solid #2E2B25", background: "#1C1A17", overflow: "hidden", cursor: "pointer", transition: "transform 0.2s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.02)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
             >
-              <div className="relative h-40">
+              <div className="relative" style={{ height: 160 }}>
                 <DestinationImage
                   name={fav.destinationName}
                   country={fav.country}
@@ -97,12 +113,12 @@ export function SharedWishlistClient({
                   fallbackName={firstStop}
                   className="w-full h-full"
                 />
-                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
-                <div className="absolute bottom-3 left-3 right-3">
-                  <h3 className="font-display font-semibold text-white text-base drop-shadow-sm">
+                <div style={{ position: "absolute", inset: "auto 0 0 0", height: 80, background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)" }} />
+                <div style={{ position: "absolute", bottom: 12, left: 12, right: 12 }}>
+                  <h3 style={{ ...CLASH, fontSize: 16, fontWeight: 600, color: "#fff" }}>
                     {fav.destinationName}
                   </h3>
-                  <p className="text-xs text-white/80">{fav.country}</p>
+                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>{fav.country}</p>
                 </div>
               </div>
             </div>
