@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest) {
       .select()
       .from(showcaseDestinations)
       .orderBy(desc(showcaseDestinations.viewedAt))
-      .limit(8);
+      .limit(20);
 
     return NextResponse.json(rows);
   } catch {
