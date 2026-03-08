@@ -26,6 +26,7 @@ import {
   ChevronRight,
   CheckCircle2,
   Images,
+  Compass,
 } from "lucide-react";
 import type { DeepPartial } from "ai";
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
@@ -213,9 +214,11 @@ function GalleryShimmer() {
 
 interface DestinationDetailPageProps {
   slug: string;
+  initialContext?: DestinationPageContext;
+  sharedMode?: boolean;
 }
 
-export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
+export function DestinationDetailPage({ slug, initialContext, sharedMode }: DestinationDetailPageProps) {
   const { currency } = useCurrency();
 
   // Phase 1 context from sessionStorage
@@ -235,18 +238,23 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // Read context from sessionStorage on mount
+  // Read context from sessionStorage on mount (or use initialContext for shared trips)
   useEffect(() => {
+    if (initialContext) {
+      setCtx(initialContext);
+      return;
+    }
     const data = getDestinationContext(slug);
     if (data) {
       setCtx(data);
     } else {
       setNoContext(true);
     }
-  }, [slug]);
+  }, [slug, initialContext]);
 
   // Fire-and-forget: record this destination in the showcase on first view
   useEffect(() => {
+    if (sharedMode) return; // Don't record shared trip views
     if (!ctx?.summary.name) return;
     const name = ctx.summary.name;
     const country = ctx.summary.country ?? undefined;
@@ -256,7 +264,7 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, country, slug, imageUrl, destinationData: ctx.summary }),
     }).catch(() => {/* silent — showcase is non-critical */});
-  }, [ctx?.summary.name, slug]);
+  }, [ctx?.summary.name, slug, sharedMode]);
 
   // Memoize tripInput so hooks don't get a new reference if ctx ever updates
   const tripInput = useMemo(() => ctx?.tripInput, [ctx]);
@@ -530,16 +538,35 @@ export function DestinationDetailPage({ slug }: DestinationDetailPageProps) {
           style={{ background: "linear-gradient(to bottom, rgba(15,14,13,0.1) 0%, rgba(15,14,13,0.85) 80%, #0F0E0D 100%)" }}
         />
 
-        {/* Back button — top left */}
-        <div className="absolute top-0 inset-x-0 p-5 sm:p-7">
-          <button
-            onClick={goBack}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/30 backdrop-blur-md transition-colors hover:bg-black/50"
-            style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 500, color: "var(--muted-foreground)" }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back</span>
-          </button>
+        {/* Top bar */}
+        <div className="absolute top-0 inset-x-0 p-5 sm:p-7 flex items-center justify-between">
+          {sharedMode ? (
+            <>
+              <a
+                href="/"
+                style={{ fontFamily: "'Clash Display', system-ui, sans-serif", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", color: "#F2EEE8", textDecoration: "none", textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}
+              >
+                ROUGH IDEA<span style={{ color: "#E8833A" }}>.</span>
+              </a>
+              <a
+                href="/explore"
+                className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/30 backdrop-blur-md transition-colors hover:bg-black/50"
+                style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 500, color: "#F2EEE8", textDecoration: "none" }}
+              >
+                <Compass className="h-4 w-4" />
+                <span className="hidden sm:inline">Plan your own trip</span>
+              </a>
+            </>
+          ) : (
+            <button
+              onClick={goBack}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/30 backdrop-blur-md transition-colors hover:bg-black/50"
+              style={{ fontFamily: "var(--font-dm-sans, 'DM Sans'), sans-serif", fontSize: "13px", fontWeight: 500, color: "var(--muted-foreground)" }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+          )}
         </div>
 
         {/* Match score — top right, subtle pill */}

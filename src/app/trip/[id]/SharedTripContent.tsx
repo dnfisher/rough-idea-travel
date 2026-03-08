@@ -1,20 +1,32 @@
 "use client";
 
 import type { DestinationSuggestion } from "@/lib/ai/schemas";
-import { DestinationDetailContent } from "@/components/results/DestinationDetailContent";
+import { DestinationDetailPage } from "@/app/destination/[slug]/DestinationDetailPage";
+import { slugify } from "@/lib/destination-url";
+import type { DestinationPageContext } from "@/lib/destination-url";
 
 interface SharedTripContentProps {
   destination: DestinationSuggestion;
-  sharedDate: Date;
+  destinationName: string;
+  country: string;
 }
 
-export function SharedTripContent({ destination, sharedDate }: SharedTripContentProps) {
+export function SharedTripContent({ destination, destinationName, country }: SharedTripContentProps) {
+  const slug = slugify(destinationName);
+  const firstStop = destination.itinerary?.days?.[0]?.location;
+
+  const initialContext: DestinationPageContext = {
+    summary: { name: destinationName, country },
+    detail: destination,
+    imageSearchName: firstStop ?? destinationName,
+    stableCountry: country,
+  };
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <DestinationDetailContent
-        destination={destination}
-        sharedDate={sharedDate}
-      />
-    </div>
+    <DestinationDetailPage
+      slug={slug}
+      initialContext={initialContext}
+      sharedMode
+    />
   );
 }
