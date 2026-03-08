@@ -31,6 +31,8 @@ export function SignInModal({ isOpen, onClose, reason, onBeforeSignIn }: SignInM
 
   if (!isOpen) return null;
 
+  const callbackUrl = typeof window !== "undefined" ? encodeURIComponent(window.location.href) : "";
+
   const title =
     reason === "search_limit" ? "You're on a roll!" : "Save your favorites";
   const description =
@@ -65,7 +67,7 @@ export function SignInModal({ isOpen, onClose, reason, onBeforeSignIn }: SignInM
 
           <div className="space-y-3">
             <a
-              href="/api/auth/login?provider=google"
+              href={`/api/auth/login?provider=google&callbackUrl=${callbackUrl}`}
               onClick={() => onBeforeSignIn?.()}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border bg-background text-sm font-medium hover:bg-muted transition-colors"
             >
@@ -90,7 +92,7 @@ export function SignInModal({ isOpen, onClose, reason, onBeforeSignIn }: SignInM
               Continue with Google
             </a>
             <a
-              href="/api/auth/login?provider=github"
+              href={`/api/auth/login?provider=github&callbackUrl=${callbackUrl}`}
               onClick={() => onBeforeSignIn?.()}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-border bg-background text-sm font-medium hover:bg-muted transition-colors"
             >
